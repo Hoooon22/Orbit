@@ -27,6 +27,7 @@ import {
   writeNote,
 } from "../api";
 import type { TreeNode } from "../api";
+import { openEditors } from "../openEditors";
 import { todayStr } from "../useTodos";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -267,6 +268,15 @@ export default function Editor({
       }, 500);
     },
   });
+
+  // 검색 모달이 이 메모 본문을 바로 찾을 수 있게 편집기를 등록해 둔다
+  useEffect(() => {
+    if (!editor) return;
+    openEditors.set(path, editor);
+    return () => {
+      if (openEditors.get(path) === editor) openEditors.delete(path);
+    };
+  }, [path, editor]);
 
   useEffect(() => {
     pathRef.current = path;

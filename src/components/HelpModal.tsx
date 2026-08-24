@@ -20,7 +20,7 @@ const SECTIONS: { title: string; rows: Row[] }[] = [
     title: "이동과 검색",
     rows: [
       ["Ctrl + P", "빠른 이동 — 메모 이름을 입력해 바로 열기, 명령 실행"],
-      ["Ctrl + F", "검색 — 제목뿐 아니라 본문 내용까지 찾기"],
+      ["Ctrl + F", "검색 — 위쪽은 지금 보고 있는 메모 안의 위치, 아래쪽은 다른 메모"],
       ["Ctrl + Tab", "다음 탭으로 (Ctrl + Shift + Tab은 이전 탭)"],
       ["Ctrl + W", "탭 닫기"],
     ],

@@ -872,6 +872,7 @@ export default function App() {
 
       {searchOpen && (
         <SearchModal
+          currentPath={selected === TODO_VIEW ? null : selected}
           onClose={() => setSearchOpen(false)}
           onSelectNote={selectNote}
           onError={setError}
