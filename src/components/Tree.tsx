@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { fullTime, shortDate } from "../dates";
 import type { TreeNode } from "../api";
 
 type TreeProps = {
@@ -288,6 +289,11 @@ function TreeItem({
             <span className="chevron" />
             <span className="type-icon">📄</span>
             <span className="label">{display}</span>
+            {node.modified !== undefined && (
+              <span className="row-date" title={`수정 ${fullTime(node.modified)}`}>
+                {shortDate(node.modified)}
+              </span>
+            )}
           </button>
         )}
         {rowActions}

@@ -21,8 +21,18 @@ pub struct TreeNode {
     name: String,
     path: String,
     is_dir: bool,
+    /// 마지막 수정 시각 (epoch 밀리초). 메모 파일에만 채운다.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    modified: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     children: Option<Vec<TreeNode>>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NoteTimes {
+    created: Option<u64>,
+    modified: Option<u64>,
 }
 
 #[derive(Serialize)]
@@ -154,6 +164,13 @@ fn display_names(dir: &Path, at_root: bool) -> Result<Vec<String>, String> {
     Ok(out)
 }
 
+/// SystemTime을 화면에서 쓰기 쉬운 epoch 밀리초로 바꾼다 (1970년 이전 등 이상한 값은 버린다)
+fn epoch_millis(t: Option<std::time::SystemTime>) -> Option<u64> {
+    t?.duration_since(std::time::UNIX_EPOCH)
+        .ok()
+        .map(|d| d.as_millis() as u64)
+}
+
 fn build_tree(dir: &Path, rel_prefix: &str) -> Result<Vec<TreeNode>, String> {
     let mut dirs: Vec<TreeNode> = Vec::new();
     let mut files: Vec<TreeNode> = Vec::new();
@@ -176,6 +193,7 @@ fn build_tree(dir: &Path, rel_prefix: &str) -> Result<Vec<TreeNode>, String> {
                 name,
                 path: rel,
                 is_dir: true,
+                modified: None,
                 children: Some(children),
             });
         } else if name.to_lowercase().ends_with(".md") {
@@ -187,6 +205,7 @@ fn build_tree(dir: &Path, rel_prefix: &str) -> Result<Vec<TreeNode>, String> {
                 name,
                 path: rel,
                 is_dir: false,
+                modified: entry.metadata().ok().and_then(|m| epoch_millis(m.modified().ok())),
                 children: None,
             });
         }
@@ -305,6 +324,16 @@ fn search_dir(
 #[tauri::command]
 pub fn list_tree(root: State<NotesRoot>) -> Result<Vec<TreeNode>, String> {
     build_tree(&root.0, "")
+}
+
+/// 메모 하나의 만든 시각·수정 시각 (편집기 헤더 표시용)
+#[tauri::command]
+pub fn note_times(root: State<NotesRoot>, path: String) -> Result<NoteTimes, String> {
+    let meta = fs::metadata(resolve(&root.0, &path)?).map_err(|e| e.to_string())?;
+    Ok(NoteTimes {
+        created: epoch_millis(meta.created().ok()),
+        modified: epoch_millis(meta.modified().ok()),
+    })
 }
 
 #[tauri::command]

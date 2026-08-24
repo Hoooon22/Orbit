@@ -219,6 +219,7 @@ pub fn run() {
             set_window_opacity,
             notes::list_tree,
             notes::read_note,
+            notes::note_times,
             notes::write_note,
             notes::create_note,
             notes::create_folder,

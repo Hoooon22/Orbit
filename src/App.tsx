@@ -52,6 +52,17 @@ function collectNotePaths(nodes: TreeNode[], out: Set<string>): void {
   }
 }
 
+// 트리 안의 모든 폴더 경로 (앱을 켤 때 전부 접어 두는 데 쓴다)
+function allFolderPaths(nodes: TreeNode[], out = new Set<string>()): Set<string> {
+  for (const n of nodes) {
+    if (n.isDir) {
+      out.add(n.path);
+      if (n.children) allFolderPaths(n.children, out);
+    }
+  }
+  return out;
+}
+
 // 입력창·에디터 본문에 포커스가 있으면 Delete는 텍스트 편집용이므로 노트 삭제로 가로채면 안 된다
 function isEditableTarget(el: EventTarget | null): boolean {
   const n = el as HTMLElement | null;
@@ -156,6 +167,7 @@ export default function App() {
   );
 
   const toastTimer = useRef<number | undefined>(undefined);
+  const collapseDone = useRef(false); // 첫 트리 로드에서만 전체 접기
 
   // 할 일 목록은 사이드바 패널·전체 뷰·Ctrl+T 창이 공유한다
   const {
@@ -251,7 +263,14 @@ export default function App() {
 
   const refreshTree = useCallback(() => {
     listTree()
-      .then(setTree)
+      .then((t) => {
+        setTree(t);
+        // 앱을 켤 때는 폴더를 모두 접어 둔다 (이후 접고 펼친 상태는 그대로 둔다)
+        if (!collapseDone.current) {
+          collapseDone.current = true;
+          setCollapsed(allFolderPaths(t));
+        }
+      })
       .catch((e) => setError(String(e)));
   }, []);
 

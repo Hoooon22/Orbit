@@ -4,13 +4,17 @@ export type TreeNode = {
   name: string;
   path: string; // 노트 루트 기준 상대 경로, "/" 구분
   isDir: boolean;
+  modified?: number; // 마지막 수정 시각 (epoch ms). 메모 파일에만 있다
   children?: TreeNode[];
 };
+
+export type NoteTimes = { created?: number; modified?: number };
 
 export const QUICK_MEMO = "QuickMemo.md";
 
 export const listTree = () => invoke<TreeNode[]>("list_tree");
 export const readNote = (path: string) => invoke<string>("read_note", { path });
+export const noteTimes = (path: string) => invoke<NoteTimes>("note_times", { path });
 export const writeNote = (path: string, content: string) =>
   invoke<void>("write_note", { path, content });
 export const createNote = (dir: string) => invoke<string>("create_note", { dir });

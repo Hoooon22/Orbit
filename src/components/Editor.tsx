@@ -20,13 +20,15 @@ import type { Node as PMNode } from "@tiptap/pm/model";
 import {
   appendQuickMemo,
   listTree,
+  noteTimes,
   QUICK_MEMO,
   readNote,
   saveImage,
   saveQuickMemo,
   writeNote,
 } from "../api";
-import type { TreeNode } from "../api";
+import type { NoteTimes, TreeNode } from "../api";
+import { fullTime, relativeTime } from "../dates";
 import { openEditors } from "../openEditors";
 import { todayStr } from "../useTodos";
 
@@ -159,6 +161,7 @@ export default function Editor({
   compact,
 }: Props) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [times, setTimes] = useState<NoteTimes | null>(null); // 만든 시각·수정 시각 (헤더 표시)
   const [titleDraft, setTitleDraft] = useState("");
   const [savePop, setSavePop] = useState(false);
   const [saveFolders, setSaveFolders] = useState<TreeOpt[]>([]);
@@ -180,6 +183,12 @@ export default function Editor({
   const bodyRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef(path);
   const contentRef = useRef("");
+
+  // 저장이 끝나면 헤더의 수정 시각도 바로 따라가게 한다
+  const markSaved = () => {
+    setSaveState("saved");
+    setTimes((t) => ({ created: t?.created, modified: Date.now() }));
+  };
 
   const isQuickMemo = path === QUICK_MEMO;
   const title = isQuickMemo ? "빠른 메모" : (path.split("/").pop() ?? path).replace(/\.md$/i, "");
@@ -263,7 +272,7 @@ export default function Editor({
         pending.current = null;
         if (!p) return;
         writeNote(p.path, p.content)
-          .then(() => setSaveState("saved"))
+          .then(markSaved)
           .catch(() => setSaveState("error"));
       }, 500);
     },
@@ -283,6 +292,12 @@ export default function Editor({
     if (!editor) return;
     let stale = false; // 빠른 노트 전환 시 늦게 도착한 응답이 화면을 덮지 않도록
     setSaveState("idle");
+    setTimes(null);
+    noteTimes(path)
+      .then((t) => {
+        if (!stale) setTimes(t);
+      })
+      .catch(() => {});
     readNote(path)
       .then((text) => {
         if (stale) return;
@@ -319,7 +334,7 @@ export default function Editor({
     if (p) {
       try {
         await writeNote(p.path, p.content);
-        setSaveState("saved");
+        markSaved();
       } catch {
         setSaveState("error");
       }
@@ -560,6 +575,17 @@ export default function Editor({
             </button>
           )}
           <span className="save-state">{SAVE_LABEL[saveState]}</span>
+          {times?.modified !== undefined && (
+            <span
+              className="note-date"
+              title={
+                `수정 ${fullTime(times.modified)}` +
+                (times.created !== undefined ? ` · 만든 날짜 ${fullTime(times.created)}` : "")
+              }
+            >
+              수정 {relativeTime(times.modified)}
+            </span>
+          )}
           {isQuickMemo && (
             <>
               <button
