@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import { QUICK_MEMO, TODO_VIEW } from "../api";
-import type { Todo, TreeNode } from "../api";
-import Tree from "./Tree";
-import Favorites from "./Favorites";
-import TodoPanel from "./TodoPanel";
+import { QUICK_MEMO, TODO_VIEW } from "../../shared/api";
+import type { TreeNode } from "../../shared/api";
+import Tree from "../../modules/memo/Tree";
+import Favorites from "../../modules/memo/Favorites";
+import TodoPanel from "../../modules/todo/TodoPanel";
 
 type Props = {
   tree: TreeNode[];
@@ -13,13 +13,10 @@ type Props = {
   collapsed: Set<string>;
   renamingPath: string | null;
   favorites: string[];
-  todos: Todo[];
   theme: "dark" | "light";
-  onToggleTodo: (id: string) => void;
-  onReorderTodo: (dragged: string, target: string, before: boolean) => void;
   onQuickAddTodo: () => void;
   onToggleTheme: () => void;
-  onTogglePopup: () => void;
+  onSettings: () => void;
   onHelp: () => void;
   onSelectNote: (path: string) => void;
   onUnfavorite: (path: string) => void;
@@ -48,13 +45,10 @@ export default function Sidebar({
   collapsed,
   renamingPath,
   favorites,
-  todos,
   theme,
-  onToggleTodo,
-  onReorderTodo,
   onQuickAddTodo,
   onToggleTheme,
-  onTogglePopup,
+  onSettings,
   onHelp,
   onSelectNote,
   onUnfavorite,
@@ -89,19 +83,15 @@ export default function Sidebar({
             + 메모
           </button>
           <button
-            className="popup-mode-btn"
-            title="팝업 모드 — 항상 위에 뜨는 작은 빠른 메모 (Ctrl+Alt+P)"
-            onClick={onTogglePopup}
-          >
-            팝업
-          </button>
-          <button
             className="theme-toggle"
             title={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
             aria-label={theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환"}
             onClick={onToggleTheme}
           >
             {theme === "dark" ? "☀" : "☾"}
+          </button>
+          <button title="설정" aria-label="설정" onClick={onSettings}>
+            ⚙
           </button>
           <button title="도움말 · 단축키 (F1)" aria-label="도움말" onClick={onHelp}>
             ?
@@ -177,10 +167,7 @@ export default function Sidebar({
         />
       </nav>
       <TodoPanel
-        todos={todos}
         active={selected === TODO_VIEW}
-        onToggleDone={onToggleTodo}
-        onReorder={onReorderTodo}
         onOpenView={() => onSelectNote(TODO_VIEW)}
         onQuickAdd={onQuickAddTodo}
       />

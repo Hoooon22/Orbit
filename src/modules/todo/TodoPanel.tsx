@@ -1,14 +1,10 @@
 import { useState } from "react";
-import { deadline, todayStr } from "../useTodos";
-import type { Todo } from "../api";
-
-const PANEL_KEY = "todo-panel-open";
+import { todayStr } from "../../shared/dates";
+import { useSettings } from "../../shared/stores/settings";
+import { deadline, useTodos } from "./store";
 
 type Props = {
-  todos: Todo[];
   active: boolean; // 전체 Todo 뷰가 열려 있는지
-  onToggleDone: (id: string) => void;
-  onReorder: (dragged: string, target: string, before: boolean) => void;
   onOpenView: () => void;
   onQuickAdd: () => void;
 };
@@ -18,23 +14,16 @@ function dateLabel(d: string): string {
   return `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 }
 
-export default function TodoPanel({
-  todos,
-  active,
-  onToggleDone,
-  onReorder,
-  onOpenView,
-  onQuickAdd,
-}: Props) {
-  const [open, setOpen] = useState(() => localStorage.getItem(PANEL_KEY) !== "0");
+export default function TodoPanel({ active, onOpenView, onQuickAdd }: Props) {
+  const todos = useTodos((s) => s.todos);
+  const patch = useTodos((s) => s.patch);
+  const reorder = useTodos((s) => s.reorder);
+  const open = useSettings((s) => s.settings.todoPanelOpen);
+  const update = useSettings((s) => s.update);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<{ id: string; before: boolean } | null>(null);
 
-  const toggleOpen = () =>
-    setOpen((v) => {
-      localStorage.setItem(PANEL_KEY, v ? "0" : "1");
-      return !v;
-    });
+  const toggleOpen = () => update({ todoPanelOpen: !open });
 
   // 패널은 남은 할 일만 보여준다. 체크하면 목록에서 사라지고,
   // 완료 항목은 전체 Todo 뷰에서 확인·되돌릴 수 있다.
@@ -100,7 +89,7 @@ export default function TodoPanel({
                 onDrop={(e) => {
                   e.preventDefault();
                   if (dragId && dragId !== t.id && dropAt?.id === t.id)
-                    onReorder(dragId, t.id, dropAt.before);
+                    reorder(dragId, t.id, dropAt.before);
                   setDragId(null);
                   setDropAt(null);
                 }}
@@ -112,7 +101,7 @@ export default function TodoPanel({
                 <input
                   type="checkbox"
                   checked={false}
-                  onChange={() => onToggleDone(t.id)}
+                  onChange={() => patch(t.id, { done: true })}
                   aria-label={`완료 처리: ${t.text || "(내용 없음)"}`}
                 />
                 <button className="todo-panel-label" onClick={onOpenView} title={t.text}>

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { QUICK_MEMO, searchNotes } from "../api";
-import { openEditors } from "../openEditors";
+import { QUICK_MEMO, searchNotes } from "../../shared/api";
+import { openEditors } from "./openEditors";
 import type { ReactNode } from "react";
-import type { SearchHit } from "../api";
+import type { SearchHit } from "../../shared/api";
 
 type Props = {
   currentPath: string | null; // 지금 보고 있는 메모 (Todo 화면이면 null)

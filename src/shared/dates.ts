@@ -14,6 +14,13 @@ function sameDay(a: Date, b: Date): boolean {
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+// 로컬 시간대 기준 오늘. input[type=date]와 같은 YYYY-MM-DD 형식이라
+// 마감일 문자열과 그대로 비교할 수 있다.
+export function todayStr(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 // 편집기 헤더용: 방금 전 · 12분 전 · 3시간 전 · 어제 · 8월 20일 · 2025-11-03
 export function relativeTime(ms: number): string {
   const d = new Date(ms);

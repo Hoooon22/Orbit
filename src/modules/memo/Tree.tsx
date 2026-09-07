@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
-import { fullTime, shortDate } from "../dates";
-import type { TreeNode } from "../api";
+import { fullTime, shortDate } from "../../shared/dates";
+import type { TreeNode } from "../../shared/api";
 
 type TreeProps = {
   nodes: TreeNode[];

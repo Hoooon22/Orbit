@@ -26,11 +26,11 @@ import {
   saveImage,
   saveQuickMemo,
   writeNote,
-} from "../api";
-import type { NoteTimes, TreeNode } from "../api";
-import { fullTime, relativeTime } from "../dates";
-import { openEditors } from "../openEditors";
-import { todayStr } from "../useTodos";
+} from "../../shared/api";
+import type { NoteTimes, TreeNode } from "../../shared/api";
+import { fullTime, relativeTime, todayStr } from "../../shared/dates";
+import { useSettings } from "../../shared/stores/settings";
+import { openEditors } from "./openEditors";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
@@ -41,10 +41,14 @@ const SAVE_LABEL: Record<SaveState, string> = {
   error: "저장 실패",
 };
 
-const FONT_KEY = "editor-font-size";
 const FONT_MIN = 10;
 const FONT_MAX = 32;
 const FONT_DEFAULT = 14;
+
+// 본문 글자 크기는 설정 파일에 두어 모든 편집기(분할 창 포함)가 같은 값을 쓴다
+function setFontSize(next: number) {
+  useSettings.getState().update({ fontSize: Math.min(FONT_MAX, Math.max(FONT_MIN, next)) });
+}
 
 // 마크다운은 빈 문단을 표현할 수 없어 그냥 두면 저장→다시 읽기에서 빈 줄이 사라진다.
 // 빈 문단을 &nbsp;로 저장하고, 읽을 때 &nbsp;만 있는 문단을 빈 문단으로 되돌린다.
@@ -138,7 +142,7 @@ type Props = {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onClose?: () => void; // 분할 창일 때만 전달됨 (헤더에 닫기 버튼 표시)
-  compact?: boolean; // 팝업 모드: 헤더 없이 본문만 (저장 표시는 본문 위 작은 라벨)
+  compact?: boolean; // 오브 패널용: 헤더 없이 본문만 (저장 표시는 본문 위 작은 라벨)
 };
 
 type TreeOpt = { path: string; name: string; depth: number; isDir: boolean };
@@ -173,10 +177,7 @@ export default function Editor({
   const [appendPath, setAppendPath] = useState("");
   // 버튼을 누른 순간 본문에서 끌어 놓은 범위. null이면 빠른 메모 전체를 옮긴다.
   const [moveSel, setMoveSel] = useState<{ from: number; to: number } | null>(null);
-  const [fontSize, setFontSize] = useState(() => {
-    const v = Number(localStorage.getItem(FONT_KEY));
-    return v >= FONT_MIN && v <= FONT_MAX ? v : FONT_DEFAULT;
-  });
+  const fontSize = useSettings((s) => s.settings.fontSize);
   const timer = useRef<number | undefined>(undefined);
   const pending = useRef<{ path: string; content: string } | null>(null);
   const cancelTitle = useRef(false);
@@ -375,15 +376,11 @@ export default function Editor({
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey) return;
       e.preventDefault();
-      setFontSize((s) => Math.min(FONT_MAX, Math.max(FONT_MIN, s + (e.deltaY < 0 ? 1 : -1))));
+      setFontSize(useSettings.getState().settings.fontSize + (e.deltaY < 0 ? 1 : -1));
     };
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(FONT_KEY, String(fontSize));
-  }, [fontSize]);
 
   // Ctrl+S: 대기 중인 변경 즉시 저장, Ctrl+0: 글자 크기 기본값 복귀
   useEffect(() => {

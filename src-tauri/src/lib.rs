@@ -1,5 +1,9 @@
 mod migrate;
 mod notes;
+mod settings;
+mod store;
+
+use std::path::{Path, PathBuf};
 
 use notes::NotesRoot;
 use tauri::menu::{Menu, MenuItem};
@@ -51,6 +55,42 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
 #[tauri::command]
 fn data_root(root: tauri::State<NotesRoot>) -> String {
     root.0.to_string_lossy().into_owned()
+}
+
+// 설정 화면의 "폴더 열기": 노트 루트를 탐색기로 연다
+#[tauri::command]
+fn open_data_root(app: tauri::AppHandle, root: tauri::State<NotesRoot>) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+    app.opener()
+        .open_path(root.0.to_string_lossy(), None::<&str>)
+        .map_err(|e| e.to_string())
+}
+
+// 파일 워처 이벤트 경로를 보고 어떤 이벤트를 보낼지 정한다.
+// 점으로 시작하는 파일·폴더(.todos.json, .assets, .settings.json …)는 메모가 아니므로
+// 트리·본문을 다시 읽게 하는 notes-changed를 내지 않는다. 그중 목록 파일은 외부
+// 프로그램(동기화 등)이 고쳤을 수 있으니 해당 목록의 변경 이벤트만 낸다.
+fn classify(root: &Path, paths: &[PathBuf]) -> Vec<&'static str> {
+    let mut out: Vec<&'static str> = Vec::new();
+    for p in paths {
+        let rel = p.strip_prefix(root).unwrap_or(p);
+        let hidden = rel
+            .components()
+            .any(|c| c.as_os_str().to_string_lossy().starts_with('.'));
+        let ev = if !hidden {
+            "notes-changed"
+        } else if rel.ends_with(".todos.json") {
+            "todos-changed"
+        } else if rel.ends_with(".events.json") {
+            "events-changed"
+        } else {
+            continue;
+        };
+        if !out.contains(&ev) {
+            out.push(ev);
+        }
+    }
+    out
 }
 
 // GitHub 릴리즈의 latest.json을 확인해 새 버전이 있으면 내려받아 설치 후 재시작
@@ -165,12 +205,16 @@ pub fn run() {
                 if watcher.watch(&watch_root, RecursiveMode::Recursive).is_err() {
                     return;
                 }
-                while rx.recv().is_ok() {
-                    while rx
-                        .recv_timeout(std::time::Duration::from_millis(300))
-                        .is_ok()
-                    {}
-                    let _ = handle.emit("notes-changed", ());
+                while let Ok(first) = rx.recv() {
+                    let mut paths: Vec<PathBuf> = first.map(|e| e.paths).unwrap_or_default();
+                    while let Ok(ev) = rx.recv_timeout(std::time::Duration::from_millis(300)) {
+                        if let Ok(e) = ev {
+                            paths.extend(e.paths);
+                        }
+                    }
+                    for name in classify(&watch_root, &paths) {
+                        let _ = handle.emit(name, ());
+                    }
                 }
             });
 
@@ -211,6 +255,8 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            app.manage(settings::SettingsState(std::sync::Mutex::new(settings::load(&root))));
+            app.manage(store::ListLock(std::sync::Mutex::new(())));
             app.manage(NotesRoot(root));
             Ok(())
         })
@@ -239,11 +285,38 @@ pub fn run() {
             notes::save_quick_memo,
             notes::append_quick_memo,
             notes::save_image,
-            notes::read_todos,
-            notes::write_todos,
             notes::read_favorites,
-            notes::write_favorites
+            notes::write_favorites,
+            store::list_items,
+            store::list_add,
+            store::list_patch,
+            store::list_remove,
+            store::list_move,
+            settings::read_settings,
+            settings::write_settings,
+            open_data_root
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn classify_separates_notes_from_dot_files() {
+        let root = Path::new("C:\\docs\\Orbit");
+        let p = |s: &str| root.join(s);
+        assert_eq!(classify(root, &[p("폴더/메모.md")]), ["notes-changed"]);
+        assert_eq!(classify(root, &[p(".todos.json")]), ["todos-changed"]);
+        assert_eq!(classify(root, &[p(".events.json")]), ["events-changed"]);
+        // 설정·이미지·순서 파일과 임시 파일은 아무 이벤트도 내지 않는다
+        assert!(classify(root, &[p(".settings.json"), p(".assets/img.png"), p(".todos.json.tmp")]).is_empty());
+        // 섞여 있으면 각각 한 번씩
+        assert_eq!(
+            classify(root, &[p("a.md"), p("b.md"), p(".todos.json")]),
+            ["notes-changed", "todos-changed"]
+        );
+    }
 }

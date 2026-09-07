@@ -1,33 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { LogicalSize, PhysicalPosition, PhysicalSize } from "@tauri-apps/api/dpi";
 import {
   createFolder,
   createNote,
   deleteEntry,
-  listTree,
+  isVirtualView,
   moveEntry,
   QUICK_MEMO,
-  readFavorites,
   renameEntry,
   reorderEntry,
   restoreEntry,
-  setWindowOpacity,
+  SETTINGS_VIEW,
   TODO_VIEW,
-  writeFavorites,
-} from "./api";
-import type { TreeNode } from "./api";
-import { useTodos } from "./useTodos";
-import Sidebar from "./components/Sidebar";
-import SearchModal from "./components/SearchModal";
-import Editor from "./components/Editor";
-import TodoList from "./components/TodoList";
-import QuickAddTodo from "./components/QuickAddTodo";
-import HelpModal from "./components/HelpModal";
-import CommandPalette from "./components/CommandPalette";
-import TabBar from "./components/TabBar";
-import PopupMemo from "./components/PopupMemo";
+} from "../../shared/api";
+import type { TreeNode } from "../../shared/api";
+import { useSettings } from "../../shared/stores/settings";
+import { useError } from "../../shared/stores/error";
+import { useMemoStore } from "../../modules/memo/store";
+import { useTodos } from "../../modules/todo/store";
+import Sidebar from "./Sidebar";
+import SearchModal from "../../modules/memo/SearchModal";
+import Editor from "../../modules/memo/Editor";
+import TodoList from "../../modules/todo/TodoList";
+import QuickAddTodo from "../../modules/todo/QuickAddTodo";
+import HelpModal from "./HelpModal";
+import CommandPalette from "./CommandPalette";
+import TabBar from "./TabBar";
+import SettingsView from "./SettingsView";
 
 function parentDir(path: string): string {
   const i = path.lastIndexOf("/");
@@ -76,64 +76,46 @@ type Toast = { msg: string; undoPath?: string };
 type SplitDir = "left" | "right" | "top" | "bottom";
 type Split = { path: string; dir: SplitDir };
 
-const TABS_KEY = "open-tabs";
-const ACTIVE_TAB_KEY = "active-tab";
-const POPUP_KEY = "popup-mode";
-const OPACITY_KEY = "popup-opacity";
-const THEME_KEY = "theme";
-// 두 모드의 창 크기·위치를 따로 기억해 전환할 때마다 각자 마지막 상태로 돌아간다
-const NORMAL_BOUNDS_KEY = "normal-bounds";
-const POPUP_BOUNDS_KEY = "popup-bounds";
-const NORMAL_SIZE = new LogicalSize(1000, 700); // tauri.conf.json의 기본 창 크기
-const POPUP_SIZE = new LogicalSize(360, 460);
-
-// 이전 세션에서 열려 있던 탭 목록 (없거나 깨졌으면 빠른 메모 하나)
-function loadTabs(): string[] {
-  try {
-    const v: unknown = JSON.parse(localStorage.getItem(TABS_KEY) ?? "");
-    if (Array.isArray(v) && v.length > 0 && v.every((p): p is string => typeof p === "string"))
-      return v;
-  } catch {
-    // 기본값 사용
-  }
-  return [QUICK_MEMO];
+// 설정 파일을 읽은 뒤에야 탭·테마 같은 초기 상태를 정할 수 있으므로 그때까지는 그리지 않는다
+export default function WorkspaceGate() {
+  const loaded = useSettings((s) => s.loaded);
+  useEffect(() => {
+    void useSettings.getState().init();
+    useMemoStore.getState().init();
+    useTodos.getState().init();
+  }, []);
+  return loaded ? <Workspace /> : null;
 }
 
-// 창 크기·위치 (물리 픽셀). outerPosition/innerSize는 setPosition/setSize와 짝이 맞는다.
-type Bounds = { x: number; y: number; w: number; h: number };
+function Workspace() {
+  const settings = useSettings((s) => s.settings);
+  const updateSettings = useSettings((s) => s.update);
+  const { theme, pinned, sidebarWidth } = settings;
 
-async function saveBounds(key: string): Promise<void> {
-  const win = getCurrentWindow();
-  const [pos, size] = await Promise.all([win.outerPosition(), win.innerSize()]);
-  const b: Bounds = { x: pos.x, y: pos.y, w: size.width, h: size.height };
-  localStorage.setItem(key, JSON.stringify(b));
-}
+  const tree = useMemoStore((s) => s.tree);
+  const favorites = useMemoStore((s) => s.favorites);
+  const refreshTree = useMemoStore((s) => s.refreshTree);
+  const toggleFavorite = useMemoStore((s) => s.toggleFavorite);
+  const remapFavorites = useMemoStore((s) => s.remapFavorites);
+  const reorderFavorite = useMemoStore((s) => s.reorderFavorite);
 
-// 저장된 크기·위치로 복원한다. 저장된 값이 없으면 그 모드의 기본 크기만 적용.
-async function restoreBounds(key: string, fallback: LogicalSize): Promise<void> {
-  const win = getCurrentWindow();
-  let b: Bounds | null = null;
-  try {
-    const v = JSON.parse(localStorage.getItem(key) ?? "") as Bounds;
-    if ([v.x, v.y, v.w, v.h].every(Number.isFinite) && v.w > 0 && v.h > 0) b = v;
-  } catch {
-    // 저장된 값 없음 → 기본 크기
-  }
-  if (b) {
-    await win.setSize(new PhysicalSize(b.w, b.h));
-    await win.setPosition(new PhysicalPosition(b.x, b.y));
-  } else {
-    await win.setSize(fallback);
-  }
-}
+  // 할 일 목록은 사이드바 패널·전체 뷰·Ctrl+T 창이 공유한다
+  const todos = useTodos((s) => s.todos);
+  const addTodo = useTodos((s) => s.add);
+  const patchTodo = useTodos((s) => s.patch);
+  const removeTodo = useTodos((s) => s.remove);
+  const reorderTodo = useTodos((s) => s.reorder);
+  const pendingTodos = todos.filter((t) => !t.done).length;
 
-export default function App() {
-  const [tree, setTree] = useState<TreeNode[]>([]);
-  const [tabs, setTabs] = useState<string[]>(loadTabs);
+  const error = useError((s) => s.error);
+  const setError = useError((s) => s.setError);
+  const clearError = useError((s) => s.clear);
+
+  // 탭 상태는 설정 파일에서 시작해 바뀔 때마다 다시 적는다 (이 창이 하나뿐이라 충돌 없음)
+  const [tabs, setTabs] = useState<string[]>(() => useSettings.getState().settings.tabs);
   const [selected, setSelected] = useState<string>(() => {
-    const t = loadTabs();
-    const a = localStorage.getItem(ACTIVE_TAB_KEY);
-    return a && t.includes(a) ? a : t[0];
+    const { tabs, activeTab } = useSettings.getState().settings;
+    return tabs.includes(activeTab) ? activeTab : tabs[0];
   });
   const [targetDir, setTargetDir] = useState<string>("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -141,47 +123,17 @@ export default function App() {
   const [trashOver, setTrashOver] = useState(false);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
-  const [favorites, setFavorites] = useState<string[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const v = Number(localStorage.getItem("sidebar-width"));
-    return v >= 160 && v <= 480 ? v : 240;
-  });
   const [resizing, setResizing] = useState(false);
-  const [pinned, setPinned] = useState(() => localStorage.getItem("always-on-top") === "1");
   const [split, setSplit] = useState<Split | null>(null);
   const [splitHint, setSplitHint] = useState<SplitDir | null>(null);
-  const [popup, setPopup] = useState(() => localStorage.getItem(POPUP_KEY) === "1");
-  const [opacity, setOpacity] = useState(() => {
-    const v = Number(localStorage.getItem(OPACITY_KEY));
-    return v >= 0.3 && v <= 1 ? v : 1;
-  });
-  const [hovering, setHovering] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light">(() =>
-    localStorage.getItem(THEME_KEY) === "light" ? "light" : "dark",
-  );
 
   const toastTimer = useRef<number | undefined>(undefined);
   const collapseDone = useRef(false); // 첫 트리 로드에서만 전체 접기
-
-  // 할 일 목록은 사이드바 패널·전체 뷰·Ctrl+T 창이 공유한다
-  const {
-    todos,
-    add: addTodo,
-    patch: patchTodo,
-    remove: removeTodo,
-    reorder: reorderTodo,
-  } = useTodos();
-  const pendingTodos = todos.filter((t) => !t.done).length;
-  const toggleTodo = useCallback(
-    (id: string) => patchTodo(id, { done: true }),
-    [patchTodo],
-  );
 
   // 도움말은 다른 오버레이 위에 겹치지 않도록 열면서 나머지를 닫는다
   const openHelp = useCallback(() => {
@@ -192,65 +144,26 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("sidebar-width", String(sidebarWidth));
-  }, [sidebarWidth]);
+    updateSettings({ tabs });
+  }, [tabs, updateSettings]);
 
   useEffect(() => {
-    localStorage.setItem(TABS_KEY, JSON.stringify(tabs));
-  }, [tabs]);
+    updateSettings({ activeTab: selected });
+  }, [selected, updateSettings]);
 
-  // 테마는 html[data-theme]로 내려 CSS 변수를 바꾼다 (index.html이 첫 페인트 전에 같은 값을 미리 적용)
+  // 항상 위에 고정: 창에 반영한다 (값은 설정 파일에 있다)
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem(THEME_KEY, theme);
-  }, [theme]);
-
-  useEffect(() => {
-    localStorage.setItem(ACTIVE_TAB_KEY, selected);
-  }, [selected]);
-
-  // 항상 위에 고정: 창에 반영하고 다음 실행을 위해 저장.
-  // 팝업 모드는 고정이 전제이므로 pinned와 무관하게 항상 위에 둔다.
-  useEffect(() => {
-    localStorage.setItem("always-on-top", pinned ? "1" : "0");
     getCurrentWindow()
-      .setAlwaysOnTop(pinned || popup)
-      .catch((e) => setError(String(e)));
-  }, [pinned, popup]);
-
-  // 팝업 모드 전환: 떠나는 모드의 창 크기·위치를 저장하고 들어가는 모드의 값을 복원한다.
-  // 첫 렌더에서는 창을 옮기지 않는다 — window-state 플러그인이 복원한 위치를 존중.
-  const boundsReady = useRef(false);
-  useEffect(() => {
-    localStorage.setItem(POPUP_KEY, popup ? "1" : "0");
-    const first = !boundsReady.current;
-    boundsReady.current = true;
-    void (async () => {
-      try {
-        if (!first) await saveBounds(popup ? NORMAL_BOUNDS_KEY : POPUP_BOUNDS_KEY);
-        await getCurrentWindow().setDecorations(!popup);
-        if (!first) {
-          if (popup) await restoreBounds(POPUP_BOUNDS_KEY, POPUP_SIZE);
-          else await restoreBounds(NORMAL_BOUNDS_KEY, NORMAL_SIZE);
-        }
-      } catch (e) {
-        setError(String(e));
-      }
-    })();
-  }, [popup]);
-
-  // 창 반투명은 팝업 모드에서만. 마우스를 올리면 편집할 수 있게 잠시 또렷해진다.
-  useEffect(() => {
-    localStorage.setItem(OPACITY_KEY, String(opacity));
-    setWindowOpacity(popup && !hovering ? opacity : 1).catch((e) => setError(String(e)));
-  }, [opacity, popup, hovering]);
+      .setAlwaysOnTop(pinned)
+      .catch(setError);
+  }, [pinned, setError]);
 
   // 사이드바-본문 경계 드래그로 너비 조절
   const startResize = (e: React.MouseEvent) => {
     e.preventDefault();
     setResizing(true);
     const onMove = (ev: MouseEvent) => {
-      setSidebarWidth(Math.min(480, Math.max(160, ev.clientX)));
+      updateSettings({ sidebarWidth: Math.min(480, Math.max(160, ev.clientX)) });
     };
     const onUp = () => {
       setResizing(false);
@@ -261,46 +174,12 @@ export default function App() {
     window.addEventListener("mouseup", onUp);
   };
 
-  const refreshTree = useCallback(() => {
-    listTree()
-      .then((t) => {
-        setTree(t);
-        // 앱을 켤 때는 폴더를 모두 접어 둔다 (이후 접고 펼친 상태는 그대로 둔다)
-        if (!collapseDone.current) {
-          collapseDone.current = true;
-          setCollapsed(allFolderPaths(t));
-        }
-      })
-      .catch((e) => setError(String(e)));
-  }, []);
-
-  useEffect(refreshTree, [refreshTree]);
-
+  // 앱을 켤 때는 폴더를 모두 접어 둔다 (이후 접고 펼친 상태는 그대로 둔다)
   useEffect(() => {
-    readFavorites()
-      .then(setFavorites)
-      .catch((e) => setError(String(e)));
-  }, []);
-
-  // 즐겨찾기 배열을 갱신하고 디스크에도 반영한다. updater가 이전 배열을
-  // 그대로 돌려주면(변화 없음) 불필요한 파일 쓰기를 건너뛴다.
-  const applyFavorites = useCallback((updater: (prev: string[]) => string[]) => {
-    setFavorites((prev) => {
-      const next = updater(prev);
-      if (next !== prev) writeFavorites(next).catch((e) => setError(String(e)));
-      return next;
-    });
-  }, []);
-
-  const toggleFavorite = useCallback(
-    (path: string) => {
-      if (!path || path === QUICK_MEMO || path === TODO_VIEW) return;
-      applyFavorites((prev) =>
-        prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
-      );
-    },
-    [applyFavorites],
-  );
+    if (tree.length === 0 || collapseDone.current) return;
+    collapseDone.current = true;
+    setCollapsed(allFolderPaths(tree));
+  }, [tree]);
 
   // 이름 변경·이동으로 경로가 바뀐 탭을 새 경로로 따라가게 한다
   const remapTabs = useCallback((oldPath: string, newPath: string) => {
@@ -320,36 +199,6 @@ export default function App() {
     setSplit((s) => (s ? { ...s, path: remapPath(s.path, oldPath, newPath) } : s));
   }, []);
 
-  // 이름 변경·이동으로 경로가 바뀐 즐겨찾기를 새 경로로 따라가게 한다
-  const remapFavorites = useCallback(
-    (oldPath: string, newPath: string) => {
-      applyFavorites((prev) => {
-        let changed = false;
-        const next = prev.map((p) => {
-          const r = remapPath(p, oldPath, newPath);
-          if (r !== p) changed = true;
-          return r;
-        });
-        return changed ? next : prev;
-      });
-    },
-    [applyFavorites],
-  );
-
-  const reorderFavorite = useCallback(
-    (dragged: string, target: string, pos: "before" | "after") => {
-      applyFavorites((prev) => {
-        if (dragged === target) return prev;
-        const without = prev.filter((p) => p !== dragged);
-        const ti = without.indexOf(target);
-        if (ti === -1) return prev;
-        without.splice(pos === "before" ? ti : ti + 1, 0, dragged);
-        return without;
-      });
-    },
-    [applyFavorites],
-  );
-
   // 트리에 실제로 존재하는 메모 경로 집합
   const notePaths = useMemo(() => {
     const s = new Set<string>();
@@ -363,26 +212,24 @@ export default function App() {
     [notePaths, favorites],
   );
 
-  // 백엔드 이벤트: 외부 파일 변경 → 트리 갱신, 전역 단축키 → 빠른 메모
+  // 전역 단축키(Ctrl+Alt+M) → 빠른 메모 탭
   useEffect(() => {
-    const unChanged = listen("notes-changed", () => refreshTree()).catch(() => () => {});
     const unQuick = listen("open-quick-memo", () => {
       setTabs((prev) => (prev.includes(QUICK_MEMO) ? prev : [...prev, QUICK_MEMO]));
       setSelected(QUICK_MEMO);
       setTargetDir("");
     }).catch(() => () => {});
     return () => {
-      void unChanged.then((f) => f());
       void unQuick.then((f) => f());
     };
-  }, [refreshTree]);
+  }, []);
 
   // 오류 메시지는 6초 뒤 자동으로 사라진다 (클릭하면 즉시 닫힘)
   useEffect(() => {
     if (!error) return;
-    const t = window.setTimeout(() => setError(null), 6000);
+    const t = window.setTimeout(clearError, 6000);
     return () => window.clearTimeout(t);
-  }, [error]);
+  }, [error, clearError]);
 
   const toggleFolder = (path: string) => {
     setCollapsed((prev) => {
@@ -405,7 +252,7 @@ export default function App() {
   // 탭 목록 변경 없이 활성 탭만 바꾼다
   const activate = useCallback((path: string) => {
     setSelected(path);
-    setTargetDir(path === QUICK_MEMO || path === TODO_VIEW ? "" : parentDir(path));
+    setTargetDir(path === QUICK_MEMO || isVirtualView(path) ? "" : parentDir(path));
   }, []);
 
   // 노트를 탭으로 연다 (이미 열려 있으면 그 탭을 활성화)
@@ -474,7 +321,7 @@ export default function App() {
     if (tree.length === 0) return; // 초기 로드 전에는 판단하지 않는다
     const existing = new Set<string>();
     collectNotePaths(tree, existing);
-    const ok = (p: string) => p === QUICK_MEMO || p === TODO_VIEW || existing.has(p);
+    const ok = (p: string) => p === QUICK_MEMO || isVirtualView(p) || existing.has(p);
     setTabs((prev) => {
       if (prev.every(ok)) return prev;
       const next = prev.filter(ok);
@@ -491,12 +338,12 @@ export default function App() {
     const target = dir ?? targetDir;
     try {
       const path = await createNote(target);
-      refreshTree();
+      void refreshTree();
       expandTo(target);
       selectNote(path); // 새 메모는 탭으로 연다
       setRenamingPath(path); // 만들자마자 이름부터 입력
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
   };
 
@@ -504,27 +351,32 @@ export default function App() {
     const target = dir ?? targetDir;
     try {
       const path = await createFolder(target);
-      refreshTree();
+      void refreshTree();
       expandTo(target);
       setTargetDir(path);
       setRenamingPath(path);
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
+  };
+
+  // 이름 변경·이동·순서 변경 뒤 경로를 따라가는 공통 처리
+  const followPath = (path: string, newPath: string) => {
+    setSelected((s) => remapPath(s, path, newPath));
+    setTargetDir((d) => remapPath(d, path, newPath));
+    remapTabs(path, newPath);
+    remapFavorites(path, newPath);
+    remapSplit(path, newPath);
   };
 
   const handleRename = async (path: string, newName: string): Promise<boolean> => {
     try {
       const newPath = await renameEntry(path, newName);
-      refreshTree();
-      setSelected((s) => remapPath(s, path, newPath));
-      setTargetDir((d) => remapPath(d, path, newPath));
-      remapTabs(path, newPath);
-      remapFavorites(path, newPath);
-      remapSplit(path, newPath);
+      void refreshTree();
+      followPath(path, newPath);
       return true;
     } catch (e) {
-      setError(String(e));
+      setError(e);
       return false;
     }
   };
@@ -535,15 +387,11 @@ export default function App() {
     if (dir === path || dir.startsWith(path + "/")) return; // 자기 안으로 이동 금지
     try {
       const newPath = await moveEntry(path, dir);
-      refreshTree();
+      void refreshTree();
       expandTo(dir);
-      setSelected((s) => remapPath(s, path, newPath));
-      setTargetDir((d) => remapPath(d, path, newPath));
-      remapTabs(path, newPath);
-      remapFavorites(path, newPath);
-      remapSplit(path, newPath);
+      followPath(path, newPath);
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
   };
 
@@ -553,15 +401,11 @@ export default function App() {
     if (dir === path || dir.startsWith(path + "/")) return; // 자기 안으로 이동 금지
     try {
       const newPath = await reorderEntry(path, dir, index);
-      refreshTree();
+      void refreshTree();
       expandTo(dir);
-      setSelected((s) => remapPath(s, path, newPath));
-      setTargetDir((d) => remapPath(d, path, newPath));
-      remapTabs(path, newPath);
-      remapFavorites(path, newPath);
-      remapSplit(path, newPath);
+      followPath(path, newPath);
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
   };
 
@@ -577,7 +421,7 @@ export default function App() {
     if (!path) return;
     try {
       await deleteEntry(path);
-      refreshTree();
+      void refreshTree();
       // 삭제된 노트(또는 폴더 하위)의 탭을 닫는다. 활성 탭이 닫히면
       // "활성 탭 사라짐" 이펙트가 첫 탭으로 되돌린다.
       setTabs((prev) => {
@@ -591,7 +435,7 @@ export default function App() {
       const name = (path.split("/").pop() ?? path).replace(/\.md$/i, "");
       showToast({ msg: `"${name}" 삭제됨`, undoPath: path });
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
   };
 
@@ -601,10 +445,10 @@ export default function App() {
     setToast(null);
     try {
       await restoreEntry(path);
-      refreshTree();
+      void refreshTree();
       expandTo(parentDir(path));
     } catch (e) {
-      setError(String(e));
+      setError(e);
     }
   };
 
@@ -613,7 +457,6 @@ export default function App() {
   const actionsRef = useRef({
     selected: "",
     renaming: false,
-    popup: false,
     newNote: () => {},
     newFolder: () => {},
     del: () => {},
@@ -625,7 +468,6 @@ export default function App() {
     actionsRef.current = {
       selected,
       renaming: renamingPath !== null,
-      popup,
       newNote: () => void handleNewNote(),
       newFolder: () => void handleNewFolder(),
       del: () => void handleDelete(selected),
@@ -637,13 +479,7 @@ export default function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const a = actionsRef.current;
-      if (e.ctrlKey && e.altKey && e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        setPopup((v) => !v);
-        return;
-      }
-      // 팝업 모드에는 사이드바·탭·모달이 없으므로 나머지 단축키는 받지 않는다
-      if (a.popup) return;
+      const realNote = a.selected && a.selected !== QUICK_MEMO && !isVirtualView(a.selected);
       if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === "n") {
         e.preventDefault();
         a.newNote();
@@ -654,7 +490,7 @@ export default function App() {
         e.preventDefault();
         a.toggleHelp();
       } else if (e.key === "F2") {
-        if (a.selected && a.selected !== QUICK_MEMO && a.selected !== TODO_VIEW) {
+        if (realNote) {
           e.preventDefault();
           setRenamingPath(a.selected);
         }
@@ -675,7 +511,7 @@ export default function App() {
         a.cycleTab(e.shiftKey ? -1 : 1);
       } else if (e.key === "Delete" && !isEditableTarget(e.target)) {
         // 트리·폴더에 포커스가 있을 때만 동작(에디터 편집 중에는 위 가드가 막는다)
-        if (a.selected && a.selected !== QUICK_MEMO && a.selected !== TODO_VIEW && !a.renaming) {
+        if (realNote && !a.renaming) {
           e.preventDefault();
           a.del();
         }
@@ -685,7 +521,7 @@ export default function App() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // 분할로 열 수 있는 대상: 실제 메모 파일과 빠른 메모 (Todo 뷰·폴더 제외)
+  // 분할로 열 수 있는 대상: 실제 메모 파일과 빠른 메모 (가상 뷰·폴더 제외)
   const canSplitPath = (p: string) => p === QUICK_MEMO || notePaths.has(p);
 
   // 에디터 영역 가장자리 20~25% 안쪽이면 해당 방향, 가운데면 null
@@ -709,16 +545,28 @@ export default function App() {
     });
   };
 
-  // 팝업 모드: 사이드바·탭 없이 빠른 메모만 보이는 작은 창
-  if (popup)
+  // 탭 하나가 보여주는 화면: 가상 뷰(할 일·설정) 또는 메모 편집기
+  const renderPane = (path: string) => {
+    if (path === TODO_VIEW)
+      return (
+        <TodoList
+          todos={todos}
+          onAdd={addTodo}
+          onPatch={patchTodo}
+          onRemove={removeTodo}
+          onReorder={reorderTodo}
+        />
+      );
+    if (path === SETTINGS_VIEW) return <SettingsView />;
     return (
-      <PopupMemo
-        opacity={opacity}
-        onOpacityChange={setOpacity}
-        onHoverChange={setHovering}
-        onExit={() => setPopup(false)}
+      <Editor
+        path={path}
+        onRename={(name) => handleRename(path, name)}
+        isFavorite={favorites.includes(path)}
+        onToggleFavorite={() => toggleFavorite(path)}
       />
     );
+  };
 
   return (
     <div className="app" style={{ gridTemplateColumns: `${sidebarWidth}px 1fr` }}>
@@ -730,13 +578,10 @@ export default function App() {
         collapsed={collapsed}
         renamingPath={renamingPath}
         favorites={visibleFavorites}
-        todos={todos}
         theme={theme}
-        onToggleTodo={toggleTodo}
-        onReorderTodo={reorderTodo}
         onQuickAddTodo={() => setQuickAddOpen(true)}
-        onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-        onTogglePopup={() => setPopup(true)}
+        onToggleTheme={() => updateSettings({ theme: theme === "dark" ? "light" : "dark" })}
+        onSettings={() => selectNote(SETTINGS_VIEW)}
         onHelp={openHelp}
         onSelectNote={selectNote}
         onUnfavorite={toggleFavorite}
@@ -813,32 +658,15 @@ export default function App() {
           onCloseOthers={closeOtherTabs}
           onCloseRight={closeRightTabs}
           onReorder={reorderTab}
-          onTogglePin={() => setPinned((v) => !v)}
+          onTogglePin={() => updateSettings({ pinned: !pinned })}
         />
         {error && (
-          <div className="error" onClick={() => setError(null)}>
+          <div className="error" onClick={clearError}>
             {error}
           </div>
         )}
         <div className={"panes" + (split ? " split-" + split.dir : "")}>
-          <div className="pane">
-            {selected === TODO_VIEW ? (
-              <TodoList
-                todos={todos}
-                onAdd={addTodo}
-                onPatch={patchTodo}
-                onRemove={removeTodo}
-                onReorder={reorderTodo}
-              />
-            ) : (
-              <Editor
-                path={selected}
-                onRename={(name) => handleRename(selected, name)}
-                isFavorite={favorites.includes(selected)}
-                onToggleFavorite={() => toggleFavorite(selected)}
-              />
-            )}
-          </div>
+          <div className="pane">{renderPane(selected)}</div>
           {split && (
             <div className="pane split-pane">
               <Editor
@@ -891,7 +719,7 @@ export default function App() {
 
       {searchOpen && (
         <SearchModal
-          currentPath={selected === TODO_VIEW ? null : selected}
+          currentPath={isVirtualView(selected) ? null : selected}
           onClose={() => setSearchOpen(false)}
           onSelectNote={selectNote}
           onError={setError}

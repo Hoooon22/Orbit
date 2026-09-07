@@ -58,13 +58,13 @@
 
 사이드바 아래 Todo 패널에 남은 할 일이 보입니다. <kbd>Ctrl</kbd>+<kbd>T</kbd>로 어디서든 추가하고, 패널의 제목을 누르면 완료 항목과 날짜까지 다루는 전체 화면이 열립니다.
 
-### 팝업 모드
+### 설정과 테마
 
-사이드바의 **팝업** 버튼(또는 <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd>)을 누르면 빠른 메모만 보이는 작은 창이 항상 다른 창 위에 뜹니다. 슬라이더로 창 투명도를 조절할 수 있고, 마우스를 올리면 잠시 또렷해집니다. 팝업 창과 기본 창의 크기·위치는 각각 따로 기억됩니다.
+사이드바의 ⚙ 버튼(또는 <kbd>Ctrl</kbd>+<kbd>P</kbd> → 설정)에서 테마, 창 항상 위에 고정, 본문 글자 크기를 바꿉니다. 탭 바 오른쪽 끝의 📌으로도 고정을 켜고 끕니다. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
 
-### 테마
+사이드바의 ☀/☾ 버튼으로 다크·라이트를 바로 전환합니다. 라이트 테마는 오래 봐도 눈이 편하도록 순백 대신 따뜻한 오프화이트 바탕에 본문 대비를 약 11:1로 잡았습니다.
 
-사이드바의 ☀/☾ 버튼으로 다크·라이트를 전환합니다. 라이트 테마는 오래 봐도 눈이 편하도록 순백 대신 따뜻한 오프화이트 바탕에 본문 대비를 약 11:1로 잡았습니다.
+이전 버전의 팝업 모드(빠른 메모만 보이는 작은 창)는 다음 단계의 플로팅 오브가 그 역할을 이어받을 예정이라 빠졌습니다.
 
 ## 메모가 저장되는 곳
 
@@ -75,7 +75,8 @@
 ├─ .assets\            붙여 넣은 이미지
 ├─ .todos.json         할 일
 ├─ .favorites.json     즐겨찾기 (배열 순서 = 표시 순서)
-└─ .order.json         드래그로 바꾼 표시 순서
+├─ .order.json         드래그로 바꾼 표시 순서
+└─ .settings.json      설정 (테마·글자 크기·열린 탭 등)
 ```
 
 `.`으로 시작하는 파일은 앱 화면에 나오지 않습니다.
@@ -111,15 +112,24 @@ cd src-tauri && cargo test
 ```
 
 ```
-src/                  React 화면
-├─ App.tsx            전역 상태·단축키·탭·분할
-├─ api.ts             Tauri 커맨드 래퍼
-└─ components/        사이드바, 트리, 편집기, 검색, 할 일 …
+index.html / orb.html           창마다 HTML 엔트리 하나 (워크스페이스 / 오브)
+src/
+├─ shared/                      api.ts(Tauri 커맨드 래퍼), stores/(설정·오류), dates, fuzzy, styles.css
+├─ modules/
+│  ├─ memo/                     편집기, 트리, 즐겨찾기, 검색, store(트리·즐겨찾기 캐시)
+│  └─ todo/                     할 일 패널·전체 화면·빠른 추가, store
+└─ windows/
+   ├─ workspace/                Workspace.tsx(탭·분할·단축키), 사이드바, 탭 바, 팔레트, 설정, 도움말
+   └─ orb/                      플로팅 오브 (준비 중)
 src-tauri/src/
-├─ lib.rs             트레이, 전역 단축키, 창 관리, 파일 워처
-├─ notes.rs           메모 파일 읽기·쓰기·이동·검색
-└─ migrate.rs         DesktopMemo → Orbit 폴더 이동, 옛 설치본 제거 안내
+├─ lib.rs                       트레이, 전역 단축키, 창 관리, 파일 워처
+├─ notes.rs                     메모 파일 읽기·쓰기·이동·검색
+├─ store.rs                     .todos.json 같은 목록 파일을 항목 단위로 고치고 변경 이벤트 발송
+├─ settings.rs                  .settings.json
+└─ migrate.rs                   DesktopMemo → Orbit 폴더 이동, 옛 설치본 제거 안내
 ```
+
+데이터의 진실은 항상 파일이고 Rust가 고칩니다. 화면 쪽 스토어(zustand)는 읽기 캐시라서, 창이 여럿이어도 `todos-changed` 같은 이벤트를 받아 같은 내용을 봅니다.
 
 앱 아이콘은 `app-icon.svg`가 원본입니다. 고치면 `npm run tauri icon app-icon.svg`로 `src-tauri/icons/`를 다시 만듭니다.
 
@@ -128,8 +138,8 @@ src-tauri/src/
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.2.0
-git push origin v0.2.0
+git tag v0.3.0
+git push origin v0.3.0
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.

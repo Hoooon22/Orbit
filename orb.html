@@ -4,11 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Orbit</title>
+    <!-- 오브 창은 투명해야 하므로 index.html과 달리 바탕색을 칠하지 않는다 -->
     <style>
-      html { background: #16181d; }
-      html[data-theme="light"] { background: #faf9f6; }
+      html, body, #root { background: transparent; margin: 0; height: 100%; }
     </style>
-    <!-- 첫 페인트 전에 저장된 테마를 적용해 앱이 뜰 때 반대 색이 번쩍이지 않게 한다 -->
     <script>
       try {
         document.documentElement.dataset.theme =
@@ -18,6 +17,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/windows/workspace/main.tsx"></script>
+    <script type="module" src="/src/windows/orb/main.tsx"></script>
   </body>
 </html>

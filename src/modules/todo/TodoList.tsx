@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { sortDoneLast } from "../useTodos";
-import type { Todo } from "../api";
+import { sortDoneLast } from "./store";
+import type { Todo } from "../../shared/api";
 
 type Props = {
   todos: Todo[];

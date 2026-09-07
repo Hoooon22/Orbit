@@ -191,25 +191,11 @@ button {
   color: var(--fg);
 }
 
-/* 팝업 모드 버튼은 옆의 다른 버튼에 묻히지 않도록 강조한다 */
-.sidebar-actions .popup-mode-btn {
-  background: var(--bg-active);
-  border: 1px solid var(--border);
-  color: var(--accent);
-  font-weight: 600;
-}
-
 /* 해·달 글리프는 글자보다 작아 보여 한 단계 키운다 */
 .sidebar-actions .theme-toggle {
   font-size: 14px;
   line-height: 1;
   padding: 4px 6px;
-}
-
-.sidebar-actions .popup-mode-btn:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--on-accent);
 }
 
 .pinned {
@@ -1802,62 +1788,95 @@ button {
   cursor: pointer;
 }
 
-/* ── 팝업 모드 ────────────────────────── */
-/* 항상 위에 뜨는 작은 빠른 메모 창. 창 테두리가 없어 상단 바를 끌어 옮긴다. */
+/* ── 설정 화면 ────────────────────────── */
 
-.popup-app {
+.settings-view {
   display: flex;
   flex-direction: column;
   height: 100%;
-  border: 1px solid var(--border); /* 프레임이 없으므로 바탕화면과의 경계선 */
+  overflow: hidden;
 }
 
-.popup-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  padding: 5px 5px 5px 10px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-}
-
-.popup-title {
+.settings-body {
   flex: 1;
-  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 24px 40px;
+  max-width: 640px;
+}
+
+.settings-section h3 {
+  margin: 18px 0 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--fg-dim);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.4px;
 }
 
-.opacity-slider {
-  flex-shrink: 0;
-  width: 70px;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.popup-btn {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
   font-size: 13px;
-  line-height: 1;
-  text-align: center;
+}
+
+.settings-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.settings-row small {
   color: var(--fg-dim);
+  font-size: 11px;
+  word-break: break-all;
 }
 
-.popup-btn:hover {
-  background: var(--bg-hover);
+.settings-row select,
+.settings-row input[type="number"] {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
   color: var(--fg);
+  font-size: 13px;
 }
 
-/* 팝업 모드 에디터: 헤더가 없어 저장 표시만 본문 위에 겹쳐 띄운다 */
+.settings-row input[type="number"] {
+  width: 64px;
+}
+
+.settings-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.settings-row button {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--fg);
+  font-size: 12px;
+}
+
+.settings-row button:hover {
+  background: var(--bg-hover);
+}
+
+.settings-note {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--fg-dim);
+  line-height: 1.5;
+}
+
+/* 컴팩트 에디터(오브 패널용): 헤더가 없어 저장 표시만 본문 위에 겹쳐 띄운다 */
 .editor.compact {
   position: relative;
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { QUICK_MEMO, TODO_VIEW } from "../api";
+import { isVirtualView, QUICK_MEMO, SETTINGS_VIEW, TODO_VIEW } from "../../shared/api";
 
 type Props = {
   tabs: string[];
@@ -20,6 +20,7 @@ type Menu = { x: number; y: number; path: string | null };
 function tabLabel(path: string): string {
   if (path === QUICK_MEMO) return "⚡ 빠른 메모";
   if (path === TODO_VIEW) return "☑️ Todo";
+  if (path === SETTINGS_VIEW) return "⚙️ 설정";
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 
@@ -70,7 +71,7 @@ export default function TabBar({
             (p === selected ? " selected" : "") +
             (dropAt?.path === p ? (dropAt.before ? " drop-before" : " drop-after") : "")
           }
-          title={p === QUICK_MEMO || p === TODO_VIEW ? undefined : p}
+          title={p === QUICK_MEMO || isVirtualView(p) ? undefined : p}
           draggable
           onClick={() => onSelect(p)}
           onContextMenu={(e) => openMenu(e, p)}

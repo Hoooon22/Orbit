@@ -2,12 +2,11 @@ use std::cmp::Ordering;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use tauri::State;
 
 pub const QUICK_MEMO: &str = "QuickMemo.md";
 
-const TODO_FILE: &str = ".todos.json";
 const ASSETS_DIR: &str = ".assets";
 const FAVORITES_FILE: &str = ".favorites.json";
 const ORDER_FILE: &str = ".order.json";
@@ -41,17 +40,6 @@ pub struct SearchHit {
     path: String,
     name: String,
     snippet: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Todo {
-    id: String,
-    text: String,
-    done: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    start: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    end: Option<String>,
 }
 
 /// 노트 루트 기준 상대 경로만 허용한다 (".."·절대 경로 거부).
@@ -684,22 +672,6 @@ pub fn save_image(root: State<NotesRoot>, data: Vec<u8>, ext: String) -> Result<
         }
     }
     Err("사용 가능한 이름을 찾지 못했습니다".into())
-}
-
-#[tauri::command]
-pub fn read_todos(root: State<NotesRoot>) -> Result<Vec<Todo>, String> {
-    let p = root.0.join(TODO_FILE);
-    if !p.exists() {
-        return Ok(vec![]);
-    }
-    let text = fs::read_to_string(p).map_err(|e| e.to_string())?;
-    serde_json::from_str(&text).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-pub fn write_todos(root: State<NotesRoot>, todos: Vec<Todo>) -> Result<(), String> {
-    let text = serde_json::to_string_pretty(&todos).map_err(|e| e.to_string())?;
-    fs::write(root.0.join(TODO_FILE), text).map_err(|e| e.to_string())
 }
 
 /// 즐겨찾기한 메모의 상대경로 목록. 배열 순서가 곧 표시 순서다.
