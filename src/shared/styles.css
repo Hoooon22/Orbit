@@ -2635,7 +2635,7 @@ button {
 
 .orb-badge.events {
   top: auto;
-  bottom: -2px;
+  bottom: 6px;
   background: #7aa2f7;
   color: #10131a;
 }
@@ -2975,16 +2975,14 @@ body.orb-window {
   height: 100%;
 }
 
+/* 행성 오브: 구체와 궤도 고리는 SVG로 그리고, 시각은 그 위에 겹친다 */
 .orb {
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 32%, #9d8cff 0%, #5b4bd6 45%, #231b5c 100%);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  width: 72px;
+  height: 72px;
   color: #fff;
   cursor: grab;
   transition: transform 120ms ease-out;
@@ -2998,17 +2996,27 @@ body.orb-window {
   cursor: grabbing;
 }
 
+.orb-planet {
+  position: absolute;
+  inset: 0;
+  width: 72px;
+  height: 72px;
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+  pointer-events: none;
+}
+
 .clock-orb {
-  font-size: 13px;
-  font-weight: 600;
+  position: relative;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .orb-badge {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: 6px;
+  right: 6px;
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
