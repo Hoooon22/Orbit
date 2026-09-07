@@ -194,6 +194,7 @@ export type Settings = {
   clipboardEnabled: boolean; // 클립보드 기록
   shortcutQuickMemo: string; // 전역 단축키 (예: "ctrl+alt+m"). 비우면 없음
   shortcutLauncher: string;
+  googleHiddenTitles: string[]; // 제목에 이 단어가 들어간 구글 일정은 Orbit에서 숨김
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");

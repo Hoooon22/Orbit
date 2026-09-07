@@ -19,6 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   clipboardEnabled: true,
   shortcutQuickMemo: "ctrl+alt+m",
   shortcutLauncher: "alt+space",
+  googleHiddenTitles: [],
 };
 
 type SettingsStore = {

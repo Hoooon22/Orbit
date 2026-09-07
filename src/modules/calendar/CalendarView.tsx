@@ -5,7 +5,7 @@ import { useMemoStore } from "../memo/store";
 import { flattenNotes, noteName } from "../memo/flatten";
 import { deadline, useTodos } from "../todo/store";
 import { useEvents } from "./store";
-import { useAllEvents, useGoogle } from "./googleStore";
+import { hideTitle, useAllEvents, useGoogle } from "./googleStore";
 import MonthGrid from "./MonthGrid";
 import { dday, ddayLabel, eventsOn, monthOf, shortLabel } from "./calendar";
 
@@ -225,6 +225,17 @@ export default function CalendarView({ initialDate, onOpenNote, onOpenSettings }
               <div className="calendar-form-actions">
                 <button type="button" onClick={() => setDetail(null)}>
                   닫기
+                </button>
+                <button
+                  type="button"
+                  className="danger"
+                  title="같은 제목의 구글 일정을 Orbit에서 모두 숨깁니다 (구글에는 그대로). 설정에서 되돌릴 수 있습니다."
+                  onClick={() => {
+                    hideTitle(detail.title);
+                    setDetail(null);
+                  }}
+                >
+                  이 제목 숨기기
                 </button>
               </div>
             </div>

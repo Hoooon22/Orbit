@@ -31,6 +31,8 @@ pub struct Settings {
     /// 전역 단축키 (tauri-plugin-global-shortcut 표기, 예: "ctrl+alt+m"). 비우면 등록하지 않는다.
     pub shortcut_quick_memo: String,
     pub shortcut_launcher: String,
+    /// 구글 일정 중 제목에 이 단어가 들어가면 Orbit에서 숨긴다 (구글에는 그대로). 대소문자 무시.
+    pub google_hidden_titles: Vec<String>,
 }
 
 impl Default for Settings {
@@ -50,6 +52,7 @@ impl Default for Settings {
             clipboard_enabled: true,
             shortcut_quick_memo: "ctrl+alt+m".into(),
             shortcut_launcher: "alt+space".into(),
+            google_hidden_titles: Vec::new(),
         }
     }
 }

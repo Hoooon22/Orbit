@@ -12,6 +12,7 @@ import {
 } from "../../shared/api";
 import type { CalEvent, GEvent, GoogleStatus } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
+import { useSettings } from "../../shared/stores/settings";
 import { useEvents } from "./store";
 
 // 구글 일정을 로컬 일정과 같은 모양으로 (같은 달력·목록 코드를 그대로 쓰기 위해)
@@ -118,9 +119,27 @@ export const useGoogle = create<GoogleStore>((set) => {
   };
 });
 
-// 달력·목록에 보여 줄 전체 일정 = 로컬(.events.json) + 구글
+// 숨김 단어가 제목에 들어간 구글 일정인지 (대소문자 무시)
+export function isHiddenTitle(title: string, hidden: string[]): boolean {
+  const t = title.toLowerCase();
+  return hidden.some((h) => h.trim() && t.includes(h.trim().toLowerCase()));
+}
+
+// 달력·목록에 보여 줄 전체 일정 = 로컬(.events.json) + 구글(숨김 단어 제외)
 export function useAllEvents(): CalEvent[] {
   const local = useEvents((s) => s.events);
   const google = useGoogle((s) => s.events);
-  return useMemo(() => [...local, ...google], [local, google]);
+  const hidden = useSettings((s) => s.settings.googleHiddenTitles);
+  return useMemo(
+    () => [...local, ...google.filter((g) => !isHiddenTitle(g.title, hidden))],
+    [local, google, hidden],
+  );
+}
+
+// 제목 하나를 숨김 목록에 더한다 (이미 있으면 그대로)
+export function hideTitle(title: string) {
+  const s = useSettings.getState();
+  const t = title.trim();
+  if (!t || s.settings.googleHiddenTitles.some((h) => h.toLowerCase() === t.toLowerCase())) return;
+  s.update({ googleHiddenTitles: [...s.settings.googleHiddenTitles, t] });
 }

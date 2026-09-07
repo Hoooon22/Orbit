@@ -2504,6 +2504,17 @@ button {
   gap: 4px;
 }
 
+.settings-hidden-titles {
+  width: 240px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12.5px;
+}
+
 .settings-google-actions {
   display: flex;
   gap: 6px;

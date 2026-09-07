@@ -35,6 +35,8 @@ export default function SettingsView({ onOpenLauncher }: Props) {
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [gMsg, setGMsg] = useState("");
+  // 숨김 단어는 쉼표로 적고, 입력이 끝나면(포커스 아웃) 저장한다
+  const [hiddenDraft, setHiddenDraft] = useState(settings.googleHiddenTitles.join(", "));
   // 자동 시작은 설정 파일이 아니라 OS(레지스트리 Run 키)가 진실이라 매번 물어본다
   const [autostart, setAutostartState] = useState<boolean | null>(null);
 
@@ -247,6 +249,29 @@ export default function SettingsView({ onOpenLauncher }: Props) {
               </div>
             </div>
           ))}
+          <label className="settings-row">
+            <span>
+              Orbit에서 숨길 구글 일정 제목
+              <small>
+                제목에 이 단어가 들어가면 안 보입니다 (구글에는 그대로). 쉼표로 여러 개. 캘린더 화면의 구글 일정 상세에서 "이 제목 숨기기"로도 추가됩니다.
+              </small>
+            </span>
+            <input
+              className="settings-hidden-titles"
+              value={hiddenDraft}
+              placeholder="예: office, 출근"
+              spellCheck={false}
+              onChange={(e) => setHiddenDraft(e.target.value)}
+              onBlur={() =>
+                update({
+                  googleHiddenTitles: hiddenDraft
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          </label>
           <div className="settings-row">
             <span>
               <small>
