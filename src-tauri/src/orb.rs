@@ -42,6 +42,9 @@ fn strip_caption_hwnd(hwnd: windows::Win32::Foundation::HWND) -> Result<(), Stri
         GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED,
         SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_SYSMENU,
     };
+    use windows::Win32::Graphics::Gdi::{
+        RedrawWindow, RDW_ALLCHILDREN, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
+    };
     let unwanted = (WS_CAPTION.0 | WS_SYSMENU.0) as isize;
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
@@ -57,6 +60,14 @@ fn strip_caption_hwnd(hwnd: windows::Win32::Foundation::HWND) -> Result<(), Stri
                 SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE,
             )
             .map_err(|e| e.to_string())?;
+            // 스타일만 바꾸면 Windows가 예전 제목 표시줄 그림을 캐시한 채 계속 보여 준다.
+            // 프레임까지 다시 그리게 해야 "Orbit Orb" 글자가 사라진다.
+            let _ = RedrawWindow(
+                Some(hwnd),
+                None,
+                None,
+                RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN | RDW_UPDATENOW,
+            );
         }
     }
     Ok(())
