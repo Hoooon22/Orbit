@@ -440,6 +440,19 @@ fn map_event(item: &Value, account: &str, calendar: &GCalendar) -> Option<GEvent
     })
 }
 
+/// URL 경로 한 조각으로 쓸 수 있게 퍼센트 인코딩. 캘린더 ID에는 '@'뿐 아니라
+/// 공휴일 캘린더처럼 '#'도 들어가서(ko.south_korea#holiday@…) 그대로 두면 조각(fragment)으로 잘린다.
+fn path_segment(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
+}
+
 fn fetch_events(token: &str, account: &str, cal: &GCalendar) -> Result<Vec<GEvent>, String> {
     use chrono::{Duration as CDur, SecondsFormat, Utc};
     let now = Utc::now();
@@ -447,11 +460,7 @@ fn fetch_events(token: &str, account: &str, cal: &GCalendar) -> Result<Vec<GEven
     let time_max = (now + CDur::days(FUTURE_DAYS)).to_rfc3339_opts(SecondsFormat::Secs, true);
     let base = format!(
         "https://www.googleapis.com/calendar/v3/calendars/{}/events",
-        reqwest::Url::parse("http://x/")
-            .unwrap()
-            .join(&cal.id)
-            .map(|u| u.path().trim_start_matches('/').to_string())
-            .unwrap_or_else(|_| cal.id.clone())
+        path_segment(&cal.id)
     );
     let mut out = Vec::new();
     let mut page: Option<String> = None;
@@ -677,6 +686,22 @@ mod tests {
         assert!(ev.end_time.is_some());
         let gone = json!({"id": "e4", "status": "cancelled", "start": {"date": "2026-09-10"}});
         assert!(map_event(&gone, "a@x", &cal()).is_none());
+    }
+
+    #[test]
+    fn calendar_id_is_percent_encoded_for_path() {
+        assert_eq!(
+            path_segment("ko.south_korea#holiday@group.v.calendar.google.com"),
+            "ko.south_korea%23holiday%40group.v.calendar.google.com"
+        );
+        assert_eq!(path_segment("a@b.c"), "a%40b.c");
+        let url = reqwest::Url::parse(&format!(
+            "https://www.googleapis.com/calendar/v3/calendars/{}/events",
+            path_segment("x#y@z")
+        ))
+        .unwrap();
+        assert!(url.fragment().is_none());
+        assert!(url.path().ends_with("/calendars/x%23y%40z/events"));
     }
 
     #[test]
