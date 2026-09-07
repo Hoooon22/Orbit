@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { setWindowOpacity, toggleDashboard } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
@@ -11,7 +11,6 @@ import Orb from "./Orb";
 // 오브 창: 화면 구석의 구슬 하나. 클릭하면 Orbit 대시보드 창을 열고 닫는다.
 export default function OrbApp() {
   const loaded = useSettings((s) => s.loaded);
-  const [hover, setHover] = useState(false);
   const opacity = useSettings((s) => s.settings.orbOpacity);
 
   useEffect(() => {
@@ -20,6 +19,14 @@ export default function OrbApp() {
     useEvents.getState().init(); // 오브의 오늘 일정 개수
     useGoogle.getState().init();
   }, []);
+
+  // 투명도는 창(레이어드 윈도우)이 아니라 구슬 그림(CSS)에 건다.
+  // 투명 창에 레이어드 알파를 씌우면 WebView2 뒤에 어두운 사각 배경이 생긴다.
+  // 예전 버전이 남긴 레이어드 상태가 있을 수 있어 시작할 때 한 번 되돌린다.
+  useEffect(() => {
+    if (!loaded) return;
+    setWindowOpacity(1).catch(() => {});
+  }, [loaded]);
 
   // 끌어 옮기면 위치 저장 (이동이 멈추고 500ms 뒤)
   useEffect(() => {
@@ -39,12 +46,6 @@ export default function OrbApp() {
     };
   }, []);
 
-  // 오브는 반투명. 마우스를 올리면 또렷하게.
-  useEffect(() => {
-    if (!loaded) return;
-    setWindowOpacity(hover ? 1 : opacity).catch(() => {});
-  }, [loaded, hover, opacity]);
-
   if (!loaded) return null;
-  return <Orb onActivate={() => toggleDashboard().catch(reportError)} onHover={setHover} />;
+  return <Orb opacity={opacity} onActivate={() => toggleDashboard().catch(reportError)} />;
 }

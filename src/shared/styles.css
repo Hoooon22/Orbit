@@ -2985,7 +2985,7 @@ body.orb-window {
   height: 72px;
   color: #fff;
   cursor: grab;
-  transition: transform 120ms ease-out;
+  transition: transform 120ms ease-out, opacity 150ms ease-out;
 }
 
 .orb:hover {

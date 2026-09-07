@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { todayStr } from "../../shared/dates";
 import { pendingNow, useTodos } from "../../modules/todo/store";
@@ -7,19 +7,20 @@ import { eventsOn } from "../../modules/calendar/calendar";
 import Clock from "../../modules/calendar/Clock";
 
 type Props = {
+  opacity: number; // 설정의 오브 투명도 (0.3~1). 마우스를 올리면 잠시 또렷하게
   onActivate: () => void;
-  onHover: (hovering: boolean) => void;
 };
 
 const DRAG_THRESHOLD = 4; // px. 이보다 덜 움직였으면 클릭으로 본다
 
 // 오브. 클릭하면 Orbit 창을 열고, 끌면 창을 옮긴다.
 // startDragging()이 마우스를 가져가 버려 mouseup이 오지 않으므로, 끌기 시작 전에 클릭 여부를 판정한다.
-export default function Orb({ onActivate, onHover }: Props) {
+export default function Orb({ opacity, onActivate }: Props) {
   const pending = useTodos((s) => pendingNow(s.todos)); // 노란 배지 = 당장 할 일만
   const events = useAllEvents();
   const todayEvents = eventsOn(events, todayStr()).length;
   const down = useRef<{ x: number; y: number } | null>(null);
+  const [hover, setHover] = useState(false);
   const tip =
     `Orbit — 클릭해서 열기, 끌어서 옮기기` +
     (pending ? `\n당장 할 일 ${pending}` : "") +
@@ -28,11 +29,12 @@ export default function Orb({ onActivate, onHover }: Props) {
   return (
     <div
       className="orb-root"
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
       <button
         className="orb"
+        style={{ opacity: hover ? 1 : Math.min(1, Math.max(0.3, opacity)) }}
         title={tip}
         aria-label="Orbit 열기"
         onMouseDown={(e) => {

@@ -175,8 +175,8 @@ src-tauri/src/
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.12.2
-git push origin v0.12.2
+git tag v0.12.3
+git push origin v0.12.3
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.
