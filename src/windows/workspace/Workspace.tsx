@@ -4,6 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   CALENDAR_VIEW,
   CLIPBOARD_VIEW,
+  LAUNCHER_VIEW,
   createFolder,
   createNote,
   deleteEntry,
@@ -25,6 +26,8 @@ import { useEvents } from "../../modules/calendar/store";
 import CalendarView from "../../modules/calendar/CalendarView";
 import { useClipboard } from "../../modules/clipboard/store";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
+import { useLauncher } from "../../modules/launcher/store";
+import LauncherSettings from "../../modules/launcher/LauncherSettings";
 import Sidebar from "./Sidebar";
 import SearchModal from "../../modules/memo/SearchModal";
 import Editor from "../../modules/memo/Editor";
@@ -91,6 +94,7 @@ export default function WorkspaceGate() {
     useTodos.getState().init();
     useEvents.getState().init();
     useClipboard.getState().init();
+    useLauncher.getState().init();
   }, []);
   return loaded ? <Workspace /> : null;
 }
@@ -579,10 +583,11 @@ function Workspace() {
           onSetReminder={setTodoReminder}
         />
       );
-    if (path === SETTINGS_VIEW) return <SettingsView />;
+    if (path === SETTINGS_VIEW) return <SettingsView onOpen={selectNote} />;
     if (path === CALENDAR_VIEW)
       return <CalendarView initialDate={calendarDate} onOpenNote={selectNote} />;
     if (path === CLIPBOARD_VIEW) return <ClipboardPanel layout="full" />;
+    if (path === LAUNCHER_VIEW) return <LauncherSettings />;
     return (
       <Editor
         path={path}

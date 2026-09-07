@@ -17,6 +17,8 @@ export const DEFAULT_SETTINGS: Settings = {
   orbX: null,
   orbY: null,
   clipboardEnabled: true,
+  shortcutQuickMemo: "ctrl+alt+m",
+  shortcutLauncher: "alt+space",
 };
 
 type SettingsStore = {

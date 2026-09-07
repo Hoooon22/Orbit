@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import {
   CALENDAR_VIEW,
   CLIPBOARD_VIEW,
+  LAUNCHER_VIEW,
   QUICK_MEMO,
   SETTINGS_VIEW,
   TODO_VIEW,
@@ -50,6 +51,7 @@ export default function CommandPalette({
       { key: "cmd:todo", icon: "☑️", label: "Todo 열기", run: () => onSelectNote(TODO_VIEW) },
       { key: "cmd:calendar", icon: "📅", label: "캘린더 열기", run: () => onSelectNote(CALENDAR_VIEW) },
       { key: "cmd:clipboard", icon: "📋", label: "클립보드 열기", run: () => onSelectNote(CLIPBOARD_VIEW) },
+      { key: "cmd:launcher", icon: "🚀", label: "런처 항목 관리", run: () => onSelectNote(LAUNCHER_VIEW) },
       { key: "cmd:new-note", icon: "📝", label: "새 메모", run: onNewNote },
       { key: "cmd:new-folder", icon: "📁", label: "새 폴더", run: onNewFolder },
       { key: "cmd:settings", icon: "⚙️", label: "설정", run: () => onSelectNote(SETTINGS_VIEW) },

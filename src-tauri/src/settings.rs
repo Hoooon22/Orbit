@@ -28,6 +28,9 @@ pub struct Settings {
     pub orb_x: Option<i32>, // 접힌 오브의 위치 (물리 픽셀). 없으면 화면 오른쪽 아래
     pub orb_y: Option<i32>,
     pub clipboard_enabled: bool, // 클립보드 기록 (끄면 감시는 계속하되 기록만 안 함)
+    /// 전역 단축키 (tauri-plugin-global-shortcut 표기, 예: "ctrl+alt+m"). 비우면 등록하지 않는다.
+    pub shortcut_quick_memo: String,
+    pub shortcut_launcher: String,
 }
 
 impl Default for Settings {
@@ -45,6 +48,8 @@ impl Default for Settings {
             orb_x: None,
             orb_y: None,
             clipboard_enabled: true,
+            shortcut_quick_memo: "ctrl+alt+m".into(),
+            shortcut_launcher: "alt+space".into(),
         }
     }
 }

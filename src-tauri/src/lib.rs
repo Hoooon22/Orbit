@@ -1,4 +1,5 @@
 mod clipboard;
+mod launcher;
 mod migrate;
 mod notes;
 mod orb;
@@ -58,6 +59,52 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
 #[tauri::command]
 fn data_root(root: tauri::State<NotesRoot>) -> String {
     root.0.to_string_lossy().into_owned()
+}
+
+// 설정에 적힌 전역 단축키를 (다시) 등록한다. 다른 프로그램이 이미 쥔 키는 등록에 실패하는데,
+// 그래도 앱은 떠야 하므로 시작 시에는 무시하고, 설정 화면에서 바꿀 때는 어느 키가 실패했는지 돌려준다.
+fn register_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
+    let s = app
+        .try_state::<settings::SettingsState>()
+        .and_then(|s| s.0.lock().ok().map(|c| c.clone().unwrap_or_default()))
+        .unwrap_or_default();
+    let gs = app.global_shortcut();
+    let _ = gs.unregister_all();
+    let mut failed = Vec::new();
+    if !s.shortcut_quick_memo.trim().is_empty() {
+        let r = gs.on_shortcut(s.shortcut_quick_memo.as_str(), |app, _shortcut, event| {
+            if event.state == ShortcutState::Pressed {
+                show_main(app);
+                let _ = app.emit("open-quick-memo", ());
+            }
+        });
+        if r.is_err() {
+            failed.push(format!("빠른 메모({})", s.shortcut_quick_memo));
+        }
+    }
+    if !s.shortcut_launcher.trim().is_empty() {
+        let r = gs.on_shortcut(s.shortcut_launcher.as_str(), |app, _shortcut, event| {
+            if event.state == ShortcutState::Pressed {
+                orb::open_launcher(app);
+            }
+        });
+        if r.is_err() {
+            failed.push(format!("런처({})", s.shortcut_launcher));
+        }
+    }
+    if failed.is_empty() {
+        Ok(())
+    } else {
+        Err(format!(
+            "등록하지 못한 단축키: {}. 다른 프로그램이 쓰고 있거나 표기가 잘못됐습니다.",
+            failed.join(", ")
+        ))
+    }
+}
+
+#[tauri::command]
+fn apply_shortcuts(app: tauri::AppHandle) -> Result<(), String> {
+    register_shortcuts(&app)
 }
 
 // 로그인 시 자동 시작 (Windows: HKCU Run 키). 설정 화면이 읽고 바꾼다.
@@ -200,15 +247,6 @@ pub fn run() {
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
-            // 전역 단축키는 다른 프로그램(트레이에 남은 옛 DesktopMemo 등)이 먼저 잡고 있을 수 있다.
-            // 그때도 앱은 떠야 하므로 등록 실패는 무시한다.
-            let _ = app.global_shortcut().on_shortcut("ctrl+alt+m", |app, _shortcut, event| {
-                if event.state == ShortcutState::Pressed {
-                    show_main(app);
-                    let _ = app.emit("open-quick-memo", ());
-                }
-            });
-
             let root = migrate::resolve_data_root(&app.path().document_dir()?);
             std::fs::create_dir_all(&root)?;
             migrate::offer_old_uninstall(app.handle().clone());
@@ -310,9 +348,15 @@ pub fn run() {
             let local = app.path().app_local_data_dir()?;
             app.manage(reminders::ReminderState::load(&local));
             app.manage(clipboard::ClipState::load(&local));
+            let launcher = launcher::LauncherState::load(&local);
+            launcher::warm_up(&launcher);
+            app.manage(launcher);
             app.manage(reminders::LocalDir(local));
             reminders::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
+
+            // 전역 단축키는 설정(SettingsState)이 준비된 뒤에. 다른 프로그램이 쥔 키는 조용히 건너뛴다.
+            let _ = register_shortcuts(app.handle());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -366,6 +410,12 @@ pub fn run() {
             clipboard::clipboard_pin,
             clipboard::clipboard_remove,
             clipboard::clipboard_clear,
+            launcher::launcher_items,
+            launcher::launcher_rescan,
+            launcher::launch,
+            launcher::launcher_add_custom,
+            launcher::launcher_remove_custom,
+            apply_shortcuts,
             autostart_enabled,
             set_autostart
         ])

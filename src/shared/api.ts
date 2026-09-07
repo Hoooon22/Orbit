@@ -52,6 +52,7 @@ export const TODO_VIEW = "::todo";
 export const SETTINGS_VIEW = "::settings";
 export const CALENDAR_VIEW = "::calendar";
 export const CLIPBOARD_VIEW = "::clipboard";
+export const LAUNCHER_VIEW = "::launcher";
 export const isVirtualView = (path: string) => path.startsWith("::");
 
 export type Todo = {
@@ -90,6 +91,28 @@ export const clipboardPin = (id: string, pinned: boolean) =>
   invoke<void>("clipboard_pin", { id, pinned });
 export const clipboardRemove = (id: string) => invoke<void>("clipboard_remove", { id });
 export const clipboardClear = () => invoke<void>("clipboard_clear");
+
+// 퀵 런처 (Rust launcher.rs). 시작 메뉴 바로가기 + 직접 추가한 항목
+export type LaunchItem = {
+  id: string;
+  name: string;
+  target: string;
+  kind: "app" | "url" | "folder";
+  hint?: string;
+  custom: boolean;
+};
+export type Usage = { count: number; lastUsed: number };
+export type LauncherData = { items: LaunchItem[]; usage: Record<string, Usage> };
+export const launcherItems = () => invoke<LauncherData>("launcher_items");
+export const launcherRescan = () => invoke<number>("launcher_rescan");
+export const launch = (id: string) => invoke<void>("launch", { id });
+export const launcherAddCustom = (name: string, target: string) =>
+  invoke<LaunchItem>("launcher_add_custom", { name, target });
+export const launcherRemoveCustom = (id: string) =>
+  invoke<void>("launcher_remove_custom", { id });
+
+// 설정의 전역 단축키를 다시 등록한다. 실패하면 어느 키가 안 됐는지 메시지로 거부된다
+export const applyShortcuts = () => invoke<void>("apply_shortcuts");
 
 // 로그인 시 자동 시작
 export const autostartEnabled = () => invoke<boolean>("autostart_enabled");
@@ -141,6 +164,8 @@ export type Settings = {
   orbX: number | null; // 접힌 오브의 위치 (물리 픽셀). null이면 화면 오른쪽 아래
   orbY: number | null;
   clipboardEnabled: boolean; // 클립보드 기록
+  shortcutQuickMemo: string; // 전역 단축키 (예: "ctrl+alt+m"). 비우면 없음
+  shortcutLauncher: string;
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");

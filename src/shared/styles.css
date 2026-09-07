@@ -2492,6 +2492,132 @@ button {
   user-select: text;
 }
 
+/* ── 런처 ─────────────────────────────── */
+
+.launcher {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.launcher-search {
+  flex-shrink: 0;
+  padding: 8px 10px 4px;
+}
+
+.launcher-search input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.launcher-search input:focus {
+  border-color: var(--accent);
+}
+
+.launcher-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.launcher-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.launcher-item.active {
+  background: var(--bg-active);
+}
+
+.launcher-item.add {
+  color: var(--accent);
+}
+
+.launcher-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+.launcher-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.launcher-hint {
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.launcher-add-form {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.launcher-add-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+
+.launcher-add-form input:last-of-type {
+  flex: 2;
+}
+
+.launcher-add-form button {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.launcher-add-form button:disabled {
+  opacity: 0.5;
+}
+
+.settings-key {
+  width: 140px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  font-family: Consolas, monospace;
+}
+
 /* ── 오브 창 ──────────────────────────── */
 /* 창 자체가 투명하므로 바탕색을 칠하지 않는다. 그림자는 OS 창 그림자 대신 CSS로. */
 

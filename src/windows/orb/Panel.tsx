@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CALENDAR_VIEW, QUICK_MEMO, showWorkspace, TODO_VIEW } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
@@ -12,21 +12,23 @@ import Agenda from "../../modules/calendar/Agenda";
 import MiniCalendar from "../../modules/calendar/MiniCalendar";
 import { monthOf } from "../../modules/calendar/calendar";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
+import Launcher from "../../modules/launcher/Launcher";
+
+export type PanelTab = "memo" | "todo" | "calendar" | "clipboard" | "launcher";
 
 type Props = {
   closing: boolean; // 접히는 중 (페이드아웃)
+  requestedTab: { tab: PanelTab; seq: number } | null; // 밖(단축키 등)에서 열어 달라는 탭
   onCollapse: () => void;
 };
-
-type Tab = "memo" | "todo" | "calendar" | "clipboard";
 
 // compact 편집기에는 헤더가 없어 제목·즐겨찾기 props가 쓰이지 않는다
 const noRename = async () => false;
 const noop = () => {};
 
-// 펼친 오브. 빠른 메모·할 일·일정을 바로 다루고, 더 넓게 보려면 워크스페이스를 연다.
-export default function Panel({ closing, onCollapse }: Props) {
-  const [tab, setTab] = useState<Tab>("memo");
+// 펼친 오브. 빠른 메모·할 일·일정·클립보드·런처를 바로 다루고, 더 넓게 보려면 워크스페이스를 연다.
+export default function Panel({ closing, requestedTab, onCollapse }: Props) {
+  const [tab, setTab] = useState<PanelTab>(requestedTab?.tab ?? "memo");
   const [draft, setDraft] = useState("");
   const addTodo = useTodos((s) => s.add);
   const todos = useTodos((s) => s.todos);
@@ -35,6 +37,10 @@ export default function Panel({ closing, onCollapse }: Props) {
   const preview = describeParsed(parseTodoInput(draft));
   const [month, setMonth] = useState(() => monthOf(todayStr()));
 
+  useEffect(() => {
+    if (requestedTab) setTab(requestedTab.tab);
+  }, [requestedTab]);
+
   const open = (target?: string) => showWorkspace(target).catch(reportError);
 
   const submitTodo = () => {
@@ -42,6 +48,14 @@ export default function Panel({ closing, onCollapse }: Props) {
     addTodo(draft);
     setDraft("");
   };
+
+  const tabs: [PanelTab, string][] = [
+    ["memo", "⚡ 메모"],
+    ["todo", "☑️ 할 일"],
+    ["calendar", "📅 일정"],
+    ["clipboard", "📋 클립"],
+    ["launcher", "🚀 실행"],
+  ];
 
   return (
     <div className={"orb-panel" + (closing ? " closing" : "")}>
@@ -60,18 +74,11 @@ export default function Panel({ closing, onCollapse }: Props) {
         </button>
       </header>
       <nav className="orb-tabs">
-        <button className={tab === "memo" ? "on" : ""} onClick={() => setTab("memo")}>
-          ⚡ 메모
-        </button>
-        <button className={tab === "todo" ? "on" : ""} onClick={() => setTab("todo")}>
-          ☑️ 할 일
-        </button>
-        <button className={tab === "calendar" ? "on" : ""} onClick={() => setTab("calendar")}>
-          📅 일정
-        </button>
-        <button className={tab === "clipboard" ? "on" : ""} onClick={() => setTab("clipboard")}>
-          📋 클립
-        </button>
+        {tabs.map(([key, label]) => (
+          <button key={key} className={tab === key ? "on" : ""} onClick={() => setTab(key)}>
+            {label}
+          </button>
+        ))}
       </nav>
       <div className="orb-body">
         {tab === "memo" && (
@@ -113,6 +120,7 @@ export default function Panel({ closing, onCollapse }: Props) {
           </>
         )}
         {tab === "clipboard" && <ClipboardPanel layout="compact" />}
+        {tab === "launcher" && <Launcher onLaunched={onCollapse} />}
         {tab === "calendar" && (
           <div className="orb-calendar">
             <Agenda onOpen={(date) => void open(`${CALENDAR_VIEW}@${date}`)} />

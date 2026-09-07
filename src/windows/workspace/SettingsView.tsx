@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import {
+  applyShortcuts,
   autostartEnabled,
   dataRoot,
+  LAUNCHER_VIEW,
   openDataRoot,
   setAutostart,
   setOrbVisible,
@@ -9,11 +11,17 @@ import {
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 
+type Props = { onOpen: (path: string) => void };
+
 // 설정 화면. 탭 하나(::settings)로 열리며 바꾸는 즉시 반영·저장된다.
-export default function SettingsView() {
+export default function SettingsView({ onOpen }: Props) {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
   const [root, setRoot] = useState("");
+  // 단축키는 적용 버튼을 눌러야 등록된다 (입력 도중 반쯤 적힌 키가 등록되지 않게)
+  const [quickKey, setQuickKey] = useState(settings.shortcutQuickMemo);
+  const [launcherKey, setLauncherKey] = useState(settings.shortcutLauncher);
+  const [keyMsg, setKeyMsg] = useState("");
   // 자동 시작은 설정 파일이 아니라 OS(레지스트리 Run 키)가 진실이라 매번 물어본다
   const [autostart, setAutostartState] = useState<boolean | null>(null);
 
@@ -49,6 +57,54 @@ export default function SettingsView() {
               }}
             />
           </label>
+        </section>
+        <section className="settings-section">
+          <h3>단축키</h3>
+          <label className="settings-row">
+            <span>
+              빠른 메모 열기
+              <small>어디서든 워크스페이스의 빠른 메모로. 예: ctrl+alt+m</small>
+            </span>
+            <input
+              className="settings-key"
+              value={quickKey}
+              spellCheck={false}
+              onChange={(e) => setQuickKey(e.target.value)}
+            />
+          </label>
+          <label className="settings-row">
+            <span>
+              런처 열기
+              <small>오브를 런처 탭으로 펼칩니다. 예: alt+space (PowerToys Run과 겹치면 바꾸세요)</small>
+            </span>
+            <input
+              className="settings-key"
+              value={launcherKey}
+              spellCheck={false}
+              onChange={(e) => setLauncherKey(e.target.value)}
+            />
+          </label>
+          <div className="settings-row">
+            <span>
+              <small>{keyMsg || "비워 두면 그 단축키는 쓰지 않습니다. 바꾼 뒤 적용을 누르세요."}</small>
+            </span>
+            <button
+              onClick={() => {
+                update({
+                  shortcutQuickMemo: quickKey.trim().toLowerCase(),
+                  shortcutLauncher: launcherKey.trim().toLowerCase(),
+                });
+                // 저장이 300ms 뒤라 그 뒤에 등록해야 새 값을 읽는다
+                window.setTimeout(() => {
+                  applyShortcuts()
+                    .then(() => setKeyMsg("적용했습니다."))
+                    .catch((e) => setKeyMsg(String(e)));
+                }, 400);
+              }}
+            >
+              적용
+            </button>
+          </div>
         </section>
         <section className="settings-section">
           <h3>화면</h3>
@@ -133,6 +189,16 @@ export default function SettingsView() {
               onChange={(e) => update({ clipboardEnabled: e.target.checked })}
             />
           </label>
+        </section>
+        <section className="settings-section">
+          <h3>런처</h3>
+          <div className="settings-row">
+            <span>
+              직접 추가한 항목과 시작 메뉴 색인
+              <small>한글 이름으로 영문 앱을 찾게 하거나 자주 여는 폴더·주소를 등록합니다.</small>
+            </span>
+            <button onClick={() => onOpen(LAUNCHER_VIEW)}>항목 관리</button>
+          </div>
         </section>
         <section className="settings-section">
           <h3>데이터</h3>

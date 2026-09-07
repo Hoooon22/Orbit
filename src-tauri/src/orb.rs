@@ -156,6 +156,12 @@ pub fn set_orb_visible(app: AppHandle, visible: bool) {
     set_visible(&app, visible);
 }
 
+/// 전역 단축키(Alt+Space): 오브를 보이게 하고 런처 탭으로 펼치라고 알린다
+pub fn open_launcher(app: &AppHandle) {
+    set_visible(app, true);
+    let _ = app.emit_to(ORB, "open-launcher", ());
+}
+
 /// 시작 시: 저장된 위치가 있으면 그리로, 없으면 화면 오른쪽 아래로. 숨김 설정이면 숨긴다.
 pub fn place_on_start(app: &AppHandle, settings: &Settings) {
     let Some(w) = app.get_webview_window(ORB) else {
