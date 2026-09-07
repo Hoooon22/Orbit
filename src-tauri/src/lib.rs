@@ -1,6 +1,7 @@
 mod migrate;
 mod notes;
 mod orb;
+mod reminders;
 mod settings;
 mod store;
 
@@ -56,6 +57,20 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
 #[tauri::command]
 fn data_root(root: tauri::State<NotesRoot>) -> String {
     root.0.to_string_lossy().into_owned()
+}
+
+// 로그인 시 자동 시작 (Windows: HKCU Run 키). 설정 화면이 읽고 바꾼다.
+#[tauri::command]
+fn autostart_enabled(app: tauri::AppHandle) -> Result<bool, String> {
+    use tauri_plugin_autostart::ManagerExt;
+    app.autolaunch().is_enabled().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_autostart(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    use tauri_plugin_autostart::ManagerExt;
+    let launch = app.autolaunch();
+    if enabled { launch.enable() } else { launch.disable() }.map_err(|e| e.to_string())
 }
 
 // 설정 화면의 "폴더 열기": 노트 루트를 탐색기로 연다
@@ -168,6 +183,11 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
         .plugin(
             // 워크스페이스 창 크기·위치 기억 (표시 여부는 복원하지 않음).
             // 오브 창은 제외 — 펼친 채 종료하면 다음 시작에 펼친 크기의 투명 창이 복원돼
@@ -284,6 +304,12 @@ pub fn run() {
             app.manage(store::ListLock(std::sync::Mutex::new(())));
             app.manage(orb::OrbState(std::sync::Mutex::new(None)));
             app.manage(NotesRoot(root));
+
+            // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
+            let local = app.path().app_local_data_dir()?;
+            app.manage(reminders::ReminderState::load(&local));
+            app.manage(reminders::LocalDir(local));
+            reminders::spawn(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -329,7 +355,11 @@ pub fn run() {
             open_data_root,
             orb::set_orb_bounds,
             orb::show_workspace,
-            orb::set_orb_visible
+            orb::set_orb_visible,
+            reminders::check_reminders,
+            reminders::dismiss_reminder,
+            autostart_enabled,
+            set_autostart
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

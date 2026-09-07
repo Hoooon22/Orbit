@@ -105,6 +105,8 @@ function Workspace() {
   const patchTodo = useTodos((s) => s.patch);
   const removeTodo = useTodos((s) => s.remove);
   const reorderTodo = useTodos((s) => s.reorder);
+  const setTodoDue = useTodos((s) => s.setDue);
+  const setTodoReminder = useTodos((s) => s.setReminder);
   const pendingTodos = todos.filter((t) => !t.done).length;
 
   const error = useError((s) => s.error);
@@ -560,6 +562,8 @@ function Workspace() {
           onPatch={patchTodo}
           onRemove={removeTodo}
           onReorder={reorderTodo}
+          onSetDue={setTodoDue}
+          onSetReminder={setTodoReminder}
         />
       );
     if (path === SETTINGS_VIEW) return <SettingsView />;

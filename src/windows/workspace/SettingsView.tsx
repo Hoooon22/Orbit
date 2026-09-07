@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { dataRoot, openDataRoot, setOrbVisible } from "../../shared/api";
+import {
+  autostartEnabled,
+  dataRoot,
+  openDataRoot,
+  setAutostart,
+  setOrbVisible,
+} from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 
@@ -8,9 +14,12 @@ export default function SettingsView() {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
   const [root, setRoot] = useState("");
+  // 자동 시작은 설정 파일이 아니라 OS(레지스트리 Run 키)가 진실이라 매번 물어본다
+  const [autostart, setAutostartState] = useState<boolean | null>(null);
 
   useEffect(() => {
     dataRoot().then(setRoot).catch(reportError);
+    autostartEnabled().then(setAutostartState).catch(reportError);
   }, []);
 
   return (
@@ -19,6 +28,28 @@ export default function SettingsView() {
         <span className="todo-title">⚙️ 설정</span>
       </header>
       <div className="settings-body">
+        <section className="settings-section">
+          <h3>일반</h3>
+          <label className="settings-row">
+            <span>
+              Windows 로그인 시 자동 시작
+              <small>켜 두면 부팅 뒤 오브만 조용히 떠 있습니다. 리마인더도 이때부터 울립니다.</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={autostart ?? false}
+              disabled={autostart === null}
+              onChange={(e) => {
+                const on = e.target.checked;
+                setAutostartState(on);
+                setAutostart(on).catch((err) => {
+                  reportError(err);
+                  setAutostartState(!on);
+                });
+              }}
+            />
+          </label>
+        </section>
         <section className="settings-section">
           <h3>화면</h3>
           <label className="settings-row">

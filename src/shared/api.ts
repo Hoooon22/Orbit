@@ -52,7 +52,24 @@ export const TODO_VIEW = "::todo";
 export const SETTINGS_VIEW = "::settings";
 export const isVirtualView = (path: string) => path.startsWith("::");
 
-export type Todo = { id: string; text: string; done: boolean; start?: string; end?: string };
+export type Todo = {
+  id: string;
+  text: string;
+  done: boolean;
+  start?: string; // YYYY-MM-DD
+  end?: string;
+  time?: string; // HH:MM — 마감일(end ?? start)의 시각
+  remindAt?: number; // epoch ms. 없으면 알림 없음. Rust 스케줄러가 이 값만 본다
+};
+
+// 울린 뒤 아직 닫지 않은 리마인더 (Rust reminders.rs)
+export type Fired = { id: string; text: string; remindAt: number; missed: boolean };
+export const checkReminders = () => invoke<Fired[]>("check_reminders");
+export const dismissReminder = (id: string) => invoke<void>("dismiss_reminder", { id });
+
+// 로그인 시 자동 시작
+export const autostartEnabled = () => invoke<boolean>("autostart_enabled");
+export const setAutostart = (enabled: boolean) => invoke<void>("set_autostart", { enabled });
 
 // 노트 루트의 JSON 목록 파일(.todos.json 등)을 항목 단위로 고친다.
 // 변경이 끝나면 Rust가 "<name>-changed"를 모든 창에 보낸다.

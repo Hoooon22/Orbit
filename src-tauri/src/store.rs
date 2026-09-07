@@ -75,9 +75,14 @@ fn merge(item: &mut Map<String, Value>, patch: Map<String, Value>) {
     }
 }
 
+/// Rust 안(리마인더 스케줄러 등)에서 목록을 읽을 때
+pub fn load_list(root: &Path, name: &str) -> Result<Vec<Value>, String> {
+    load(&root.join(file_of(name)?))
+}
+
 #[tauri::command]
 pub fn list_items(root: State<NotesRoot>, name: String) -> Result<Vec<Value>, String> {
-    load(&root.0.join(file_of(&name)?))
+    load_list(&root.0, &name)
 }
 
 #[tauri::command]

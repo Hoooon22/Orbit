@@ -1891,6 +1891,88 @@ button {
   margin: 0;
 }
 
+/* ── 할 일 시각·알림 ───────────────────── */
+
+.todo-time,
+.todo-remind {
+  flex-shrink: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+
+.todo-time:disabled,
+.todo-remind:disabled {
+  opacity: 0.4;
+}
+
+/* 울린 알림 스트립: 목록 위에 붙어 스누즈·완료를 바로 누른다 */
+.todo-alerts {
+  list-style: none;
+  margin: 0;
+  padding: 6px 8px 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.todo-alert {
+  padding: 6px 8px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: var(--bg-active);
+  font-size: 12px;
+}
+
+.todo-alert-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.todo-alert-time {
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+
+.todo-alert-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.todo-alert-actions button {
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.todo-alert-actions button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.quick-add-preview {
+  color: var(--accent);
+}
+
+.orb-todo-preview {
+  padding: 3px 4px 0;
+  font-size: 11px;
+  color: var(--accent);
+}
+
 /* ── 오브 창 ──────────────────────────── */
 /* 창 자체가 투명하므로 바탕색을 칠하지 않는다. 그림자는 OS 창 그림자 대신 CSS로. */
 

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { QUICK_MEMO, showWorkspace, TODO_VIEW } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
+import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 import Editor from "../../modules/memo/Editor";
 import TodoPanel from "../../modules/todo/TodoPanel";
 import { useTodos } from "../../modules/todo/store";
@@ -23,6 +24,7 @@ export default function Panel({ closing, onCollapse }: Props) {
   const [draft, setDraft] = useState("");
   const addTodo = useTodos((s) => s.add);
   const addInput = useRef<HTMLInputElement>(null);
+  const preview = describeParsed(parseTodoInput(draft));
 
   const open = (target?: string) => showWorkspace(target).catch(reportError);
 
@@ -71,7 +73,7 @@ export default function Panel({ closing, onCollapse }: Props) {
               <input
                 ref={addInput}
                 value={draft}
-                placeholder="할 일 입력 후 Enter"
+                placeholder="할 일 입력 후 Enter (예: 내일 3시 회의)"
                 spellCheck={false}
                 autoFocus
                 onChange={(e) => setDraft(e.target.value)}
@@ -84,6 +86,7 @@ export default function Panel({ closing, onCollapse }: Props) {
                   }
                 }}
               />
+              {preview && <div className="orb-todo-preview">→ {preview}</div>}
             </div>
             <TodoPanel
               compact

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 
 type Props = {
   pending: number; // 남은 할 일 개수
@@ -11,6 +12,8 @@ type Props = {
 export default function QuickAddTodo({ pending, onAdd, onClose }: Props) {
   const [text, setText] = useState("");
   const [added, setAdded] = useState(0);
+  // "내일 3시 회의"처럼 적으면 날짜·시각이 어떻게 잡히는지 바로 보여준다
+  const preview = describeParsed(parseTodoInput(text));
 
   return (
     <>
@@ -20,7 +23,7 @@ export default function QuickAddTodo({ pending, onAdd, onClose }: Props) {
           className="palette-input"
           autoFocus
           spellCheck={false}
-          placeholder="할 일 입력 후 Enter"
+          placeholder="할 일 입력 후 Enter (예: 내일 오후 3시 회의)"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
@@ -42,7 +45,11 @@ export default function QuickAddTodo({ pending, onAdd, onClose }: Props) {
           }}
         />
         <div className="quick-add-hint">
-          {added > 0 && <span className="quick-add-added">{added}개 추가됨</span>}
+          {preview ? (
+            <span className="quick-add-preview">→ {preview}</span>
+          ) : (
+            added > 0 && <span className="quick-add-added">{added}개 추가됨</span>
+          )}
           <span>남은 할 일 {pending}개</span>
           <span className="quick-add-keys">Enter 추가 · Esc 닫기</span>
         </div>
