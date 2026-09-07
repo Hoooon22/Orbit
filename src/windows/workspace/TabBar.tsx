@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   CALENDAR_VIEW,
+  CLIPBOARD_VIEW,
   isVirtualView,
   QUICK_MEMO,
   SETTINGS_VIEW,
@@ -28,6 +29,7 @@ function tabLabel(path: string): string {
   if (path === TODO_VIEW) return "☑️ Todo";
   if (path === SETTINGS_VIEW) return "⚙️ 설정";
   if (path === CALENDAR_VIEW) return "📅 캘린더";
+  if (path === CLIPBOARD_VIEW) return "📋 클립보드";
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 

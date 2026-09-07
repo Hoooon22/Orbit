@@ -27,6 +27,7 @@ pub struct Settings {
     pub orb_opacity: f64, // 접힌 오브의 투명도 0.3~1.0 (마우스를 올리면 잠시 또렷)
     pub orb_x: Option<i32>, // 접힌 오브의 위치 (물리 픽셀). 없으면 화면 오른쪽 아래
     pub orb_y: Option<i32>,
+    pub clipboard_enabled: bool, // 클립보드 기록 (끄면 감시는 계속하되 기록만 안 함)
 }
 
 impl Default for Settings {
@@ -43,6 +44,7 @@ impl Default for Settings {
             orb_opacity: 1.0,
             orb_x: None,
             orb_y: None,
+            clipboard_enabled: true,
         }
     }
 }

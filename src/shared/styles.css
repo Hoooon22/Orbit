@@ -2299,6 +2299,199 @@ button {
   color: var(--danger);
 }
 
+/* ── 클립보드 ─────────────────────────── */
+
+.clip-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.clip-panel.compact {
+  flex: 1;
+}
+
+.clip-search {
+  flex-shrink: 0;
+  padding: 8px 10px 4px;
+}
+
+.clip-search input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-panel);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.clip-search input:focus {
+  border-color: var(--accent);
+}
+
+.clip-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 6px 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.clip-item {
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  border-left: 2px solid transparent;
+}
+
+.clip-item:hover,
+.clip-item.selected {
+  background: var(--bg-hover);
+}
+
+.clip-item.pinned {
+  border-left-color: #ffd166;
+}
+
+.clip-item.copied {
+  background: var(--bg-active);
+}
+
+.clip-text {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: "Cascadia Mono", Consolas, "Malgun Gothic", monospace;
+}
+
+.clip-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
+.clip-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+}
+
+.clip-item:hover .clip-actions,
+.clip-item.pinned .clip-actions {
+  opacity: 1;
+}
+
+.clip-actions button {
+  padding: 0 4px;
+  font-size: 11px;
+  border-radius: 4px;
+  color: var(--fg-dim);
+}
+
+.clip-actions button:hover {
+  background: var(--bg-active);
+  color: var(--fg);
+}
+
+.clip-empty {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.clip-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.clip-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.clip-tools label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clip-tools button {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.clip-tools button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.clip-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 380px) 1fr;
+  flex: 1;
+  min-height: 0;
+}
+
+.clip-body .clip-panel {
+  border-right: 1px solid var(--border);
+}
+
+.clip-detail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.clip-detail-actions {
+  display: flex;
+  gap: 6px;
+  padding: 10px 14px 6px;
+}
+
+.clip-detail-actions button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.clip-detail-actions button:hover {
+  background: var(--bg-hover);
+}
+
+.clip-full {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 8px 14px 30px;
+  overflow: auto;
+  font-family: "Cascadia Mono", Consolas, "Malgun Gothic", monospace;
+  font-size: 12.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+
 /* ── 오브 창 ──────────────────────────── */
 /* 창 자체가 투명하므로 바탕색을 칠하지 않는다. 그림자는 OS 창 그림자 대신 CSS로. */
 

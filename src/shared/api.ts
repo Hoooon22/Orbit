@@ -51,6 +51,7 @@ export const saveImage = (data: number[], ext: string) =>
 export const TODO_VIEW = "::todo";
 export const SETTINGS_VIEW = "::settings";
 export const CALENDAR_VIEW = "::calendar";
+export const CLIPBOARD_VIEW = "::clipboard";
 export const isVirtualView = (path: string) => path.startsWith("::");
 
 export type Todo = {
@@ -80,6 +81,15 @@ export type CalEvent = {
 export type Fired = { id: string; text: string; remindAt: number; missed: boolean };
 export const checkReminders = () => invoke<Fired[]>("check_reminders");
 export const dismissReminder = (id: string) => invoke<void>("dismiss_reminder", { id });
+
+// 클립보드 히스토리 (Rust clipboard.rs, %LOCALAPPDATA%\...\clipboard.json)
+export type ClipItem = { id: string; text: string; copiedAt: number; pinned: boolean; count: number };
+export const clipboardHistory = () => invoke<ClipItem[]>("clipboard_history");
+export const clipboardCopy = (id: string) => invoke<void>("clipboard_copy", { id });
+export const clipboardPin = (id: string, pinned: boolean) =>
+  invoke<void>("clipboard_pin", { id, pinned });
+export const clipboardRemove = (id: string) => invoke<void>("clipboard_remove", { id });
+export const clipboardClear = () => invoke<void>("clipboard_clear");
 
 // 로그인 시 자동 시작
 export const autostartEnabled = () => invoke<boolean>("autostart_enabled");
@@ -130,6 +140,7 @@ export type Settings = {
   orbOpacity: number; // 접힌 오브의 투명도 0.3~1.0
   orbX: number | null; // 접힌 오브의 위치 (물리 픽셀). null이면 화면 오른쪽 아래
   orbY: number | null;
+  clipboardEnabled: boolean; // 클립보드 기록
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");

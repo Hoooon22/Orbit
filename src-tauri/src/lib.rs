@@ -1,3 +1,4 @@
+mod clipboard;
 mod migrate;
 mod notes;
 mod orb;
@@ -308,8 +309,10 @@ pub fn run() {
             // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
             let local = app.path().app_local_data_dir()?;
             app.manage(reminders::ReminderState::load(&local));
+            app.manage(clipboard::ClipState::load(&local));
             app.manage(reminders::LocalDir(local));
             reminders::spawn(app.handle().clone());
+            clipboard::spawn(app.handle().clone());
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -358,6 +361,11 @@ pub fn run() {
             orb::set_orb_visible,
             reminders::check_reminders,
             reminders::dismiss_reminder,
+            clipboard::clipboard_history,
+            clipboard::clipboard_copy,
+            clipboard::clipboard_pin,
+            clipboard::clipboard_remove,
+            clipboard::clipboard_clear,
             autostart_enabled,
             set_autostart
         ])

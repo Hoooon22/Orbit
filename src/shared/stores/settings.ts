@@ -16,6 +16,7 @@ export const DEFAULT_SETTINGS: Settings = {
   orbOpacity: 1,
   orbX: null,
   orbY: null,
+  clipboardEnabled: true,
 };
 
 type SettingsStore = {

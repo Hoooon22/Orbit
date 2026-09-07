@@ -11,13 +11,14 @@ import Clock from "../../modules/calendar/Clock";
 import Agenda from "../../modules/calendar/Agenda";
 import MiniCalendar from "../../modules/calendar/MiniCalendar";
 import { monthOf } from "../../modules/calendar/calendar";
+import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 
 type Props = {
   closing: boolean; // 접히는 중 (페이드아웃)
   onCollapse: () => void;
 };
 
-type Tab = "memo" | "todo" | "calendar";
+type Tab = "memo" | "todo" | "calendar" | "clipboard";
 
 // compact 편집기에는 헤더가 없어 제목·즐겨찾기 props가 쓰이지 않는다
 const noRename = async () => false;
@@ -68,6 +69,9 @@ export default function Panel({ closing, onCollapse }: Props) {
         <button className={tab === "calendar" ? "on" : ""} onClick={() => setTab("calendar")}>
           📅 일정
         </button>
+        <button className={tab === "clipboard" ? "on" : ""} onClick={() => setTab("clipboard")}>
+          📋 클립
+        </button>
       </nav>
       <div className="orb-body">
         {tab === "memo" && (
@@ -108,6 +112,7 @@ export default function Panel({ closing, onCollapse }: Props) {
             />
           </>
         )}
+        {tab === "clipboard" && <ClipboardPanel layout="compact" />}
         {tab === "calendar" && (
           <div className="orb-calendar">
             <Agenda onOpen={(date) => void open(`${CALENDAR_VIEW}@${date}`)} />

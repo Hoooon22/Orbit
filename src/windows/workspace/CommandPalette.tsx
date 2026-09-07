@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { CALENDAR_VIEW, QUICK_MEMO, SETTINGS_VIEW, TODO_VIEW } from "../../shared/api";
+import {
+  CALENDAR_VIEW,
+  CLIPBOARD_VIEW,
+  QUICK_MEMO,
+  SETTINGS_VIEW,
+  TODO_VIEW,
+} from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import { fuzzyScore } from "../../shared/fuzzy";
 import { flattenNotes } from "../../modules/memo/flatten";
@@ -43,6 +49,7 @@ export default function CommandPalette({
       { key: "cmd:quick", icon: "⚡", label: "빠른 메모 열기", run: () => onSelectNote(QUICK_MEMO) },
       { key: "cmd:todo", icon: "☑️", label: "Todo 열기", run: () => onSelectNote(TODO_VIEW) },
       { key: "cmd:calendar", icon: "📅", label: "캘린더 열기", run: () => onSelectNote(CALENDAR_VIEW) },
+      { key: "cmd:clipboard", icon: "📋", label: "클립보드 열기", run: () => onSelectNote(CLIPBOARD_VIEW) },
       { key: "cmd:new-note", icon: "📝", label: "새 메모", run: onNewNote },
       { key: "cmd:new-folder", icon: "📁", label: "새 폴더", run: onNewFolder },
       { key: "cmd:settings", icon: "⚙️", label: "설정", run: () => onSelectNote(SETTINGS_VIEW) },

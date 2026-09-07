@@ -7,6 +7,7 @@ import { reportError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
+import { useClipboard } from "../../modules/clipboard/store";
 import Orb from "./Orb";
 import Panel from "./Panel";
 
@@ -28,6 +29,7 @@ export default function OrbApp() {
     useMemoStore.getState().init();
     useTodos.getState().init();
     useEvents.getState().init();
+    useClipboard.getState().init();
   }, []);
 
   const expand = useCallback(async () => {

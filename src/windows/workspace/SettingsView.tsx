@@ -119,6 +119,22 @@ export default function SettingsView() {
           </label>
         </section>
         <section className="settings-section">
+          <h3>클립보드</h3>
+          <label className="settings-row">
+            <span>
+              복사한 텍스트 기록
+              <small>
+                최근 200개를 %LOCALAPPDATA% 안에 저장합니다. 비밀번호 관리자가 "기록 금지"로 표시한 내용은 남기지 않습니다.
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.clipboardEnabled}
+              onChange={(e) => update({ clipboardEnabled: e.target.checked })}
+            />
+          </label>
+        </section>
+        <section className="settings-section">
           <h3>데이터</h3>
           <div className="settings-row">
             <span>

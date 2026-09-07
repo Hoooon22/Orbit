@@ -82,6 +82,16 @@
 - 오브 패널의 일정 탭은 오늘과 이번 주를 한눈에 보여주고, 항목을 누르면 워크스페이스 캘린더가 그 날짜로 열립니다
 - 일정은 `.events.json`에 저장됩니다. 할 일과 달리 "완료"가 없고 기간과 반복이 있어 따로 둡니다
 
+### 클립보드 히스토리
+
+복사한 텍스트를 최근 200개까지 기억합니다. 오브 패널의 📋 클립 탭이나 사이드바의 📋 **클립보드**에서 검색해 클릭하면 다시 클립보드에 올라가고, 다른 앱에서 <kbd>Ctrl</kbd>+<kbd>V</kbd>로 붙이면 됩니다.
+
+- 같은 내용을 다시 복사하면 하나로 합쳐져 맨 위로 옵니다
+- 📍로 고정한 항목은 200개가 넘어도, "정리"를 눌러도 남습니다
+- 전체 화면에서는 전문을 보고 **빠른 메모에 붙이기**로 옮길 수 있습니다
+- KeePass·Bitwarden처럼 "기록하지 말 것"을 표시한 복사는 남기지 않고, 설정에서 기록 자체를 끌 수 있습니다
+- 기록은 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\clipboard.json`에 있어 동기화되지 않습니다
+
 ### 설정과 테마
 
 사이드바의 ⚙ 버튼(또는 <kbd>Ctrl</kbd>+<kbd>P</kbd> → 설정)에서 Windows 로그인 시 자동 시작, 테마, 창 항상 위에 고정, 본문 글자 크기, 오브 표시와 투명도를 바꿉니다. 탭 바 오른쪽 끝의 📌으로도 고정을 켜고 끕니다. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
@@ -104,7 +114,7 @@
 
 `.`으로 시작하는 파일은 앱 화면에 나오지 않습니다.
 
-이미 울린 알림을 기억하는 장부(`reminded.json`)는 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
+이미 울린 알림을 기억하는 장부(`reminded.json`)와 클립보드 기록(`clipboard.json`)은 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
 
 ## 단축키
 
@@ -144,7 +154,8 @@ src/
 ├─ modules/
 │  ├─ memo/                     편집기, 트리, 즐겨찾기, 검색, store(트리·즐겨찾기 캐시)
 │  ├─ todo/                     할 일 패널·전체 화면·빠른 추가, store
-│  └─ calendar/                 시계, 일정 store, 날짜 계산(calendar.ts), 미니 달력, 오늘·이번 주(Agenda), 캘린더 화면
+│  ├─ calendar/                 시계, 일정 store, 날짜 계산(calendar.ts), 미니 달력, 오늘·이번 주(Agenda), 캘린더 화면
+│  └─ clipboard/                클립보드 히스토리 store, 검색·복사·고정 패널
 └─ windows/
    ├─ workspace/                Workspace.tsx(탭·분할·단축키), 사이드바, 탭 바, 팔레트, 설정, 도움말
    └─ orb/                      OrbApp(접힘↔펼침 상태), Orb(구슬), Panel(펼친 패널)
@@ -152,6 +163,7 @@ src-tauri/src/
 ├─ lib.rs                       트레이, 전역 단축키, 창 관리, 파일 워처
 ├─ orb.rs                       오브 창 펼침·접힘 좌표 계산(SetWindowPos), 워크스페이스 열기
 ├─ reminders.rs                 1분마다 할 일을 읽어 Windows 알림, 발송 장부, 놓친 알림 요약
+├─ clipboard.rs                 클립보드 변경 리스너(clipboard-win), 200개 기록·고정·중복 합치기
 ├─ notes.rs                     메모 파일 읽기·쓰기·이동·검색
 ├─ store.rs                     .todos.json 같은 목록 파일을 항목 단위로 고치고 변경 이벤트 발송
 ├─ settings.rs                  .settings.json
@@ -169,8 +181,8 @@ src-tauri/src/
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.6.0
-git push origin v0.6.0
+git tag v0.7.0
+git push origin v0.7.0
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.

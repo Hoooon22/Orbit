@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   CALENDAR_VIEW,
+  CLIPBOARD_VIEW,
   createFolder,
   createNote,
   deleteEntry,
@@ -22,6 +23,8 @@ import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
 import CalendarView from "../../modules/calendar/CalendarView";
+import { useClipboard } from "../../modules/clipboard/store";
+import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 import Sidebar from "./Sidebar";
 import SearchModal from "../../modules/memo/SearchModal";
 import Editor from "../../modules/memo/Editor";
@@ -87,6 +90,7 @@ export default function WorkspaceGate() {
     useMemoStore.getState().init();
     useTodos.getState().init();
     useEvents.getState().init();
+    useClipboard.getState().init();
   }, []);
   return loaded ? <Workspace /> : null;
 }
@@ -578,6 +582,7 @@ function Workspace() {
     if (path === SETTINGS_VIEW) return <SettingsView />;
     if (path === CALENDAR_VIEW)
       return <CalendarView initialDate={calendarDate} onOpenNote={selectNote} />;
+    if (path === CLIPBOARD_VIEW) return <ClipboardPanel layout="full" />;
     return (
       <Editor
         path={path}
