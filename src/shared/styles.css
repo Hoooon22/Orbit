@@ -2713,6 +2713,12 @@ body.dashboard-window {
   box-shadow: 0 12px 40px var(--shadow-color);
 }
 
+.dash.maximized {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .dash-head {
   display: flex;
   align-items: center;
@@ -2766,11 +2772,16 @@ body.dashboard-window {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
+  margin-left: -8px;
   border-radius: 7px;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1;
   text-align: center;
   color: var(--fg-dim);
+}
+
+.dash-head-btn + .dash-head-btn {
+  margin-left: 0;
 }
 
 .dash-head-btn:hover {

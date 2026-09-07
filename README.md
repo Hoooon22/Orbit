@@ -24,7 +24,7 @@
 | **Orbit** | 홈(오늘·할 일·실행·클립보드), 메모, 할 일, 캘린더, 클립보드, 런처, 설정 | 오브 클릭, 트레이 아이콘 클릭, <kbd>Alt</kbd>+<kbd>Space</kbd> |
 | **메모 창** | 원래의 DesktopMemo 화면 그대로 (폴더 트리·탭·분할·검색·할 일 패널) | Orbit 창의 **⧉ 메모 창**, 트레이 메뉴, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> |
 
-Orbit 창과 메모 창은 닫아도(<kbd>Esc</kbd>, ×) 프로그램이 끝나지 않고 오브와 트레이만 남습니다. 완전히 끄려면 트레이 아이콘을 우클릭해 종료를 누르세요.
+Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클릭하거나 ▢ 버튼으로 최대화합니다. Orbit 창과 메모 창은 닫아도(<kbd>Esc</kbd>, ×) 프로그램이 끝나지 않고 오브와 트레이만 남습니다. 완전히 끄려면 트레이 아이콘을 우클릭해 종료를 누르세요.
 
 ## Orbit 창에서 하는 것
 
@@ -202,8 +202,8 @@ src-tauri/src/
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.9.0
-git push origin v0.9.0
+git tag v0.9.1
+git push origin v0.9.1
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.

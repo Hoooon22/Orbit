@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [view, setView] = useState<View>("home");
   const [calendarDate, setCalendarDate] = useState<string | null>(null);
   const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 입력창에 포커스
+  const [maximized, setMaximized] = useState(false);
   const error = useError((s) => s.error);
   const clearError = useError((s) => s.clear);
 
@@ -72,8 +73,14 @@ export default function Dashboard() {
       if (e.key === "Escape") void getCurrentWindow().hide();
     };
     window.addEventListener("keydown", onKey);
+    // 최대화 여부에 따라 둥근 모서리·테두리를 뺀다 (최대화 창에 모서리가 남으면 어색하다)
+    const win = getCurrentWindow();
+    const syncMax = () => void win.isMaximized().then(setMaximized).catch(() => {});
+    syncMax();
+    const unResized = win.onResized(syncMax);
     return () => {
       void un.then((f) => f());
+      void unResized.then((f) => f());
       window.removeEventListener("keydown", onKey);
     };
   }, []);
@@ -85,20 +92,22 @@ export default function Dashboard() {
   }, [error, clearError]);
 
   const hide = () => void getCurrentWindow().hide();
+  const toggleMax = () => void getCurrentWindow().toggleMaximize();
   const openMemo = (target?: string) => showWorkspace(target).catch(reportError);
 
-  // 프레임이 없으므로 머리줄을 잡아 창을 옮긴다 (버튼 위에서는 제외)
-  const startDrag = (e: React.MouseEvent) => {
+  // 프레임이 없으므로 머리줄을 잡아 창을 옮기고, 더블클릭으로 최대화한다 (버튼 위에서는 제외)
+  const onHead = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest("button, input")) return;
-    void getCurrentWindow().startDragging();
+    if (e.detail === 2) toggleMax();
+    else void getCurrentWindow().startDragging();
   };
 
   if (!loaded) return null;
 
   return (
-    <div className="dash">
-      <header className="dash-head" onMouseDown={startDrag}>
+    <div className={"dash" + (maximized ? " maximized" : "")}>
+      <header className="dash-head" onMouseDown={onHead}>
         <span className="dash-logo">
           <span className="dash-logo-orb" />
           Orbit
@@ -110,6 +119,22 @@ export default function Dashboard() {
           title="탭·분할·검색이 있는 원래 메모 창 열기"
         >
           ⧉ 메모 창
+        </button>
+        <button
+          className="dash-head-btn"
+          onClick={() => void getCurrentWindow().minimize()}
+          title="최소화"
+          aria-label="최소화"
+        >
+          –
+        </button>
+        <button
+          className="dash-head-btn"
+          onClick={toggleMax}
+          title={maximized ? "이전 크기로" : "최대화 (머리줄 더블클릭)"}
+          aria-label={maximized ? "이전 크기로" : "최대화"}
+        >
+          {maximized ? "❐" : "▢"}
         </button>
         <button className="dash-head-btn" onClick={hide} title="닫기 (Esc) — 오브를 누르면 다시 열림" aria-label="닫기">
           ×
