@@ -1,5 +1,6 @@
 mod migrate;
 mod notes;
+mod orb;
 mod settings;
 mod store;
 
@@ -168,9 +169,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(
-            // 창 크기·위치 기억 (표시 여부는 복원하지 않음 — 시작 시 항상 보이게)
+            // 워크스페이스 창 크기·위치 기억 (표시 여부는 복원하지 않음).
+            // 오브 창은 제외 — 펼친 채 종료하면 다음 시작에 펼친 크기의 투명 창이 복원돼
+            // 클릭을 가로채므로, 오브 위치는 설정 파일에 따로 둔다.
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
+                .with_denylist(&[orb::ORB])
                 .build(),
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -218,12 +222,13 @@ pub fn run() {
                 }
             });
 
-            // 트레이: 좌클릭 = 열기, 메뉴 = 열기/업데이트 확인/종료
-            let open_item = MenuItem::with_id(app, "open", "열기", true, None::<&str>)?;
+            // 트레이: 좌클릭 = 워크스페이스 열기, 메뉴 = 열기/오브 표시·숨김/업데이트 확인/종료
+            let open_item = MenuItem::with_id(app, "open", "워크스페이스 열기", true, None::<&str>)?;
+            let orb_item = MenuItem::with_id(app, "orb", "오브 표시/숨김", true, None::<&str>)?;
             let update_item =
                 MenuItem::with_id(app, "update", "업데이트 확인", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_item, &update_item, &quit_item])?;
+            let menu = Menu::with_items(app, &[&open_item, &orb_item, &update_item, &quit_item])?;
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().expect("window icon").clone())
                 .menu(&menu)
@@ -231,6 +236,24 @@ pub fn run() {
                 .tooltip("Orbit (Ctrl+Alt+M)")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open" => show_main(app),
+                    "orb" => {
+                        if let Some(w) = app.get_webview_window(orb::ORB) {
+                            let visible = w.is_visible().unwrap_or(true);
+                            orb::set_visible(app, !visible);
+                            // 설정에도 남겨 다음 시작 때 같은 상태로
+                            if let Some(s) = app.try_state::<settings::SettingsState>() {
+                                if let Ok(mut cur) = s.0.lock() {
+                                    let mut next = cur.clone().unwrap_or_default();
+                                    next.orb_visible = !visible;
+                                    if let Some(root) = app.try_state::<NotesRoot>() {
+                                        let _ = settings::save(&root.0, &next);
+                                    }
+                                    *cur = Some(next);
+                                    let _ = app.emit("settings-changed", ());
+                                }
+                            }
+                        }
+                    }
                     "update" => check_for_updates(app.clone()),
                     "quit" => {
                         // 마지막 자동 저장(≤500ms 디바운스)이 기록될 시간을 주고 종료
@@ -255,16 +278,24 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            app.manage(settings::SettingsState(std::sync::Mutex::new(settings::load(&root))));
+            let loaded = settings::load(&root);
+            orb::place_on_start(app.handle(), &loaded.clone().unwrap_or_default());
+            app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
             app.manage(store::ListLock(std::sync::Mutex::new(())));
+            app.manage(orb::OrbState(std::sync::Mutex::new(None)));
             app.manage(NotesRoot(root));
             Ok(())
         })
         .on_window_event(|window, event| {
-            // 닫기 = 트레이로 숨김 (Ctrl+Alt+M 또는 트레이 클릭으로 즉시 복귀)
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                let _ = window.hide();
+                if window.label() == orb::ORB {
+                    // 오브에서 Alt+F4: 사라지게 두지 않고 접기만
+                    let _ = window.emit_to(orb::ORB, "orb-collapse", ());
+                } else {
+                    // 워크스페이스 닫기 = 트레이로 숨김 (Ctrl+Alt+M 또는 트레이 클릭으로 즉시 복귀)
+                    let _ = window.hide();
+                }
             }
         })
         .invoke_handler(tauri::generate_handler![
@@ -294,7 +325,11 @@ pub fn run() {
             store::list_move,
             settings::read_settings,
             settings::write_settings,
-            open_data_root
+            settings::update_settings,
+            open_data_root,
+            orb::set_orb_bounds,
+            orb::show_workspace,
+            orb::set_orb_visible
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

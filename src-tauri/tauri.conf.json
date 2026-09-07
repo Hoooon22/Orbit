@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Orbit",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "identifier": "com.kwonkim.orbit",
   "build": {
     "frontendDist": "../dist",
@@ -12,11 +12,33 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Orbit",
         "width": 1000,
         "height": 700,
         "resizable": true,
         "fullscreen": false,
+        "visible": false,
+        "theme": "Dark",
+        "dragDropEnabled": false
+      },
+      {
+        "label": "orb",
+        "url": "orb.html",
+        "title": "Orbit Orb",
+        "width": 72,
+        "height": 72,
+        "minWidth": 72,
+        "minHeight": 72,
+        "resizable": false,
+        "maximizable": false,
+        "minimizable": false,
+        "decorations": false,
+        "transparent": true,
+        "shadow": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "focus": false,
         "theme": "Dark",
         "dragDropEnabled": false
       }

@@ -212,15 +212,20 @@ function Workspace() {
     [notePaths, favorites],
   );
 
-  // 전역 단축키(Ctrl+Alt+M) → 빠른 메모 탭
+  // 전역 단축키(Ctrl+Alt+M) → 빠른 메모 탭, 오브의 "워크스페이스에서 열기" → 해당 탭
   useEffect(() => {
-    const unQuick = listen("open-quick-memo", () => {
-      setTabs((prev) => (prev.includes(QUICK_MEMO) ? prev : [...prev, QUICK_MEMO]));
-      setSelected(QUICK_MEMO);
-      setTargetDir("");
+    const openTab = (path: string) => {
+      setTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+      setSelected(path);
+      setTargetDir(path === QUICK_MEMO || isVirtualView(path) ? "" : parentDir(path));
+    };
+    const unQuick = listen("open-quick-memo", () => openTab(QUICK_MEMO)).catch(() => () => {});
+    const unNav = listen<string>("navigate", (e) => {
+      if (e.payload) openTab(e.payload);
     }).catch(() => () => {});
     return () => {
       void unQuick.then((f) => f());
+      void unNav.then((f) => f());
     };
   }, []);
 

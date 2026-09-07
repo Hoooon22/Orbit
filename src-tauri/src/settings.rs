@@ -23,6 +23,10 @@ pub struct Settings {
     pub todo_panel_open: bool,
     pub tabs: Vec<String>,
     pub active_tab: String,
+    pub orb_visible: bool,
+    pub orb_opacity: f64, // 접힌 오브의 투명도 0.3~1.0 (마우스를 올리면 잠시 또렷)
+    pub orb_x: Option<i32>, // 접힌 오브의 위치 (물리 픽셀). 없으면 화면 오른쪽 아래
+    pub orb_y: Option<i32>,
 }
 
 impl Default for Settings {
@@ -35,6 +39,10 @@ impl Default for Settings {
             todo_panel_open: true,
             tabs: vec![QUICK_MEMO.into()],
             active_tab: QUICK_MEMO.into(),
+            orb_visible: true,
+            orb_opacity: 1.0,
+            orb_x: None,
+            orb_y: None,
         }
     }
 }
@@ -53,6 +61,11 @@ pub fn read_settings(state: State<SettingsState>) -> Result<Option<Settings>, St
     Ok(state.0.lock().map_err(|e| e.to_string())?.clone())
 }
 
+pub fn save(root: &std::path::Path, settings: &Settings) -> Result<(), String> {
+    save_atomic(&root.join(FILE), settings)
+}
+
+/// 전체 덮어쓰기. 첫 실행에 옛 localStorage 값을 옮겨 올 때만 쓴다.
 #[tauri::command]
 pub fn write_settings(
     app: AppHandle,
@@ -61,15 +74,50 @@ pub fn write_settings(
     settings: Settings,
 ) -> Result<(), String> {
     let mut cur = state.0.lock().map_err(|e| e.to_string())?;
-    save_atomic(&root.0.join(FILE), &settings)?;
+    save(&root.0, &settings)?;
     *cur = Some(settings);
     let _ = app.emit("settings-changed", ());
     Ok(())
 }
 
+/// 바뀐 필드만 받아 현재 설정에 병합한다. 창(워크스페이스·오브)마다 자기 사본을 통째로 쓰면
+/// 다른 창이 방금 바꾼 값(오브 위치 등)을 옛 값으로 되돌리므로, 변경은 반드시 이 경로로 한다.
+#[tauri::command]
+pub fn update_settings(
+    app: AppHandle,
+    root: State<NotesRoot>,
+    state: State<SettingsState>,
+    patch: serde_json::Value,
+) -> Result<Settings, String> {
+    let serde_json::Value::Object(patch) = patch else {
+        return Err("patch는 객체여야 합니다".into());
+    };
+    let mut cur = state.0.lock().map_err(|e| e.to_string())?;
+    let mut merged = serde_json::to_value(cur.clone().unwrap_or_default()).map_err(|e| e.to_string())?;
+    if let serde_json::Value::Object(map) = &mut merged {
+        map.extend(patch);
+    }
+    let next: Settings = serde_json::from_value(merged).map_err(|e| e.to_string())?;
+    save(&root.0, &next)?;
+    *cur = Some(next.clone());
+    let _ = app.emit("settings-changed", ());
+    Ok(next)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn patch_merges_only_given_fields() {
+        let base = Settings { theme: "light".into(), orb_x: Some(10), ..Default::default() };
+        let mut v = serde_json::to_value(&base).unwrap();
+        let patch = serde_json::json!({"orbX": 99, "orbY": 5}).as_object().cloned().unwrap();
+        v.as_object_mut().unwrap().extend(patch);
+        let next: Settings = serde_json::from_value(v).unwrap();
+        assert_eq!(next.theme, "light"); // 건드리지 않은 필드 유지
+        assert_eq!((next.orb_x, next.orb_y), (Some(99), Some(5)));
+    }
 
     #[test]
     fn missing_fields_fall_back_to_defaults() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { dataRoot, openDataRoot } from "../../shared/api";
+import { dataRoot, openDataRoot, setOrbVisible } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 
@@ -51,6 +51,40 @@ export default function SettingsView() {
                 if (v >= 10 && v <= 32) update({ fontSize: v });
               }}
             />
+          </label>
+        </section>
+        <section className="settings-section">
+          <h3>오브</h3>
+          <label className="settings-row">
+            <span>
+              화면에 오브 표시
+              <small>트레이 메뉴의 "오브 표시/숨김"과 같습니다. 끌어서 옮기고, 클릭하면 펼쳐집니다.</small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.orbVisible}
+              onChange={(e) => {
+                update({ orbVisible: e.target.checked });
+                setOrbVisible(e.target.checked).catch(reportError);
+              }}
+            />
+          </label>
+          <label className="settings-row">
+            <span>
+              접힌 오브 투명도
+              <small>마우스를 올리거나 펼치면 잠시 또렷해집니다.</small>
+            </span>
+            <span className="settings-range">
+              <input
+                type="range"
+                min={30}
+                max={100}
+                step={5}
+                value={Math.round(settings.orbOpacity * 100)}
+                onChange={(e) => update({ orbOpacity: Number(e.target.value) / 100 })}
+              />
+              {Math.round(settings.orbOpacity * 100)}%
+            </span>
           </label>
         </section>
         <section className="settings-section">

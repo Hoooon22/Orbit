@@ -5,6 +5,7 @@ import { deadline, useTodos } from "./store";
 
 type Props = {
   active: boolean; // 전체 Todo 뷰가 열려 있는지
+  compact?: boolean; // 오브 패널용: 머리줄(접기·제목·추가) 없이 목록만 항상 펼쳐 보인다
   onOpenView: () => void;
   onQuickAdd: () => void;
 };
@@ -14,11 +15,11 @@ function dateLabel(d: string): string {
   return `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
 }
 
-export default function TodoPanel({ active, onOpenView, onQuickAdd }: Props) {
+export default function TodoPanel({ active, compact, onOpenView, onQuickAdd }: Props) {
   const todos = useTodos((s) => s.todos);
   const patch = useTodos((s) => s.patch);
   const reorder = useTodos((s) => s.reorder);
-  const open = useSettings((s) => s.settings.todoPanelOpen);
+  const open = useSettings((s) => s.settings.todoPanelOpen) || compact;
   const update = useSettings((s) => s.update);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<{ id: string; before: boolean } | null>(null);
@@ -32,7 +33,8 @@ export default function TodoPanel({ active, onOpenView, onQuickAdd }: Props) {
   const pending = todos.filter((t) => !t.done);
 
   return (
-    <div className="todo-panel">
+    <div className={"todo-panel" + (compact ? " compact" : "")}>
+      {!compact && (
       <div className="todo-panel-head">
         <button
           className="todo-panel-fold"
@@ -59,6 +61,7 @@ export default function TodoPanel({ active, onOpenView, onQuickAdd }: Props) {
           +
         </button>
       </div>
+      )}
       {open && (
         <ul className="todo-panel-list">
           {pending.map((t) => {

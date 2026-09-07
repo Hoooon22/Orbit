@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
-import { QUICK_MEMO, readSettings, writeSettings } from "../api";
+import { QUICK_MEMO, readSettings, updateSettings, writeSettings } from "../api";
 import type { Settings } from "../api";
 import { reportError } from "./error";
 
@@ -12,6 +12,10 @@ export const DEFAULT_SETTINGS: Settings = {
   todoPanelOpen: true,
   tabs: [QUICK_MEMO],
   activeTab: QUICK_MEMO,
+  orbVisible: true,
+  orbOpacity: 1,
+  orbX: null,
+  orbY: null,
 };
 
 type SettingsStore = {
@@ -70,17 +74,19 @@ function importLegacy(): Settings {
   return s;
 }
 
-// 저장은 300ms 모아서 한 번에 (사이드바 드래그·탭 전환처럼 잦은 변경 대비)
+// 저장은 바뀐 필드만 모아 300ms 뒤 한 번에 보낸다 (사이드바 드래그·탭 전환처럼 잦은 변경 대비).
+// 창마다 스토어가 따로 있으므로 전체를 쓰지 않고 patch만 보내 다른 창의 변경을 지우지 않는다.
+let pending: Partial<Settings> = {};
 let saveTimer: number | undefined;
-let dirty = false;
 function flush() {
   if (saveTimer !== undefined) {
     window.clearTimeout(saveTimer);
     saveTimer = undefined;
   }
-  if (!dirty) return;
-  dirty = false;
-  writeSettings(useSettings.getState().settings).catch(reportError);
+  if (Object.keys(pending).length === 0) return;
+  const patch = pending;
+  pending = {};
+  updateSettings(patch).catch(reportError);
 }
 
 let inited = false;
@@ -105,14 +111,14 @@ export const useSettings = create<SettingsStore>((set, get) => ({
     set({ settings: s, loaded: true });
     applyTheme(s.theme);
 
-    // 다른 창이 바꾼 설정 따라가기. 이 창에 아직 저장 안 한 변경이 있으면 그쪽이 우선.
+    // 다른 창이 바꾼 설정 따라가기. 이 창에서 아직 안 보낸 변경은 그 위에 다시 얹는다.
     void listen("settings-changed", () => {
-      if (dirty) return;
       readSettings()
         .then((next) => {
-          if (!next || dirty) return;
-          set({ settings: next });
-          applyTheme(next.theme);
+          if (!next) return;
+          const merged = { ...next, ...pending };
+          set({ settings: merged });
+          applyTheme(merged.theme);
         })
         .catch(() => {});
     });
@@ -124,7 +130,7 @@ export const useSettings = create<SettingsStore>((set, get) => ({
     const next = { ...get().settings, ...patch };
     set({ settings: next });
     if (patch.theme !== undefined) applyTheme(next.theme);
-    dirty = true;
+    pending = { ...pending, ...patch };
     if (saveTimer !== undefined) window.clearTimeout(saveTimer);
     saveTimer = window.setTimeout(flush, 300);
   },

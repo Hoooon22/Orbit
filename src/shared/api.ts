@@ -68,9 +68,18 @@ export const listRemove = (name: ListName, id: string) =>
 export const listMove = (name: ListName, id: string, before: string | null) =>
   invoke<void>("list_move", { name, id, before });
 
-// 창 전체 반투명 (0.2~1.0)
+// 창 전체 반투명 (0.2~1.0) — 호출한 창에 적용
 export const setWindowOpacity = (opacity: number) =>
   invoke<void>("set_window_opacity", { opacity });
+
+// 오브 창: 접힘↔펼침 (호출한 창의 크기·위치를 Rust가 한 번에 바꾼다)
+export const setOrbBounds = (expanded: boolean) =>
+  invoke<void>("set_orb_bounds", { expanded });
+export const setOrbVisible = (visible: boolean) =>
+  invoke<void>("set_orb_visible", { visible });
+// 워크스페이스 창을 앞으로. target(메모 경로·가상 뷰)이 있으면 그 탭을 연다
+export const showWorkspace = (target?: string) =>
+  invoke<void>("show_workspace", { target: target ?? null });
 
 // 즐겨찾기한 메모의 상대경로 목록 (배열 순서 = 표시 순서)
 export const readFavorites = () => invoke<string[]>("read_favorites");
@@ -86,8 +95,15 @@ export type Settings = {
   todoPanelOpen: boolean;
   tabs: string[];
   activeTab: string;
+  orbVisible: boolean;
+  orbOpacity: number; // 접힌 오브의 투명도 0.3~1.0
+  orbX: number | null; // 접힌 오브의 위치 (물리 픽셀). null이면 화면 오른쪽 아래
+  orbY: number | null;
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");
+// 전체 덮어쓰기 — 첫 실행 이관 전용. 평소 변경은 updateSettings(바뀐 필드만)로.
 export const writeSettings = (settings: Settings) =>
   invoke<void>("write_settings", { settings });
+export const updateSettings = (patch: Partial<Settings>) =>
+  invoke<Settings>("update_settings", { patch });
