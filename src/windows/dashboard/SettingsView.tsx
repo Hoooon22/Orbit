@@ -4,6 +4,7 @@ import {
   autostartEnabled,
   dataRoot,
   openDataRoot,
+  resetOrbPosition,
   setAutostart,
   setOrbVisible,
 } from "../../shared/api";
@@ -171,6 +172,20 @@ export default function SettingsView({ onOpenLauncher }: Props) {
               }}
             />
           </label>
+          <div className="settings-row">
+            <span>
+              오브 위치 초기화
+              <small>오브가 안 보이면(모니터를 뗀 뒤 화면 밖에 남는 등) 주 모니터 오른쪽 아래로 되돌리고 켭니다.</small>
+            </span>
+            <button
+              onClick={() => {
+                update({ orbVisible: true, orbX: null, orbY: null });
+                resetOrbPosition().catch(reportError);
+              }}
+            >
+              되돌리기
+            </button>
+          </div>
           <label className="settings-row">
             <span>
               오브 투명도

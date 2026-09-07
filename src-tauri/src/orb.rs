@@ -123,31 +123,64 @@ pub fn open_quick_memo(app: &AppHandle) {
     show_dashboard(app.clone(), Some(format!("memo@{}", crate::notes::QUICK_MEMO)));
 }
 
+/// 오브 왼쪽 위 좌표가 어느 모니터의 작업 영역 안에 있는지 (모니터를 떼면 화면 밖에 남을 수 있다)
+fn on_some_monitor(app: &AppHandle, x: i32, y: i32, w: i32, h: i32) -> bool {
+    app.available_monitors()
+        .map(|ms| {
+            ms.iter().any(|m| {
+                let r = m.work_area();
+                let (l, t) = (r.position.x, r.position.y);
+                let (rgt, btm) = (l + r.size.width as i32, t + r.size.height as i32);
+                // 오브의 절반 이상이 안에 들어오면 보이는 것으로 친다
+                x + w / 2 >= l && x + w / 2 <= rgt && y + h / 2 >= t && y + h / 2 <= btm
+            })
+        })
+        .unwrap_or(true)
+}
+
+/// 주 모니터 오른쪽 아래 (첫 실행·위치 초기화·화면 밖 복구용)
+fn default_position(app: &AppHandle, cw: i32, ch: i32, scale: f64) -> Option<PhysicalPosition<i32>> {
+    let m = app.primary_monitor().ok().flatten()?;
+    let r = m.work_area();
+    let margin = (MARGIN * scale).round() as i32;
+    Some(PhysicalPosition::new(
+        r.position.x + r.size.width as i32 - cw - margin,
+        r.position.y + r.size.height as i32 - ch - margin,
+    ))
+}
+
+/// 저장된 위치로 놓되, 어느 모니터에도 없으면 주 모니터 오른쪽 아래로.
+fn place(app: &AppHandle, w: &WebviewWindow, saved: (Option<i32>, Option<i32>)) {
+    #[cfg(windows)]
+    let _ = strip_caption(w);
+    let scale = w.scale_factor().unwrap_or(1.0);
+    let (cw, ch) = physical(ORB_SIZE, scale);
+    let pos = match saved {
+        (Some(x), Some(y)) if on_some_monitor(app, x, y, cw, ch) => Some(PhysicalPosition::new(x, y)),
+        _ => default_position(app, cw, ch, scale),
+    };
+    if let Some(p) = pos {
+        // 창을 만들 때는 캡션 스타일 때문에 너비가 커져 있으므로 크기도 같이 바로잡는다
+        let _ = set_bounds(w, p.x, p.y, cw, ch);
+    }
+}
+
 /// 시작 시: 저장된 위치가 있으면 그리로, 없으면 화면 오른쪽 아래로. 숨김 설정이면 숨긴다.
 pub fn place_on_start(app: &AppHandle, settings: &Settings) {
     let Some(w) = app.get_webview_window(ORB) else {
         return;
     };
-    #[cfg(windows)]
-    let _ = strip_caption(&w);
-    let scale = w.scale_factor().unwrap_or(1.0);
-    let (cw, ch) = physical(ORB_SIZE, scale);
-    let pos = match (settings.orb_x, settings.orb_y) {
-        (Some(x), Some(y)) => Some(PhysicalPosition::new(x, y)),
-        _ => w.current_monitor().ok().flatten().map(|m| {
-            let r = m.work_area();
-            let margin = (MARGIN * scale).round() as i32;
-            PhysicalPosition::new(
-                r.position.x + r.size.width as i32 - cw - margin,
-                r.position.y + r.size.height as i32 - ch - margin,
-            )
-        }),
-    };
-    if let Some(p) = pos {
-        // 창을 만들 때는 캡션 스타일 때문에 너비가 커져 있으므로 크기도 같이 바로잡는다
-        let _ = set_bounds(&w, p.x, p.y, cw, ch);
-    }
+    place(app, &w, (settings.orb_x, settings.orb_y));
     if !settings.orb_visible {
         let _ = w.hide();
     }
+}
+
+/// 설정의 "오브 위치 초기화": 주 모니터 오른쪽 아래로 옮기고 보이게 한다.
+#[tauri::command]
+pub fn reset_orb_position(app: AppHandle) -> Result<(), String> {
+    let w = app.get_webview_window(ORB).ok_or("오브 창이 없습니다")?;
+    place(&app, &w, (None, None));
+    set_visible(&app, true);
+    Ok(())
 }

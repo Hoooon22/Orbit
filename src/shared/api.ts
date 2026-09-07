@@ -161,6 +161,8 @@ export const setWindowOpacity = (opacity: number) =>
 
 export const setOrbVisible = (visible: boolean) =>
   invoke<void>("set_orb_visible", { visible });
+// 오브를 주 모니터 오른쪽 아래로 되돌리고 보이게 (화면 밖으로 나갔을 때)
+export const resetOrbPosition = () => invoke<void>("reset_orb_position");
 // Orbit 창. view: "home" | "memo[@경로]" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
 export const showDashboard = (view?: string) =>
   invoke<void>("show_dashboard", { view: view ?? null });

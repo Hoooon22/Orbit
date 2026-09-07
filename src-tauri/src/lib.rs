@@ -393,6 +393,7 @@ pub fn run() {
             orb::show_dashboard,
             orb::toggle_dashboard,
             orb::set_orb_visible,
+            orb::reset_orb_position,
             reminders::check_reminders,
             reminders::dismiss_reminder,
             clipboard::clipboard_history,
