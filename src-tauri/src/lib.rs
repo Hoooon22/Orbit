@@ -5,7 +5,7 @@ use notes::NotesRoot;
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
-use tauri_plugin_global_shortcut::ShortcutState;
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_window_state::StateFlags;
 
 fn show_main(app: &tauri::AppHandle) {
@@ -133,19 +133,17 @@ pub fn run() {
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
                 .build(),
         )
-        .plugin(
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcuts(["ctrl+alt+m"])
-                .expect("invalid shortcut")
-                .with_handler(|app, _shortcut, event| {
-                    if event.state == ShortcutState::Pressed {
-                        show_main(app);
-                        let _ = app.emit("open-quick-memo", ());
-                    }
-                })
-                .build(),
-        )
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
+            // 전역 단축키는 다른 프로그램(트레이에 남은 옛 DesktopMemo 등)이 먼저 잡고 있을 수 있다.
+            // 그때도 앱은 떠야 하므로 등록 실패는 무시한다.
+            let _ = app.global_shortcut().on_shortcut("ctrl+alt+m", |app, _shortcut, event| {
+                if event.state == ShortcutState::Pressed {
+                    show_main(app);
+                    let _ = app.emit("open-quick-memo", ());
+                }
+            });
+
             let root = migrate::resolve_data_root(&app.path().document_dir()?);
             std::fs::create_dir_all(&root)?;
             migrate::offer_old_uninstall(app.handle().clone());
