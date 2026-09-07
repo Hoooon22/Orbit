@@ -8,6 +8,7 @@ import { reportError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
+import { useGoogle } from "../../modules/calendar/googleStore";
 import { useClipboard } from "../../modules/clipboard/store";
 import { useLauncher } from "../../modules/launcher/store";
 import Clock from "../../modules/calendar/Clock";
@@ -56,6 +57,7 @@ export default function Dashboard() {
     useMemoStore.getState().init();
     useTodos.getState().init();
     useEvents.getState().init();
+    useGoogle.getState().init();
     useClipboard.getState().init();
     useLauncher.getState().init();
   }, []);
@@ -184,7 +186,11 @@ export default function Dashboard() {
             />
           )}
           {view === "calendar" && (
-            <CalendarView initialDate={calendarDate} onOpenNote={(path) => void openMemo(path)} />
+            <CalendarView
+              initialDate={calendarDate}
+              onOpenNote={(path) => void openMemo(path)}
+              onOpenSettings={() => setView("settings")}
+            />
           )}
           {view === "clipboard" && <ClipboardPanel layout="full" />}
           {view === "launcher" && <LauncherSettings />}

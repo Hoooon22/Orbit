@@ -45,9 +45,25 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 
 ### 캘린더와 일정
 
-- 일정은 제목·날짜·여러 날·시각·**매년 반복**(생일·기념일)·연결 메모를 가집니다. 반복 일정과 앞으로의 일정에는 D-day가 붙습니다
-- 홈의 오늘·이번 주 칸에는 일정과 할 일 마감이 시각순으로 섞여 보입니다
-- 일정은 `.events.json`에 저장됩니다. 할 일과 달리 "완료"가 없고 기간과 반복이 있어 따로 둡니다
+- 월간 달력의 날짜 칸마다 그날 일정 제목이 목록으로 보입니다(종일 일정 먼저, 시각순). 넘치면 "+n"이 붙고, 칸을 누르면 오른쪽에 전체 목록이 나옵니다
+- Orbit에서 만드는 일정은 제목·날짜·여러 날·시각·**매년 반복**(생일·기념일)·연결 메모를 가집니다. 반복 일정과 앞으로의 일정에는 D-day가 붙습니다
+- 홈의 오늘·이번 주 칸에는 일정과 할 일 마감이 시각순으로 섞여 보이고, 오브에는 오늘 일정 개수가 배지로 붙습니다
+- 로컬 일정은 `.events.json`에 저장됩니다. 할 일과 달리 "완료"가 없고 기간과 반복이 있어 따로 둡니다
+
+### 구글 캘린더 연결
+
+구글 계정을 여러 개 연결하면 각 계정의 캘린더 일정이 Orbit 일정과 함께 (캘린더 색으로) 보입니다. 읽기 전용이라 Orbit에서 고칠 수는 없고, 15분마다(설정·캘린더 화면의 "동기화"로는 즉시) 갱신됩니다.
+
+한 번만 하면 되는 준비 (Google Cloud Console, 약 10분):
+
+1. [console.cloud.google.com](https://console.cloud.google.com)에서 프로젝트를 하나 만듭니다 (이름 아무거나).
+2. **API 및 서비스 → 라이브러리**에서 **Google Calendar API**를 찾아 **사용**.
+3. **API 및 서비스 → OAuth 동의 화면**: 외부(External), 앱 이름 "Orbit", 이메일 채우고 저장. **테스트 사용자**에 연결할 구글 계정 이메일을 **모두** 추가합니다 (게시하지 않고 테스트 상태로 두면 됩니다).
+4. **사용자 인증 정보 → 사용자 인증 정보 만들기 → OAuth 클라이언트 ID**: 애플리케이션 유형 **데스크톱 앱**. 만들어진 **클라이언트 ID**와 **클라이언트 보안 비밀번호**를 복사합니다.
+5. Orbit 설정 → 구글 캘린더에 둘을 붙여 넣고 **저장**, 그다음 **+ Google 계정 추가**를 누르면 브라우저가 열립니다. 로그인하고 허용하면 창에 "연결됐습니다"가 뜹니다. 계정이 둘이면 한 번 더 누르세요.
+6. 계정 아래 캘린더 목록에서 보여 줄 캘린더만 체크합니다.
+
+토큰과 받은 일정은 `%LOCALAPPDATA%\com.kwonkim.orbit\google.json`, `google-events.json`에 둡니다. 연결을 끊으면 그 계정의 토큰과 일정은 지워집니다. 테스트 상태의 동의 화면은 토큰이 7일마다 만료될 수 있는데, 그때는 "연결 해제" 뒤 다시 추가하면 됩니다.
 
 ### 클립보드 히스토리
 
@@ -132,7 +148,7 @@ DesktopMemo 시절 그대로입니다.
 
 `.`으로 시작하는 파일은 앱 화면에 나오지 않습니다.
 
-이미 울린 알림을 기억하는 장부(`reminded.json`), 클립보드 기록(`clipboard.json`), 런처의 직접 추가 항목·사용 기록(`launcher.json`)은 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
+이미 울린 알림을 기억하는 장부(`reminded.json`), 클립보드 기록(`clipboard.json`), 런처의 직접 추가 항목·사용 기록(`launcher.json`), 구글 계정 토큰과 일정 캐시(`google.json`, `google-events.json`)는 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
 
 ## 단축키
 
@@ -172,7 +188,7 @@ src/
 ├─ modules/
 │  ├─ memo/                     편집기, 트리, 즐겨찾기, 검색, store(트리·즐겨찾기 캐시)
 │  ├─ todo/                     할 일 패널·전체 화면·빠른 추가, store
-│  ├─ calendar/                 시계, 일정 store, 날짜 계산(calendar.ts), 미니 달력, 오늘·이번 주(Agenda), 캘린더 화면
+│  ├─ calendar/                 시계, 일정 store, 구글 store(googleStore), 날짜 계산(calendar.ts), 미니 달력, 월간 그리드(MonthGrid), Agenda, 캘린더 화면
 │  ├─ clipboard/                클립보드 히스토리 store, 검색·복사·고정 패널
 │  └─ launcher/                 런처 store, 순위(rank.ts: 퍼지+초성+사용 빈도), 실행 칸, 항목 관리 화면
 └─ windows/
@@ -185,6 +201,7 @@ src-tauri/src/
 ├─ reminders.rs                 1분마다 할 일을 읽어 Windows 알림, 발송 장부, 놓친 알림 요약
 ├─ clipboard.rs                 클립보드 변경 리스너(clipboard-win), 200개 기록·고정·중복 합치기
 ├─ launcher.rs                  시작 메뉴 .lnk/.url 색인, 직접 추가 항목, 실행(opener)·사용 기록
+├─ google.rs                    구글 캘린더 OAuth(PKCE, 127.0.0.1 리다이렉트), 토큰 갱신, 15분마다 일정 받기
 ├─ notes.rs                     메모 파일 읽기·쓰기·이동·검색
 ├─ store.rs                     .todos.json 같은 목록 파일을 항목 단위로 고치고 변경 이벤트 발송
 ├─ settings.rs                  .settings.json (창마다 바뀐 필드만 병합)
@@ -202,8 +219,8 @@ src-tauri/src/
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.9.1
-git push origin v0.9.1
+git tag v0.10.0
+git push origin v0.10.0
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.

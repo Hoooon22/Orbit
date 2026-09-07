@@ -4,6 +4,8 @@ import { setWindowOpacity, toggleDashboard } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { useTodos } from "../../modules/todo/store";
+import { useEvents } from "../../modules/calendar/store";
+import { useGoogle } from "../../modules/calendar/googleStore";
 import Orb from "./Orb";
 
 // 오브 창: 화면 구석의 구슬 하나. 클릭하면 Orbit 대시보드 창을 열고 닫는다.
@@ -15,6 +17,8 @@ export default function OrbApp() {
   useEffect(() => {
     void useSettings.getState().init();
     useTodos.getState().init(); // 배지의 남은 할 일 개수
+    useEvents.getState().init(); // 오브의 오늘 일정 개수
+    useGoogle.getState().init();
   }, []);
 
   // 끌어 옮기면 위치 저장 (이동이 멈추고 500ms 뒤)

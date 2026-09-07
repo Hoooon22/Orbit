@@ -71,8 +71,39 @@ export type CalEvent = {
   endTime?: string;
   repeat?: "yearly"; // 생일·기념일. 매년 같은 날
   note?: string; // 연결 메모 상대 경로
-  updatedAt?: number; // 이후 외부 캘린더 동기화 충돌 해소용
+  updatedAt?: number;
+  color?: string; // 캘린더 색 (구글 일정)
+  google?: { account: string; calendar: string }; // 구글에서 온 읽기 전용 일정
 };
+
+// 구글 캘린더 연동 (Rust google.rs). 토큰은 Rust만 다루고 프런트는 상태·일정만 본다
+export type GCalendar = { id: string; summary: string; color: string | null; enabled: boolean };
+export type GoogleStatus = {
+  configured: boolean; // 클라이언트 ID·비밀번호가 들어 있는지
+  accounts: { email: string; calendars: GCalendar[] }[];
+  lastSync: number | null;
+  error: string | null;
+};
+export type GEvent = {
+  id: string;
+  title: string;
+  date: string;
+  endDate: string | null;
+  time: string | null;
+  endTime: string | null;
+  account: string;
+  calendar: string;
+  color: string | null;
+};
+export const googleStatus = () => invoke<GoogleStatus>("google_status");
+export const googleSetClient = (clientId: string, clientSecret: string) =>
+  invoke<void>("google_set_client", { clientId, clientSecret });
+export const googleConnect = () => invoke<string>("google_connect"); // 브라우저 로그인 → 이메일
+export const googleDisconnect = (email: string) => invoke<void>("google_disconnect", { email });
+export const googleSetCalendarEnabled = (email: string, calendarId: string, enabled: boolean) =>
+  invoke<void>("google_set_calendar_enabled", { email, calendarId, enabled });
+export const googleSync = () => invoke<number>("google_sync");
+export const googleEvents = () => invoke<GEvent[]>("google_events");
 
 // 울린 뒤 아직 닫지 않은 리마인더 (Rust reminders.rs)
 export type Fired = { id: string; text: string; remindAt: number; missed: boolean };

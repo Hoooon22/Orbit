@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { todayStr } from "../../shared/dates";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 import { useTodos } from "../../modules/todo/store";
-import { useEvents } from "../../modules/calendar/store";
+import { useAllEvents } from "../../modules/calendar/googleStore";
 import { monthOf } from "../../modules/calendar/calendar";
 import Agenda from "../../modules/calendar/Agenda";
 import MiniCalendar from "../../modules/calendar/MiniCalendar";
@@ -21,7 +21,7 @@ type Props = {
 export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLaunched }: Props) {
   const todos = useTodos((s) => s.todos);
   const addTodo = useTodos((s) => s.add);
-  const events = useEvents((s) => s.events);
+  const events = useAllEvents();
   const [month, setMonth] = useState(() => monthOf(todayStr()));
   const [draft, setDraft] = useState("");
   const preview = describeParsed(parseTodoInput(draft));

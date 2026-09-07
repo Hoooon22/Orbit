@@ -1,4 +1,5 @@
 mod clipboard;
+mod google;
 mod launcher;
 mod migrate;
 mod notes;
@@ -355,9 +356,11 @@ pub fn run() {
             let launcher = launcher::LauncherState::load(&local);
             launcher::warm_up(&launcher);
             app.manage(launcher);
+            app.manage(google::GoogleState::load(&local));
             app.manage(reminders::LocalDir(local));
             reminders::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
+            google::spawn(app.handle().clone());
 
             // 전역 단축키는 설정(SettingsState)이 준비된 뒤에. 다른 프로그램이 쥔 키는 조용히 건너뛴다.
             let _ = register_shortcuts(app.handle());
@@ -417,6 +420,13 @@ pub fn run() {
             launcher::launch,
             launcher::launcher_add_custom,
             launcher::launcher_remove_custom,
+            google::google_status,
+            google::google_set_client,
+            google::google_connect,
+            google::google_disconnect,
+            google::google_set_calendar_enabled,
+            google::google_sync,
+            google::google_events,
             apply_shortcuts,
             autostart_enabled,
             set_autostart

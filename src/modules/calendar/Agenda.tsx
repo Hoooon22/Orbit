@@ -1,10 +1,17 @@
 import { useMemo } from "react";
 import { todayStr } from "../../shared/dates";
 import { deadline, useTodos } from "../todo/store";
-import { useEvents } from "./store";
+import { useAllEvents } from "./googleStore";
 import { addDays, dday, ddayLabel, diffDays, eventsOn, shortLabel, upcoming } from "./calendar";
 
-type Row = { key: string; date: string; time?: string; title: string; kind: "event" | "todo" };
+type Row = {
+  key: string;
+  date: string;
+  time?: string;
+  title: string;
+  kind: "event" | "todo";
+  color?: string;
+};
 
 type Props = {
   onOpen: (date: string) => void; // 행을 누르면 워크스페이스 캘린더의 그 날짜로
@@ -12,16 +19,16 @@ type Props = {
 
 // 오늘 + 앞으로 일주일. 일정과 마감 있는 할 일을 한 줄씩, 시각순.
 export default function Agenda({ onOpen }: Props) {
-  const events = useEvents((s) => s.events);
+  const events = useAllEvents();
   const todos = useTodos((s) => s.todos);
   const today = todayStr();
 
   const { todayRows, weekRows } = useMemo(() => {
     const rows: Row[] = [];
     for (const ev of eventsOn(events, today))
-      rows.push({ key: "e" + ev.id, date: today, time: ev.time, title: ev.title, kind: "event" });
+      rows.push({ key: "e" + ev.id, date: today, time: ev.time, title: ev.title, kind: "event", color: ev.color });
     for (const { ev, date } of upcoming(events, addDays(today, 1), 6))
-      rows.push({ key: "e" + ev.id, date, time: ev.time, title: ev.title, kind: "event" });
+      rows.push({ key: "e" + ev.id, date, time: ev.time, title: ev.title, kind: "event", color: ev.color });
     for (const t of todos) {
       const d = deadline(t);
       if (t.done || !d) continue;
@@ -46,7 +53,11 @@ export default function Agenda({ onOpen }: Props) {
         {r.time ?? (withDate ? "" : "종일")}
       </span>
       <span className="agenda-title" title={r.title}>
-        {r.kind === "todo" ? "☑ " : ""}
+        {r.kind === "todo" ? (
+          "☑ "
+        ) : (
+          <span className="calendar-color" style={{ background: r.color ?? "var(--accent)" }} />
+        )}
         {r.title}
       </span>
       {withDate && <span className="agenda-dday">{ddayLabel(dday(r.date, today))}</span>}

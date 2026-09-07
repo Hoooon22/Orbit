@@ -2,7 +2,7 @@
 # 실행 파일 이름(orbit.exe)이 여기서 나온다. 옛 DesktopMemo(app.exe)의 언인스톨러가
 # 같은 이름의 프로세스를 죽이지 않도록 반드시 다른 이름을 쓴다.
 name = "orbit"
-version = "0.9.1"
+version = "0.10.0"
 description = "화면 구석에 늘 떠 있는 Windows 개인 비서 (메모·할 일·일정·클립보드·런처)"
 authors = ["kwonkim"]
 license = ""
@@ -33,8 +33,13 @@ tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-autostart = "2"
-# 리마인더 토스트에 적을 현지 시각 표기용
+# 리마인더 토스트에 적을 현지 시각 표기·구글 일정 시각 변환
 chrono = "0.4"
+# 구글 캘린더 OAuth(PKCE)·API 호출
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+sha2 = "0.10"
+base64 = "0.22"
+rand = "0.8"
 
 # 창 반투명(레이어드 윈도우)·오브 창 크기 조정 — Tauri에 없는 Win32 호출을 직접 한다
 [target.'cfg(windows)'.dependencies]

@@ -7,8 +7,10 @@ import {
   setAutostart,
   setOrbVisible,
 } from "../../shared/api";
+import { relativeTime } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
+import { useGoogle } from "../../modules/calendar/googleStore";
 
 type Props = { onOpenLauncher: () => void };
 
@@ -21,6 +23,18 @@ export default function SettingsView({ onOpenLauncher }: Props) {
   const [quickKey, setQuickKey] = useState(settings.shortcutQuickMemo);
   const [launcherKey, setLauncherKey] = useState(settings.shortcutLauncher);
   const [keyMsg, setKeyMsg] = useState("");
+  // 구글 캘린더
+  const google = useGoogle((s) => s.status);
+  const connecting = useGoogle((s) => s.connecting);
+  const syncing = useGoogle((s) => s.syncing);
+  const gConnect = useGoogle((s) => s.connect);
+  const gDisconnect = useGoogle((s) => s.disconnect);
+  const gSetClient = useGoogle((s) => s.setClient);
+  const gToggle = useGoogle((s) => s.setCalendarEnabled);
+  const gSync = useGoogle((s) => s.sync);
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [gMsg, setGMsg] = useState("");
   // 자동 시작은 설정 파일이 아니라 OS(레지스트리 Run 키)가 진실이라 매번 물어본다
   const [autostart, setAutostartState] = useState<boolean | null>(null);
 
@@ -175,6 +189,97 @@ export default function SettingsView({ onOpenLauncher }: Props) {
               {Math.round(settings.orbOpacity * 100)}%
             </span>
           </label>
+        </section>
+        <section className="settings-section">
+          <h3>구글 캘린더</h3>
+          <p className="settings-note">
+            Google Cloud Console에서 만든 <b>데스크톱 앱</b> OAuth 클라이언트의 ID와 비밀번호를 넣고, 계정을 하나씩 추가하세요.
+            (만드는 방법은 README의 "구글 캘린더 연결" 참고) 일정은 읽기 전용으로 가져와 15분마다 갱신됩니다.
+          </p>
+          <div className="settings-row settings-google-client">
+            <input
+              value={clientId}
+              placeholder={google?.configured ? "클라이언트 ID (저장됨 — 바꾸려면 다시 입력)" : "클라이언트 ID (…apps.googleusercontent.com)"}
+              spellCheck={false}
+              onChange={(e) => setClientId(e.target.value)}
+            />
+            <input
+              value={clientSecret}
+              placeholder={google?.configured ? "클라이언트 비밀번호 (저장됨)" : "클라이언트 비밀번호 (GOCSPX-…)"}
+              spellCheck={false}
+              type="password"
+              onChange={(e) => setClientSecret(e.target.value)}
+            />
+            <button
+              disabled={!clientId.trim() || !clientSecret.trim()}
+              onClick={() => {
+                void gSetClient(clientId, clientSecret).then(() => {
+                  setClientId("");
+                  setClientSecret("");
+                  setGMsg("클라이언트 정보를 저장했습니다. 이제 계정을 추가하세요.");
+                });
+              }}
+            >
+              저장
+            </button>
+          </div>
+          {google?.accounts.map((acc) => (
+            <div key={acc.email} className="settings-google-account">
+              <div className="settings-row">
+                <span>
+                  {acc.email}
+                  <small>보여 줄 캘린더를 고르세요</small>
+                </span>
+                <button onClick={() => void gDisconnect(acc.email)}>연결 해제</button>
+              </div>
+              <div className="settings-google-cals">
+                {acc.calendars.map((c) => (
+                  <label key={c.id}>
+                    <input
+                      type="checkbox"
+                      checked={c.enabled}
+                      onChange={(e) => void gToggle(acc.email, c.id, e.target.checked)}
+                    />
+                    <span className="calendar-color" style={{ background: c.color ?? "var(--accent)" }} />
+                    {c.summary}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="settings-row">
+            <span>
+              <small>
+                {gMsg ||
+                  (google?.error
+                    ? `⚠ ${google.error}`
+                    : google?.lastSync
+                      ? `마지막 동기화 ${relativeTime(google.lastSync)}`
+                      : google?.accounts.length
+                        ? "아직 동기화 전"
+                        : "연결된 계정이 없습니다. 계정이 두 개면 두 번 추가하세요.")}
+              </small>
+            </span>
+            <span className="settings-google-actions">
+              {(google?.accounts.length ?? 0) > 0 && (
+                <button onClick={() => void gSync()} disabled={syncing}>
+                  {syncing ? "받는 중…" : "지금 동기화"}
+                </button>
+              )}
+              <button
+                disabled={!google?.configured || connecting}
+                title={google?.configured ? "브라우저에서 Google 로그인" : "먼저 클라이언트 정보를 저장하세요"}
+                onClick={() => {
+                  setGMsg("브라우저에서 로그인하세요. 끝나면 여기로 돌아옵니다…");
+                  void gConnect().then((email) =>
+                    setGMsg(email ? `${email} 연결됨. 일정을 받아오는 중…` : ""),
+                  );
+                }}
+              >
+                {connecting ? "로그인 대기 중…" : "+ Google 계정 추가"}
+              </button>
+            </span>
+          </div>
         </section>
         <section className="settings-section">
           <h3>클립보드</h3>
