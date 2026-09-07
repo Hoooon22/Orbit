@@ -4,7 +4,7 @@ import { looksLaunchable, rankItems } from "./rank";
 import { useLauncher } from "./store";
 
 type Props = {
-  onLaunched: () => void; // 실행 뒤 패널을 접는다
+  onLaunched: () => void; // 실행 뒤 창을 숨긴다
 };
 
 const ICON: Record<LaunchItem["kind"], string> = { app: "🚀", url: "🌐", folder: "📁" };
@@ -42,7 +42,6 @@ export default function Launcher({ onLaunched }: Props) {
       <div className="launcher-search">
         <input
           value={query}
-          autoFocus
           spellCheck={false}
           placeholder="앱 이름, 주소, 폴더… (초성도 됩니다)"
           onChange={(e) => {
@@ -60,7 +59,7 @@ export default function Launcher({ onLaunched }: Props) {
               e.preventDefault();
               void run(active);
             } else if (e.key === "Escape" && query) {
-              e.stopPropagation(); // 입력이 있으면 지우기만, 비어 있으면 패널이 접힌다
+              e.stopPropagation(); // 입력이 있으면 지우기만, 비어 있으면 창이 닫힌다
               setQuery("");
             }
           }}

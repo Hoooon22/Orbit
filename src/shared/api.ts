@@ -47,12 +47,8 @@ export const appendQuickMemo = (path: string, block: string, rest: string) =>
 export const saveImage = (data: number[], ext: string) =>
   invoke<string>("save_image", { data, ext });
 
-// 파일이 아닌 화면을 탭·선택 상태에 넣을 때 쓰는 센티널 ("::"로 시작)
+// 메모 창에서 파일이 아닌 화면을 탭·선택 상태에 넣을 때 쓰는 센티널 ("::"로 시작)
 export const TODO_VIEW = "::todo";
-export const SETTINGS_VIEW = "::settings";
-export const CALENDAR_VIEW = "::calendar";
-export const CLIPBOARD_VIEW = "::clipboard";
-export const LAUNCHER_VIEW = "::launcher";
 export const isVirtualView = (path: string) => path.startsWith("::");
 
 export type Todo = {
@@ -136,14 +132,15 @@ export const listMove = (name: ListName, id: string, before: string | null) =>
 export const setWindowOpacity = (opacity: number) =>
   invoke<void>("set_window_opacity", { opacity });
 
-// 오브 창: 접힘↔펼침 (호출한 창의 크기·위치를 Rust가 한 번에 바꾼다)
-export const setOrbBounds = (expanded: boolean) =>
-  invoke<void>("set_orb_bounds", { expanded });
 export const setOrbVisible = (visible: boolean) =>
   invoke<void>("set_orb_visible", { visible });
-// 워크스페이스 창을 앞으로. target(메모 경로·가상 뷰)이 있으면 그 탭을 연다
+// 예전 메모 UI 창을 앞으로. target(메모 경로·가상 뷰)이 있으면 그 탭을 연다
 export const showWorkspace = (target?: string) =>
   invoke<void>("show_workspace", { target: target ?? null });
+// Orbit 대시보드. view: "home" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
+export const showDashboard = (view?: string) =>
+  invoke<void>("show_dashboard", { view: view ?? null });
+export const toggleDashboard = () => invoke<void>("toggle_dashboard");
 
 // 즐겨찾기한 메모의 상대경로 목록 (배열 순서 = 표시 순서)
 export const readFavorites = () => invoke<string[]>("read_favorites");

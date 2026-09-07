@@ -281,19 +281,24 @@ pub fn run() {
                 }
             });
 
-            // 트레이: 좌클릭 = 워크스페이스 열기, 메뉴 = 열기/오브 표시·숨김/업데이트 확인/종료
-            let open_item = MenuItem::with_id(app, "open", "워크스페이스 열기", true, None::<&str>)?;
+            // 트레이: 좌클릭 = Orbit 대시보드, 메뉴 = Orbit/메모 열기/오브 표시·숨김/업데이트 확인/종료
+            let dash_item = MenuItem::with_id(app, "dashboard", "Orbit 열기", true, None::<&str>)?;
+            let open_item = MenuItem::with_id(app, "open", "메모 열기", true, None::<&str>)?;
             let orb_item = MenuItem::with_id(app, "orb", "오브 표시/숨김", true, None::<&str>)?;
             let update_item =
                 MenuItem::with_id(app, "update", "업데이트 확인", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open_item, &orb_item, &update_item, &quit_item])?;
+            let menu = Menu::with_items(
+                app,
+                &[&dash_item, &open_item, &orb_item, &update_item, &quit_item],
+            )?;
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().expect("window icon").clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .tooltip("Orbit (Ctrl+Alt+M)")
                 .on_menu_event(|app, event| match event.id.as_ref() {
+                    "dashboard" => orb::show_dashboard(app.clone(), None),
                     "open" => show_main(app),
                     "orb" => {
                         if let Some(w) = app.get_webview_window(orb::ORB) {
@@ -332,7 +337,7 @@ pub fn run() {
                         ..
                     } = event
                     {
-                        show_main(tray.app_handle());
+                        orb::show_dashboard(tray.app_handle().clone(), None);
                     }
                 })
                 .build(app)?;
@@ -341,7 +346,6 @@ pub fn run() {
             orb::place_on_start(app.handle(), &loaded.clone().unwrap_or_default());
             app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
             app.manage(store::ListLock(std::sync::Mutex::new(())));
-            app.manage(orb::OrbState(std::sync::Mutex::new(None)));
             app.manage(NotesRoot(root));
 
             // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
@@ -362,11 +366,8 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                if window.label() == orb::ORB {
-                    // 오브에서 Alt+F4: 사라지게 두지 않고 접기만
-                    let _ = window.emit_to(orb::ORB, "orb-collapse", ());
-                } else {
-                    // 워크스페이스 닫기 = 트레이로 숨김 (Ctrl+Alt+M 또는 트레이 클릭으로 즉시 복귀)
+                // 오브에서 Alt+F4: 사라지게 두지 않는다. 대시보드·메모 창 닫기 = 숨김 (오브·트레이로 복귀)
+                if window.label() != orb::ORB {
                     let _ = window.hide();
                 }
             }
@@ -400,8 +401,9 @@ pub fn run() {
             settings::write_settings,
             settings::update_settings,
             open_data_root,
-            orb::set_orb_bounds,
             orb::show_workspace,
+            orb::show_dashboard,
+            orb::toggle_dashboard,
             orb::set_orb_visible,
             reminders::check_reminders,
             reminders::dismiss_reminder,

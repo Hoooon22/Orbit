@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  CALENDAR_VIEW,
-  CLIPBOARD_VIEW,
-  LAUNCHER_VIEW,
-  isVirtualView,
-  QUICK_MEMO,
-  SETTINGS_VIEW,
-  TODO_VIEW,
-} from "../../shared/api";
+import { isVirtualView, QUICK_MEMO, TODO_VIEW } from "../../shared/api";
 
 type Props = {
   tabs: string[];
@@ -28,10 +20,6 @@ type Menu = { x: number; y: number; path: string | null };
 function tabLabel(path: string): string {
   if (path === QUICK_MEMO) return "⚡ 빠른 메모";
   if (path === TODO_VIEW) return "☑️ Todo";
-  if (path === SETTINGS_VIEW) return "⚙️ 설정";
-  if (path === CALENDAR_VIEW) return "📅 캘린더";
-  if (path === CLIPBOARD_VIEW) return "📋 클립보드";
-  if (path === LAUNCHER_VIEW) return "🚀 런처";
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 

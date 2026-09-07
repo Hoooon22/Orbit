@@ -2164,12 +2164,6 @@ button {
   color: var(--fg-dim);
 }
 
-.orb-calendar {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-}
-
 .calendar-view {
   display: flex;
   flex-direction: column;
@@ -2681,45 +2675,6 @@ body.orb-window {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
-.orb-panel {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 8px 28px var(--shadow-color);
-  animation: orb-in 120ms ease-out;
-  transition: opacity 120ms ease-in;
-}
-
-.orb-panel.closing {
-  opacity: 0;
-}
-
-@keyframes orb-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.orb-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 8px 8px 8px 12px;
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border);
-}
-
 .clock-panel {
   display: flex;
   flex: 1;
@@ -2738,56 +2693,278 @@ body.orb-window {
   font-weight: 600;
 }
 
-.orb-head-btn {
+/* ── Orbit 대시보드 창 ─────────────────── */
+/* 프레임 없는 투명 창 위에 둥근 카드 하나. 머리줄을 끌어 옮기고 Esc·×로 숨긴다. */
+
+body.dashboard-window {
+  background: transparent;
+  overflow: hidden;
+}
+
+.dash {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px var(--shadow-color);
+}
+
+.dash-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  font-size: 14px;
+  height: 52px;
+  padding: 0 10px 0 18px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  cursor: default;
+}
+
+.dash-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.dash-logo-orb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 32%, #9d8cff 0%, #5b4bd6 45%, #231b5c 100%);
+  box-shadow: 0 0 0 2px rgba(255, 209, 102, 0.6);
+}
+
+.dash-head .clock-panel {
+  flex: 1;
+  justify-content: center;
+}
+
+.dash-memo-btn {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--bg-active);
+}
+
+.dash-memo-btn:hover {
+  border-color: var(--accent);
+}
+
+.dash-head-btn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  font-size: 16px;
   line-height: 1;
   text-align: center;
   color: var(--fg-dim);
 }
 
-.orb-head-btn:hover {
+.dash-head-btn:hover {
   background: var(--bg-hover);
   color: var(--fg);
 }
 
-.orb-tabs {
+.dash-body {
   display: flex;
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.orb-tabs button {
   flex: 1;
-  padding: 7px 0;
-  font-size: 12px;
-  text-align: center;
+  min-height: 0;
+}
+
+.dash-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-shrink: 0;
+  width: 64px;
+  padding: 10px 6px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+}
+
+.dash-rail-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 0 6px;
+  border-radius: 8px;
   color: var(--fg-dim);
-  border-bottom: 2px solid transparent;
 }
 
-.orb-tabs button:hover {
+.dash-rail-btn:hover {
+  background: var(--bg-hover);
   color: var(--fg);
 }
 
-.orb-tabs button.on {
+.dash-rail-btn.on {
+  background: var(--bg-active);
   color: var(--fg);
-  border-bottom-color: var(--accent);
 }
 
-.orb-body {
+.dash-rail-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.dash-rail-label {
+  font-size: 10.5px;
+}
+
+.dash-main {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
 }
 
-.orb-body .editor {
+.dash-main > .error {
+  margin: 10px 16px 0;
+}
+
+/* 메모 화면: 트리 + 편집기 */
+.memo-view {
+  display: grid;
+  grid-template-columns: 220px 1fr;
   flex: 1;
   min-height: 0;
+}
+
+.memo-side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.memo-side .tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.memo-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 8px 4px;
+}
+
+.memo-side-actions button {
+  font-size: 12px;
+  color: var(--fg-dim);
+  padding: 3px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+.memo-side-actions button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.memo-side-actions .memo-open-full {
+  margin-left: auto;
+  color: var(--accent);
+}
+
+.memo-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.memo-main .editor {
+  flex: 1;
+  min-height: 0;
+}
+
+/* 홈: 세 칸 */
+.home {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+  padding: 14px 16px 16px;
+}
+
+.home-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+}
+
+.home-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 2px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  letter-spacing: 0.4px;
+}
+
+.home-count {
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.home-link {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.home-agenda {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.home-todo {
+  flex: 1;
+}
+
+.home-launcher {
+  flex: 0 0 46%;
+}
+
+.home-clip {
+  flex: 1;
 }
 
 .orb-todo-add {

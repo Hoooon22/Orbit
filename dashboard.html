@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orbit</title>
+    <!-- 프레임 없는 투명 창 위에 둥근 카드를 그리므로 바탕색을 칠하지 않는다 -->
+    <style>
+      html, body, #root { background: transparent; margin: 0; height: 100%; }
+    </style>
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("theme") === "light" ? "light" : "dark";
+      } catch (e) {}
+    </script>
+  </head>
+  <body class="dashboard-window">
+    <div id="root"></div>
+    <script type="module" src="/src/windows/dashboard/main.tsx"></script>
+  </body>
+</html>

@@ -3,7 +3,6 @@ import {
   applyShortcuts,
   autostartEnabled,
   dataRoot,
-  LAUNCHER_VIEW,
   openDataRoot,
   setAutostart,
   setOrbVisible,
@@ -11,10 +10,10 @@ import {
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 
-type Props = { onOpen: (path: string) => void };
+type Props = { onOpenLauncher: () => void };
 
-// 설정 화면. 탭 하나(::settings)로 열리며 바꾸는 즉시 반영·저장된다.
-export default function SettingsView({ onOpen }: Props) {
+// Orbit 설정 화면. 바꾸는 즉시 반영·저장된다.
+export default function SettingsView({ onOpenLauncher }: Props) {
   const settings = useSettings((s) => s.settings);
   const update = useSettings((s) => s.update);
   const [root, setRoot] = useState("");
@@ -63,7 +62,7 @@ export default function SettingsView({ onOpen }: Props) {
           <label className="settings-row">
             <span>
               빠른 메모 열기
-              <small>어디서든 워크스페이스의 빠른 메모로. 예: ctrl+alt+m</small>
+              <small>어디서든 메모 창의 빠른 메모로. 예: ctrl+alt+m</small>
             </span>
             <input
               className="settings-key"
@@ -75,7 +74,7 @@ export default function SettingsView({ onOpen }: Props) {
           <label className="settings-row">
             <span>
               런처 열기
-              <small>오브를 런처 탭으로 펼칩니다. 예: alt+space (PowerToys Run과 겹치면 바꾸세요)</small>
+              <small>Orbit 창을 열고 실행 칸에 커서를 둡니다. 예: alt+space (PowerToys Run과 겹치면 바꾸세요)</small>
             </span>
             <input
               className="settings-key"
@@ -119,7 +118,10 @@ export default function SettingsView({ onOpen }: Props) {
             </select>
           </label>
           <label className="settings-row">
-            <span>창을 항상 위에 고정</span>
+            <span>
+              메모 창을 항상 위에 고정
+              <small>예전 DesktopMemo 창(메모 열기)에 적용됩니다.</small>
+            </span>
             <input
               type="checkbox"
               checked={settings.pinned}
@@ -127,7 +129,7 @@ export default function SettingsView({ onOpen }: Props) {
             />
           </label>
           <label className="settings-row">
-            <span>본문 글자 크기 (Ctrl+휠로도 조절)</span>
+            <span>메모 본문 글자 크기 (Ctrl+휠로도 조절)</span>
             <input
               type="number"
               min={10}
@@ -145,7 +147,7 @@ export default function SettingsView({ onOpen }: Props) {
           <label className="settings-row">
             <span>
               화면에 오브 표시
-              <small>트레이 메뉴의 "오브 표시/숨김"과 같습니다. 끌어서 옮기고, 클릭하면 펼쳐집니다.</small>
+              <small>트레이 메뉴의 "오브 표시/숨김"과 같습니다. 끌어서 옮기고, 클릭하면 이 창이 열립니다.</small>
             </span>
             <input
               type="checkbox"
@@ -158,8 +160,8 @@ export default function SettingsView({ onOpen }: Props) {
           </label>
           <label className="settings-row">
             <span>
-              접힌 오브 투명도
-              <small>마우스를 올리거나 펼치면 잠시 또렷해집니다.</small>
+              오브 투명도
+              <small>마우스를 올리면 잠시 또렷해집니다.</small>
             </span>
             <span className="settings-range">
               <input
@@ -197,7 +199,7 @@ export default function SettingsView({ onOpen }: Props) {
               직접 추가한 항목과 시작 메뉴 색인
               <small>한글 이름으로 영문 앱을 찾게 하거나 자주 여는 폴더·주소를 등록합니다.</small>
             </span>
-            <button onClick={() => onOpen(LAUNCHER_VIEW)}>항목 관리</button>
+            <button onClick={onOpenLauncher}>항목 관리</button>
           </div>
         </section>
         <section className="settings-section">

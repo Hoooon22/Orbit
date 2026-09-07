@@ -30,7 +30,7 @@ export default function LauncherSettings() {
       </header>
       <div className="settings-body">
         <p className="settings-note">
-          오브 패널의 🚀 탭{shortcut ? `(또는 ${shortcut})` : ""}에서 앱 이름을 치고 Enter로 실행합니다. 한글 초성("ㅋㄹ" → 크롬)도 됩니다. 영문 앱을 한글로 찾고 싶으면 아래에 한글 이름으로 항목을 더하세요.
+          홈 화면의 실행 칸{shortcut ? `(또는 ${shortcut})` : ""}에서 앱 이름을 치고 Enter로 실행합니다. 한글 초성("ㅋㄹ" → 크롬)도 됩니다. 영문 앱을 한글로 찾고 싶으면 아래에 한글 이름으로 항목을 더하세요.
         </p>
 
         <section className="settings-section">

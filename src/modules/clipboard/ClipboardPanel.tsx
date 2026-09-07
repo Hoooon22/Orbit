@@ -77,7 +77,6 @@ export default function ClipboardPanel({ layout }: Props) {
           value={query}
           placeholder={enabled ? "복사한 내용 검색…" : "기록이 꺼져 있습니다"}
           spellCheck={false}
-          autoFocus={layout === "compact"}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Escape" && query) {

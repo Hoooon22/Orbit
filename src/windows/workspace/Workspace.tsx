@@ -2,9 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
-  CALENDAR_VIEW,
-  CLIPBOARD_VIEW,
-  LAUNCHER_VIEW,
   createFolder,
   createNote,
   deleteEntry,
@@ -14,7 +11,7 @@ import {
   renameEntry,
   reorderEntry,
   restoreEntry,
-  SETTINGS_VIEW,
+  showDashboard,
   TODO_VIEW,
 } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
@@ -22,12 +19,6 @@ import { useSettings } from "../../shared/stores/settings";
 import { useError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
-import { useEvents } from "../../modules/calendar/store";
-import CalendarView from "../../modules/calendar/CalendarView";
-import { useClipboard } from "../../modules/clipboard/store";
-import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
-import { useLauncher } from "../../modules/launcher/store";
-import LauncherSettings from "../../modules/launcher/LauncherSettings";
 import Sidebar from "./Sidebar";
 import SearchModal from "../../modules/memo/SearchModal";
 import Editor from "../../modules/memo/Editor";
@@ -36,7 +27,6 @@ import QuickAddTodo from "../../modules/todo/QuickAddTodo";
 import HelpModal from "./HelpModal";
 import CommandPalette from "./CommandPalette";
 import TabBar from "./TabBar";
-import SettingsView from "./SettingsView";
 
 function parentDir(path: string): string {
   const i = path.lastIndexOf("/");
@@ -92,9 +82,6 @@ export default function WorkspaceGate() {
     void useSettings.getState().init();
     useMemoStore.getState().init();
     useTodos.getState().init();
-    useEvents.getState().init();
-    useClipboard.getState().init();
-    useLauncher.getState().init();
   }, []);
   return loaded ? <Workspace /> : null;
 }
@@ -145,8 +132,6 @@ function Workspace() {
   const [resizing, setResizing] = useState(false);
   const [split, setSplit] = useState<Split | null>(null);
   const [splitHint, setSplitHint] = useState<SplitDir | null>(null);
-  // 오브 일정 탭에서 "이 날짜로 열기"로 들어온 날짜 (navigate 페이로드 "::calendar@YYYY-MM-DD")
-  const [calendarDate, setCalendarDate] = useState<string | null>(null);
 
   const toastTimer = useRef<number | undefined>(undefined);
   const collapseDone = useRef(false); // 첫 트리 로드에서만 전체 접기
@@ -228,7 +213,7 @@ function Workspace() {
     [notePaths, favorites],
   );
 
-  // 전역 단축키(Ctrl+Alt+M) → 빠른 메모 탭, 오브의 "워크스페이스에서 열기" → 해당 탭
+  // 전역 단축키(Ctrl+Alt+M) → 빠른 메모 탭, Orbit 대시보드의 "메모 열기" → 해당 탭
   useEffect(() => {
     const openTab = (path: string) => {
       setTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
@@ -237,10 +222,7 @@ function Workspace() {
     };
     const unQuick = listen("open-quick-memo", () => openTab(QUICK_MEMO)).catch(() => () => {});
     const unNav = listen<string>("navigate", (e) => {
-      if (!e.payload) return;
-      const [path, arg] = e.payload.split("@");
-      if (path === CALENDAR_VIEW && arg) setCalendarDate(arg);
-      openTab(path);
+      if (e.payload) openTab(e.payload);
     }).catch(() => () => {});
     return () => {
       void unQuick.then((f) => f());
@@ -569,7 +551,7 @@ function Workspace() {
     });
   };
 
-  // 탭 하나가 보여주는 화면: 가상 뷰(할 일·설정) 또는 메모 편집기
+  // 탭 하나가 보여주는 화면: 할 일 뷰 또는 메모 편집기
   const renderPane = (path: string) => {
     if (path === TODO_VIEW)
       return (
@@ -583,11 +565,6 @@ function Workspace() {
           onSetReminder={setTodoReminder}
         />
       );
-    if (path === SETTINGS_VIEW) return <SettingsView onOpen={selectNote} />;
-    if (path === CALENDAR_VIEW)
-      return <CalendarView initialDate={calendarDate} onOpenNote={selectNote} />;
-    if (path === CLIPBOARD_VIEW) return <ClipboardPanel layout="full" />;
-    if (path === LAUNCHER_VIEW) return <LauncherSettings />;
     return (
       <Editor
         path={path}
@@ -611,7 +588,7 @@ function Workspace() {
         theme={theme}
         onQuickAddTodo={() => setQuickAddOpen(true)}
         onToggleTheme={() => updateSettings({ theme: theme === "dark" ? "light" : "dark" })}
-        onSettings={() => selectNote(SETTINGS_VIEW)}
+        onSettings={() => showDashboard("settings").catch(setError)}
         onHelp={openHelp}
         onSelectNote={selectNote}
         onUnfavorite={toggleFavorite}

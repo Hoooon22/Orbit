@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CALENDAR_VIEW, CLIPBOARD_VIEW, QUICK_MEMO, TODO_VIEW } from "../../shared/api";
+import { QUICK_MEMO, TODO_VIEW } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
@@ -90,7 +90,7 @@ export default function Sidebar({
           >
             {theme === "dark" ? "☀" : "☾"}
           </button>
-          <button title="설정" aria-label="설정" onClick={onSettings}>
+          <button title="Orbit 설정 열기" aria-label="Orbit 설정 열기" onClick={onSettings}>
             ⚙
           </button>
           <button title="도움말 · 단축키 (F1)" aria-label="도움말" onClick={onHelp}>
@@ -105,20 +105,6 @@ export default function Sidebar({
           title="Ctrl+Alt+M: 어디서든 빠른 메모 열기"
         >
           <span className="pinned-icon">⚡</span>빠른 메모
-        </button>
-        <button
-          className={"quick-memo" + (selected === CALENDAR_VIEW ? " selected" : "")}
-          onClick={() => onSelectNote(CALENDAR_VIEW)}
-          title="일정과 D-day"
-        >
-          <span className="pinned-icon">📅</span>캘린더
-        </button>
-        <button
-          className={"quick-memo" + (selected === CLIPBOARD_VIEW ? " selected" : "")}
-          onClick={() => onSelectNote(CLIPBOARD_VIEW)}
-          title="복사한 내용 다시 찾기"
-        >
-          <span className="pinned-icon">📋</span>클립보드
         </button>
       </div>
       {favorites.length > 0 && (
