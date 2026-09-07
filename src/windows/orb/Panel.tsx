@@ -1,30 +1,38 @@
 import { useRef, useState } from "react";
-import { QUICK_MEMO, showWorkspace, TODO_VIEW } from "../../shared/api";
+import { CALENDAR_VIEW, QUICK_MEMO, showWorkspace, TODO_VIEW } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
+import { todayStr } from "../../shared/dates";
 import Editor from "../../modules/memo/Editor";
 import TodoPanel from "../../modules/todo/TodoPanel";
 import { useTodos } from "../../modules/todo/store";
+import { useEvents } from "../../modules/calendar/store";
 import Clock from "../../modules/calendar/Clock";
+import Agenda from "../../modules/calendar/Agenda";
+import MiniCalendar from "../../modules/calendar/MiniCalendar";
+import { monthOf } from "../../modules/calendar/calendar";
 
 type Props = {
   closing: boolean; // 접히는 중 (페이드아웃)
   onCollapse: () => void;
 };
 
-type Tab = "memo" | "todo";
+type Tab = "memo" | "todo" | "calendar";
 
 // compact 편집기에는 헤더가 없어 제목·즐겨찾기 props가 쓰이지 않는다
 const noRename = async () => false;
 const noop = () => {};
 
-// 펼친 오브. 빠른 메모와 할 일을 바로 다루고, 더 넓게 보려면 워크스페이스를 연다.
+// 펼친 오브. 빠른 메모·할 일·일정을 바로 다루고, 더 넓게 보려면 워크스페이스를 연다.
 export default function Panel({ closing, onCollapse }: Props) {
   const [tab, setTab] = useState<Tab>("memo");
   const [draft, setDraft] = useState("");
   const addTodo = useTodos((s) => s.add);
+  const todos = useTodos((s) => s.todos);
+  const events = useEvents((s) => s.events);
   const addInput = useRef<HTMLInputElement>(null);
   const preview = describeParsed(parseTodoInput(draft));
+  const [month, setMonth] = useState(() => monthOf(todayStr()));
 
   const open = (target?: string) => showWorkspace(target).catch(reportError);
 
@@ -52,14 +60,17 @@ export default function Panel({ closing, onCollapse }: Props) {
       </header>
       <nav className="orb-tabs">
         <button className={tab === "memo" ? "on" : ""} onClick={() => setTab("memo")}>
-          ⚡ 빠른 메모
+          ⚡ 메모
         </button>
         <button className={tab === "todo" ? "on" : ""} onClick={() => setTab("todo")}>
           ☑️ 할 일
         </button>
+        <button className={tab === "calendar" ? "on" : ""} onClick={() => setTab("calendar")}>
+          📅 일정
+        </button>
       </nav>
       <div className="orb-body">
-        {tab === "memo" ? (
+        {tab === "memo" && (
           <Editor
             path={QUICK_MEMO}
             compact
@@ -67,7 +78,8 @@ export default function Panel({ closing, onCollapse }: Props) {
             isFavorite={false}
             onToggleFavorite={noop}
           />
-        ) : (
+        )}
+        {tab === "todo" && (
           <>
             <div className="orb-todo-add">
               <input
@@ -95,6 +107,19 @@ export default function Panel({ closing, onCollapse }: Props) {
               onQuickAdd={() => addInput.current?.focus()}
             />
           </>
+        )}
+        {tab === "calendar" && (
+          <div className="orb-calendar">
+            <Agenda onOpen={(date) => void open(`${CALENDAR_VIEW}@${date}`)} />
+            <MiniCalendar
+              month={month}
+              onMonthChange={setMonth}
+              selected={null}
+              onSelect={(date) => void open(`${CALENDAR_VIEW}@${date}`)}
+              events={events}
+              todos={todos}
+            />
+          </div>
         )}
       </div>
     </div>

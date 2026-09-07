@@ -6,6 +6,7 @@ import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
+import { useEvents } from "../../modules/calendar/store";
 import Orb from "./Orb";
 import Panel from "./Panel";
 
@@ -26,6 +27,7 @@ export default function OrbApp() {
     void useSettings.getState().init();
     useMemoStore.getState().init();
     useTodos.getState().init();
+    useEvents.getState().init();
   }, []);
 
   const expand = useCallback(async () => {

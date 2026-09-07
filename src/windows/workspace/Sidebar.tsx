@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { QUICK_MEMO, TODO_VIEW } from "../../shared/api";
+import { CALENDAR_VIEW, QUICK_MEMO, TODO_VIEW } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
@@ -105,6 +105,13 @@ export default function Sidebar({
           title="Ctrl+Alt+M: 어디서든 빠른 메모 열기"
         >
           <span className="pinned-icon">⚡</span>빠른 메모
+        </button>
+        <button
+          className={"quick-memo" + (selected === CALENDAR_VIEW ? " selected" : "")}
+          onClick={() => onSelectNote(CALENDAR_VIEW)}
+          title="일정과 D-day"
+        >
+          <span className="pinned-icon">📅</span>캘린더
         </button>
       </div>
       {favorites.length > 0 && (

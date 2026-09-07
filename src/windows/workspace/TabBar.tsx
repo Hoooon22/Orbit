@@ -1,5 +1,11 @@
 import { useState } from "react";
-import { isVirtualView, QUICK_MEMO, SETTINGS_VIEW, TODO_VIEW } from "../../shared/api";
+import {
+  CALENDAR_VIEW,
+  isVirtualView,
+  QUICK_MEMO,
+  SETTINGS_VIEW,
+  TODO_VIEW,
+} from "../../shared/api";
 
 type Props = {
   tabs: string[];
@@ -21,6 +27,7 @@ function tabLabel(path: string): string {
   if (path === QUICK_MEMO) return "⚡ 빠른 메모";
   if (path === TODO_VIEW) return "☑️ Todo";
   if (path === SETTINGS_VIEW) return "⚙️ 설정";
+  if (path === CALENDAR_VIEW) return "📅 캘린더";
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
+  CALENDAR_VIEW,
   createFolder,
   createNote,
   deleteEntry,
@@ -19,6 +20,8 @@ import { useSettings } from "../../shared/stores/settings";
 import { useError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
+import { useEvents } from "../../modules/calendar/store";
+import CalendarView from "../../modules/calendar/CalendarView";
 import Sidebar from "./Sidebar";
 import SearchModal from "../../modules/memo/SearchModal";
 import Editor from "../../modules/memo/Editor";
@@ -83,6 +86,7 @@ export default function WorkspaceGate() {
     void useSettings.getState().init();
     useMemoStore.getState().init();
     useTodos.getState().init();
+    useEvents.getState().init();
   }, []);
   return loaded ? <Workspace /> : null;
 }
@@ -133,6 +137,8 @@ function Workspace() {
   const [resizing, setResizing] = useState(false);
   const [split, setSplit] = useState<Split | null>(null);
   const [splitHint, setSplitHint] = useState<SplitDir | null>(null);
+  // 오브 일정 탭에서 "이 날짜로 열기"로 들어온 날짜 (navigate 페이로드 "::calendar@YYYY-MM-DD")
+  const [calendarDate, setCalendarDate] = useState<string | null>(null);
 
   const toastTimer = useRef<number | undefined>(undefined);
   const collapseDone = useRef(false); // 첫 트리 로드에서만 전체 접기
@@ -223,7 +229,10 @@ function Workspace() {
     };
     const unQuick = listen("open-quick-memo", () => openTab(QUICK_MEMO)).catch(() => () => {});
     const unNav = listen<string>("navigate", (e) => {
-      if (e.payload) openTab(e.payload);
+      if (!e.payload) return;
+      const [path, arg] = e.payload.split("@");
+      if (path === CALENDAR_VIEW && arg) setCalendarDate(arg);
+      openTab(path);
     }).catch(() => () => {});
     return () => {
       void unQuick.then((f) => f());
@@ -567,6 +576,8 @@ function Workspace() {
         />
       );
     if (path === SETTINGS_VIEW) return <SettingsView />;
+    if (path === CALENDAR_VIEW)
+      return <CalendarView initialDate={calendarDate} onOpenNote={selectNote} />;
     return (
       <Editor
         path={path}

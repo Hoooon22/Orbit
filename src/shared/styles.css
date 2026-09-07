@@ -1973,6 +1973,332 @@ button {
   color: var(--accent);
 }
 
+/* ── 캘린더 ───────────────────────────── */
+
+.mini-cal {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.mini-cal-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.mini-cal-head button {
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: var(--fg-dim);
+  font-size: 13px;
+}
+
+.mini-cal-head button:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.mini-cal-title {
+  flex: 1;
+  text-align: center;
+  font-weight: 600;
+}
+
+.mini-cal-today {
+  font-size: 11px !important;
+}
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.mini-cal-wd {
+  text-align: center;
+  font-size: 11px;
+  color: var(--fg-dim);
+  padding-bottom: 2px;
+}
+
+.mini-cal-day {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.mini-cal.large .mini-cal-day {
+  height: 56px;
+  font-size: 14px;
+}
+
+.mini-cal-day:hover {
+  background: var(--bg-hover);
+}
+
+.mini-cal-day.out {
+  color: var(--fg-dim);
+  opacity: 0.45;
+}
+
+.mini-cal-day.today > span:first-child {
+  display: inline-block;
+  min-width: 20px;
+  line-height: 20px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.mini-cal-day.selected {
+  background: var(--bg-active);
+  outline: 1px solid var(--accent);
+}
+
+.mini-cal-wd.sun,
+.mini-cal-day.sun:not(.out) {
+  color: var(--danger);
+}
+
+.mini-cal-wd.sat,
+.mini-cal-day.sat:not(.out) {
+  color: var(--accent);
+}
+
+.mini-cal-dots {
+  display: flex;
+  gap: 3px;
+  height: 5px;
+  margin-top: 2px;
+}
+
+.mini-cal-dots .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.mini-cal-dots .dot.ev {
+  background: #ffd166;
+}
+
+.mini-cal-dots .dot.todo {
+  background: var(--fg-dim);
+}
+
+.agenda {
+  padding: 6px 0;
+}
+
+.agenda-section {
+  padding: 6px 12px 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  letter-spacing: 0.3px;
+}
+
+.agenda-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.agenda-row,
+.calendar-item {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.agenda-row:hover,
+.calendar-item:hover {
+  background: var(--bg-hover);
+}
+
+.agenda-when {
+  flex-shrink: 0;
+  min-width: 52px;
+  color: var(--fg-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.agenda-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.agenda-title small {
+  color: var(--fg-dim);
+  margin-left: 4px;
+}
+
+.agenda-dday {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #ffd166;
+}
+
+.agenda-row.todo .agenda-title,
+.calendar-item.todo .agenda-title {
+  color: var(--fg-dim);
+}
+
+.agenda-empty {
+  padding: 4px 12px 6px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.orb-calendar {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.calendar-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.calendar-body {
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) minmax(280px, 380px);
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  padding: 12px 20px 20px;
+  overflow-y: auto;
+}
+
+.calendar-side {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.calendar-day-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 6px 0 2px;
+  font-size: 15px;
+}
+
+.calendar-dday {
+  font-size: 12px;
+  color: #ffd166;
+}
+
+.calendar-day-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.calendar-item {
+  padding: 8px 10px;
+}
+
+.calendar-item.editing {
+  background: var(--bg-active);
+}
+
+.calendar-note-btn {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--accent);
+}
+
+.calendar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-panel);
+  font-size: 13px;
+}
+
+.calendar-form h4 {
+  margin: 0 0 2px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.calendar-form input:not([type="checkbox"]),
+.calendar-form select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.calendar-form-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.calendar-form-row label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calendar-form-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.calendar-form-actions button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.calendar-form-actions button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.calendar-form-actions button.primary:disabled {
+  opacity: 0.5;
+}
+
+.calendar-form-actions button.danger {
+  color: var(--danger);
+}
+
 /* ── 오브 창 ──────────────────────────── */
 /* 창 자체가 투명하므로 바탕색을 칠하지 않는다. 그림자는 OS 창 그림자 대신 CSS로. */
 

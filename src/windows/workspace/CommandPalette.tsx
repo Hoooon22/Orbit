@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
-import { QUICK_MEMO, SETTINGS_VIEW, TODO_VIEW } from "../../shared/api";
+import { CALENDAR_VIEW, QUICK_MEMO, SETTINGS_VIEW, TODO_VIEW } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import { fuzzyScore } from "../../shared/fuzzy";
+import { flattenNotes } from "../../modules/memo/flatten";
 
 type Props = {
   tree: TreeNode[];
@@ -19,18 +20,6 @@ type Item = {
   hint?: string; // 노트가 속한 폴더 경로 등 보조 표시
   run: () => void;
 };
-
-// 트리를 순회해 모든 노트를 평탄화 (폴더는 제외)
-function flattenNotes(nodes: TreeNode[], out: TreeNode[] = []): TreeNode[] {
-  for (const n of nodes) {
-    if (n.isDir) {
-      if (n.children) flattenNotes(n.children, out);
-    } else {
-      out.push(n);
-    }
-  }
-  return out;
-}
 
 function noteHint(path: string): string | undefined {
   const i = path.lastIndexOf("/");
@@ -53,6 +42,7 @@ export default function CommandPalette({
     const commands: Item[] = [
       { key: "cmd:quick", icon: "⚡", label: "빠른 메모 열기", run: () => onSelectNote(QUICK_MEMO) },
       { key: "cmd:todo", icon: "☑️", label: "Todo 열기", run: () => onSelectNote(TODO_VIEW) },
+      { key: "cmd:calendar", icon: "📅", label: "캘린더 열기", run: () => onSelectNote(CALENDAR_VIEW) },
       { key: "cmd:new-note", icon: "📝", label: "새 메모", run: onNewNote },
       { key: "cmd:new-folder", icon: "📁", label: "새 폴더", run: onNewFolder },
       { key: "cmd:settings", icon: "⚙️", label: "설정", run: () => onSelectNote(SETTINGS_VIEW) },

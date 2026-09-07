@@ -50,6 +50,7 @@ export const saveImage = (data: number[], ext: string) =>
 // 파일이 아닌 화면을 탭·선택 상태에 넣을 때 쓰는 센티널 ("::"로 시작)
 export const TODO_VIEW = "::todo";
 export const SETTINGS_VIEW = "::settings";
+export const CALENDAR_VIEW = "::calendar";
 export const isVirtualView = (path: string) => path.startsWith("::");
 
 export type Todo = {
@@ -60,6 +61,19 @@ export type Todo = {
   end?: string;
   time?: string; // HH:MM — 마감일(end ?? start)의 시각
   remindAt?: number; // epoch ms. 없으면 알림 없음. Rust 스케줄러가 이 값만 본다
+};
+
+// 일정. 할 일과 달리 완료가 없고 날짜 범위·반복이 있어 따로 둔다 (.events.json)
+export type CalEvent = {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD 시작일
+  endDate?: string; // 여러 날에 걸치면 마지막 날
+  time?: string; // HH:MM. 없으면 종일
+  endTime?: string;
+  repeat?: "yearly"; // 생일·기념일. 매년 같은 날
+  note?: string; // 연결 메모 상대 경로
+  updatedAt?: number; // 이후 외부 캘린더 동기화 충돌 해소용
 };
 
 // 울린 뒤 아직 닫지 않은 리마인더 (Rust reminders.rs)
