@@ -8,6 +8,11 @@ on:
 permissions:
   contents: write
 
+# 태그를 연달아 밀면 앞선 빌드는 취소하고 마지막 것만 만든다 (설치본은 어차피 최신 릴리즈만 본다)
+concurrency:
+  group: release
+  cancel-in-progress: true
+
 jobs:
   release:
     runs-on: windows-latest
