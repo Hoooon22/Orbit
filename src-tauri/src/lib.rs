@@ -1,3 +1,4 @@
+mod migrate;
 mod notes;
 
 use notes::NotesRoot;
@@ -46,6 +47,12 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
     Ok(())
 }
 
+// 노트 루트 절대 경로. 프런트가 이미지 asset 주소를 만들 때 쓴다.
+#[tauri::command]
+fn data_root(root: tauri::State<NotesRoot>) -> String {
+    root.0.to_string_lossy().into_owned()
+}
+
 // GitHub 릴리즈의 latest.json을 확인해 새 버전이 있으면 내려받아 설치 후 재시작
 fn check_for_updates(app: tauri::AppHandle) {
     use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -57,7 +64,7 @@ fn check_for_updates(app: tauri::AppHandle) {
             Err(e) => {
                 app.dialog()
                     .message(format!("업데이터를 초기화하지 못했습니다:\n{e}"))
-                    .title("DesktopMemo 업데이트")
+                    .title("Orbit 업데이트")
                     .kind(MessageDialogKind::Error)
                     .blocking_show();
                 return;
@@ -71,7 +78,7 @@ fn check_for_updates(app: tauri::AppHandle) {
                         "새 버전 {}이(가) 있습니다. (현재 {})\n지금 업데이트할까요?",
                         update.version, update.current_version
                     ))
-                    .title("DesktopMemo 업데이트")
+                    .title("Orbit 업데이트")
                     .buttons(MessageDialogButtons::OkCancelCustom(
                         "업데이트".into(),
                         "나중에".into(),
@@ -87,7 +94,7 @@ fn check_for_updates(app: tauri::AppHandle) {
                     Err(e) => {
                         app.dialog()
                             .message(format!("업데이트 설치에 실패했습니다:\n{e}"))
-                            .title("DesktopMemo 업데이트")
+                            .title("Orbit 업데이트")
                             .kind(MessageDialogKind::Error)
                             .blocking_show();
                     }
@@ -96,14 +103,14 @@ fn check_for_updates(app: tauri::AppHandle) {
             Ok(None) => {
                 app.dialog()
                     .message("이미 최신 버전입니다.")
-                    .title("DesktopMemo 업데이트")
+                    .title("Orbit 업데이트")
                     .kind(MessageDialogKind::Info)
                     .blocking_show();
             }
             Err(e) => {
                 app.dialog()
                     .message(format!("업데이트 확인에 실패했습니다:\n{e}"))
-                    .title("DesktopMemo 업데이트")
+                    .title("Orbit 업데이트")
                     .kind(MessageDialogKind::Error)
                     .blocking_show();
             }
@@ -139,8 +146,9 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
-            let root = app.path().document_dir()?.join("DesktopMemo");
+            let root = migrate::resolve_data_root(&app.path().document_dir()?);
             std::fs::create_dir_all(&root)?;
+            migrate::offer_old_uninstall(app.handle().clone());
             let quick = root.join(notes::QUICK_MEMO);
             if !quick.exists() {
                 std::fs::write(&quick, "")?;
@@ -178,7 +186,7 @@ pub fn run() {
                 .icon(app.default_window_icon().expect("window icon").clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("DesktopMemo (Ctrl+Alt+M)")
+                .tooltip("Orbit (Ctrl+Alt+M)")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open" => show_main(app),
                     "update" => check_for_updates(app.clone()),
@@ -217,6 +225,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             set_window_opacity,
+            data_root,
             notes::list_tree,
             notes::read_note,
             notes::note_times,

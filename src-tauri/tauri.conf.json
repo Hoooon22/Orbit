@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "DesktopMemo",
-  "version": "0.1.28",
-  "identifier": "com.kwonkim.desktopmemo",
+  "productName": "Orbit",
+  "version": "0.2.0",
+  "identifier": "com.kwonkim.orbit",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "DesktopMemo",
+        "title": "Orbit",
         "width": 1000,
         "height": 700,
         "resizable": true,
@@ -25,7 +25,7 @@
       "csp": null,
       "assetProtocol": {
         "enable": true,
-        "scope": ["$DOCUMENT/DesktopMemo/**"]
+        "scope": ["$DOCUMENT/Orbit/**", "$DOCUMENT/DesktopMemo/**"]
       }
     }
   },
@@ -48,7 +48,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQ3QURFRTg5RDk4MEY3ODgKUldTSTk0RFppZTZ0UjJVeXhkcFRWSUl4WTNZdlNQRG9LRFNnWSs5RnZQNkVYZnFXMytCaS8wMnIK",
       "endpoints": [
-        "https://github.com/Hoooon22/DesktopMemo/releases/latest/download/latest.json"
+        "https://github.com/Hoooon22/Orbit/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

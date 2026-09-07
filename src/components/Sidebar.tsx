@@ -80,7 +80,7 @@ export default function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <span className="app-title">DesktopMemo</span>
+        <span className="app-title">Orbit</span>
         <div className="sidebar-actions">
           <button title="새 폴더 (Ctrl+Shift+N)" onClick={onNewFolder}>
             + 폴더

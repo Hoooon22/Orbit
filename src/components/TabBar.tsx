@@ -82,7 +82,7 @@ export default function TabBar({
           }}
           onDragStart={(e) => {
             e.dataTransfer.effectAllowed = "move";
-            e.dataTransfer.setData("text/desktopmemo-tab", p);
+            e.dataTransfer.setData("text/orbit-tab", p);
             setDragTab(p);
           }}
           onDragOver={(e) => {

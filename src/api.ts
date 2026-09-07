@@ -12,6 +12,9 @@ export type NoteTimes = { created?: number; modified?: number };
 
 export const QUICK_MEMO = "QuickMemo.md";
 
+// 노트 루트 절대 경로 (이미지 asset 주소용). 폴더 위치는 Rust가 정한다.
+export const dataRoot = () => invoke<string>("data_root");
+
 export const listTree = () => invoke<TreeNode[]>("list_tree");
 export const readNote = (path: string) => invoke<string>("read_note", { path });
 export const noteTimes = (path: string) => invoke<NoteTimes>("note_times", { path });

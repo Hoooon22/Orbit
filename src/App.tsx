@@ -767,7 +767,7 @@ export default function App() {
         className="main"
         onDragOverCapture={(e) => {
           // 탭 드래그 또는 트리 메모 드래그일 때만 분할 힌트를 보여준다
-          const isTab = e.dataTransfer.types.includes("text/desktopmemo-tab");
+          const isTab = e.dataTransfer.types.includes("text/orbit-tab");
           const isNote = dragging !== null && canSplitPath(dragging);
           if (!isTab && !isNote) return;
           if ((e.target as HTMLElement).closest(".tab-bar")) {
@@ -787,7 +787,7 @@ export default function App() {
           if (!e.currentTarget.contains(e.relatedTarget as Node)) setSplitHint(null);
         }}
         onDropCapture={(e) => {
-          const isTab = e.dataTransfer.types.includes("text/desktopmemo-tab");
+          const isTab = e.dataTransfer.types.includes("text/orbit-tab");
           const isNote = dragging !== null && canSplitPath(dragging);
           if (!isTab && !isNote) return;
           if ((e.target as HTMLElement).closest(".tab-bar")) return;
@@ -797,7 +797,7 @@ export default function App() {
           setSplitHint(null);
           if (!dir) return;
           const path =
-            e.dataTransfer.getData("text/desktopmemo-tab") ||
+            e.dataTransfer.getData("text/orbit-tab") ||
             e.dataTransfer.getData("text/plain");
           if (!path || !canSplitPath(path)) return;
           setSplit({ path, dir });

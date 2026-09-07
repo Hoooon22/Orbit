@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { documentDir, join } from "@tauri-apps/api/path";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Extension, mergeAttributes } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -19,6 +18,7 @@ import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import {
   appendQuickMemo,
+  dataRoot,
   listTree,
   noteTimes,
   QUICK_MEMO,
@@ -100,7 +100,7 @@ const TabIndent = Extension.create({
 // 노트 루트 절대 경로 (붙여넣은 이미지 표시용). 앱 시작 시 미리 받아 둔다.
 let notesRootAbs = "";
 void (async () => {
-  notesRootAbs = await join(await documentDir(), "DesktopMemo");
+  notesRootAbs = await dataRoot();
 })().catch(() => {});
 
 // 마크다운에는 ".assets/img-1.png" 같은 상대 경로를 저장하고,

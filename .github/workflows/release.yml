@@ -35,7 +35,7 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         with:
           tagName: ${{ github.ref_name }}
-          releaseName: 'DesktopMemo ${{ github.ref_name }}'
+          releaseName: 'Orbit ${{ github.ref_name }}'
           releaseBody: 'See the assets to download this version and install.'
           releaseDraft: false
           prerelease: false

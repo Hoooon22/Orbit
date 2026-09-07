@@ -1,14 +1,20 @@
-# DesktopMemo
+# Orbit
 
-바탕화면 한쪽에 늘 띄워 두는 Windows 메모장. 생각날 때 아무 데나 적어 두고, 나중에 제자리로 옮깁니다.
+바탕화면 한쪽에 늘 떠 있는 Windows 개인 비서. 지금은 메모와 할 일을 다루고, 앞으로 일정·클립보드·앱 실행까지 한곳에서 맡을 예정입니다. (이전 이름: DesktopMemo)
 
-메모는 `문서\DesktopMemo` 폴더에 평범한 마크다운(`.md`) 파일로 저장됩니다. 앱을 지워도 메모는 그대로 남고, 다른 편집기로 열어 고쳐도 앱이 알아채고 화면을 다시 읽어옵니다.
+메모는 `문서\Orbit` 폴더에 평범한 마크다운(`.md`) 파일로 저장됩니다. 앱을 지워도 메모는 그대로 남고, 다른 편집기로 열어 고쳐도 앱이 알아채고 화면을 다시 읽어옵니다.
 
 ## 설치
 
-[Releases](https://github.com/Hoooon22/DesktopMemo/releases/latest)에서 설치 파일을 받아 실행하세요. Windows 전용입니다.
+[Releases](https://github.com/Hoooon22/Orbit/releases/latest)에서 설치 파일을 받아 실행하세요. Windows 전용입니다.
 
 설치 후에는 트레이 아이콘 우클릭 → **업데이트 확인**으로 새 버전을 받을 수 있습니다.
+
+### DesktopMemo에서 올라오는 경우
+
+- 메모 폴더 `문서\DesktopMemo`는 첫 실행 때 `문서\Orbit`으로 자동으로 옮겨집니다. 폴더가 다른 프로그램에 잡혀 있어 옮기지 못하면 옛 폴더를 그대로 쓰고 다음 실행에 다시 시도합니다.
+- 이름이 바뀌어 이전 버전이 프로그램 목록에 따로 남습니다. 첫 실행 때 제거할지 묻고, 승인하면 조용히 지웁니다. 메모는 건드리지 않습니다.
+- 테마·글자 크기·열려 있던 탭·창 위치는 한 번 초기화됩니다. 메모와 할 일은 그대로입니다.
 
 ## 이런 걸 합니다
 
@@ -63,7 +69,7 @@
 ## 메모가 저장되는 곳
 
 ```
-문서\DesktopMemo\
+문서\Orbit\
 ├─ QuickMemo.md        빠른 메모
 ├─ 폴더\메모.md         일반 메모 (원하는 만큼 중첩)
 ├─ .assets\            붙여 넣은 이미지
@@ -101,6 +107,7 @@ npm install
 npm run tauri dev     # 개발 실행 (Vite + Tauri)
 npm run build         # 타입 검사 + 프런트 번들
 npm run lint
+cd src-tauri && cargo test
 ```
 
 ```
@@ -110,16 +117,19 @@ src/                  React 화면
 └─ components/        사이드바, 트리, 편집기, 검색, 할 일 …
 src-tauri/src/
 ├─ lib.rs             트레이, 전역 단축키, 창 관리, 파일 워처
-└─ notes.rs           메모 파일 읽기·쓰기·이동·검색
+├─ notes.rs           메모 파일 읽기·쓰기·이동·검색
+└─ migrate.rs         DesktopMemo → Orbit 폴더 이동, 옛 설치본 제거 안내
 ```
+
+앱 아이콘은 `app-icon.svg`가 원본입니다. 고치면 `npm run tauri icon app-icon.svg`로 `src-tauri/icons/`를 다시 만듭니다.
 
 ## 릴리즈
 
 `src-tauri/tauri.conf.json`의 `version`을 올려 커밋한 뒤 태그를 밀면, GitHub Actions가 빌드·서명하고 릴리즈를 만듭니다.
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 설치본은 릴리즈의 `latest.json`을 보고 스스로 새 버전을 찾습니다.

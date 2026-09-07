@@ -759,7 +759,7 @@ mod tests {
 
     #[test]
     fn unique_name_appends_suffix() {
-        let dir = std::env::temp_dir().join("desktopmemo-test-unique");
+        let dir = std::env::temp_dir().join("orbit-test-unique");
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
 
@@ -779,7 +779,7 @@ mod tests {
 
     #[test]
     fn order_file_controls_display_order() {
-        let dir = std::env::temp_dir().join("desktopmemo-test-order");
+        let dir = std::env::temp_dir().join("orbit-test-order");
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(dir.join("폴더C")).unwrap();
         fs::write(dir.join("a.md"), "").unwrap();
