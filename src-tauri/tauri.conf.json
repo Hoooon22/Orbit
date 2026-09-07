@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Orbit",
-  "version": "0.10.2",
+  "version": "0.11.0",
   "identifier": "com.kwonkim.orbit",
   "build": {
     "frontendDist": "../dist",
@@ -11,17 +11,6 @@
   },
   "app": {
     "windows": [
-      {
-        "label": "main",
-        "title": "Orbit",
-        "width": 1000,
-        "height": 700,
-        "resizable": true,
-        "fullscreen": false,
-        "visible": false,
-        "theme": "Dark",
-        "dragDropEnabled": false
-      },
       {
         "label": "dashboard",
         "url": "dashboard.html",

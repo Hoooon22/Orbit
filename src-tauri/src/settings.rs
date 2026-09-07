@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, State};
 
-use crate::notes::{NotesRoot, QUICK_MEMO};
+use crate::notes::NotesRoot;
 use crate::store::save_atomic;
 
 const FILE: &str = ".settings.json";
@@ -17,12 +17,9 @@ const FILE: &str = ".settings.json";
 #[serde(rename_all = "camelCase", default)]
 pub struct Settings {
     pub theme: String, // "dark" | "light"
-    pub pinned: bool,  // 워크스페이스 창 항상 위
-    pub sidebar_width: u32,
-    pub font_size: u32,
-    pub todo_panel_open: bool,
-    pub tabs: Vec<String>,
-    pub active_tab: String,
+    pub pinned: bool,  // Orbit 창 항상 위
+    pub font_size: u32, // 메모 본문 글자 크기
+    pub memo_side_width: u32, // 메모 화면의 목록 너비 (경계선 드래그로 조절)
     pub orb_visible: bool,
     pub orb_opacity: f64, // 접힌 오브의 투명도 0.3~1.0 (마우스를 올리면 잠시 또렷)
     pub orb_x: Option<i32>, // 접힌 오브의 위치 (물리 픽셀). 없으면 화면 오른쪽 아래
@@ -40,11 +37,8 @@ impl Default for Settings {
         Self {
             theme: "dark".into(),
             pinned: false,
-            sidebar_width: 240,
             font_size: 14,
-            todo_panel_open: true,
-            tabs: vec![QUICK_MEMO.into()],
-            active_tab: QUICK_MEMO.into(),
+            memo_side_width: 240,
             orb_visible: true,
             orb_opacity: 1.0,
             orb_x: None,
@@ -131,9 +125,10 @@ mod tests {
 
     #[test]
     fn missing_fields_fall_back_to_defaults() {
-        let s: Settings = serde_json::from_str(r#"{"theme":"light"}"#).unwrap();
+        // 옛 버전의 키(tabs 등)가 남아 있어도 무시하고 읽힌다
+        let s: Settings = serde_json::from_str(r#"{"theme":"light","tabs":["a.md"]}"#).unwrap();
         assert_eq!(s.theme, "light");
-        assert_eq!(s.sidebar_width, 240);
-        assert_eq!(s.tabs, vec![QUICK_MEMO.to_string()]);
+        assert_eq!(s.font_size, 14);
+        assert!(s.orb_visible);
     }
 }

@@ -83,12 +83,7 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
             />
             {preview && <div className="orb-todo-preview">→ {preview}</div>}
           </div>
-          <TodoPanel
-            compact
-            active={false}
-            onOpenView={onOpenTodos}
-            onQuickAdd={() => todoInput.current?.focus()}
-          />
+          <TodoPanel onOpenView={onOpenTodos} />
         </div>
       </section>
 

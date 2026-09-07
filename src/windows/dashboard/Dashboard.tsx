@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { showWorkspace } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { useError } from "../../shared/stores/error";
-import { reportError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
@@ -34,11 +32,13 @@ const NAV: [View, string, string][] = [
 
 const isView = (s: string): s is View => NAV.some(([v]) => v === s);
 
-// Orbit 대시보드 창. 왼쪽 레일로 화면을 고르고, 메모는 "메모 열기"로 예전 UI 창을 띄운다.
+// Orbit 창. 왼쪽 레일로 화면을 고른다. 이 창 하나가 앱의 전부이고, 닫으면 오브와 트레이만 남는다.
 export default function Dashboard() {
   const loaded = useSettings((s) => s.loaded);
+  const pinned = useSettings((s) => s.settings.pinned);
   const [view, setView] = useState<View>("home");
   const [calendarDate, setCalendarDate] = useState<string | null>(null);
+  const [memoPath, setMemoPath] = useState<{ path: string; seq: number } | null>(null);
   const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 입력창에 포커스
   const [maximized, setMaximized] = useState(false);
   const error = useError((s) => s.error);
@@ -62,11 +62,22 @@ export default function Dashboard() {
     useLauncher.getState().init();
   }, []);
 
-  // Rust(오브·트레이·단축키)가 보내는 "이 화면으로" 요청: "calendar@2026-09-08", "home@launcher"
+  const openMemo = (path: string) => {
+    setMemoPath((m) => ({ path, seq: (m?.seq ?? 0) + 1 }));
+    setView("memo");
+  };
+
+  // Rust(오브·트레이·단축키)가 보내는 "이 화면으로" 요청: "calendar@2026-09-08", "home@launcher", "memo@QuickMemo.md"
   useEffect(() => {
     const un = listen<string>("navigate", (e) => {
-      const [v, arg] = e.payload.split("@");
+      const at = e.payload.indexOf("@");
+      const v = at === -1 ? e.payload : e.payload.slice(0, at);
+      const arg = at === -1 ? "" : e.payload.slice(at + 1);
       if (!isView(v)) return;
+      if (v === "memo" && arg) {
+        openMemo(arg);
+        return;
+      }
       setView(v);
       if (v === "calendar" && arg) setCalendarDate(arg);
       if (v === "home" && arg === "launcher") setLauncherFocus((n) => n + 1);
@@ -87,6 +98,12 @@ export default function Dashboard() {
     };
   }, []);
 
+  // 항상 위에 고정
+  useEffect(() => {
+    if (!loaded) return;
+    void getCurrentWindow().setAlwaysOnTop(pinned).catch(() => {});
+  }, [loaded, pinned]);
+
   useEffect(() => {
     if (!error) return;
     const t = window.setTimeout(clearError, 6000);
@@ -95,7 +112,6 @@ export default function Dashboard() {
 
   const hide = () => void getCurrentWindow().hide();
   const toggleMax = () => void getCurrentWindow().toggleMaximize();
-  const openMemo = (target?: string) => showWorkspace(target).catch(reportError);
 
   // 프레임이 없으므로 머리줄을 잡아 창을 옮기고, 더블클릭으로 최대화한다 (버튼 위에서는 제외)
   const onHead = (e: React.MouseEvent) => {
@@ -115,13 +131,6 @@ export default function Dashboard() {
           Orbit
         </span>
         <Clock size="panel" />
-        <button
-          className="dash-memo-btn"
-          onClick={() => void openMemo()}
-          title="탭·분할·검색이 있는 원래 메모 창 열기"
-        >
-          ⧉ 메모 창
-        </button>
         <button
           className="dash-head-btn"
           onClick={() => void getCurrentWindow().minimize()}
@@ -173,7 +182,7 @@ export default function Dashboard() {
               onLaunched={hide}
             />
           )}
-          {view === "memo" && <MemoView />}
+          {view === "memo" && <MemoView requested={memoPath} />}
           {view === "todo" && (
             <TodoList
               todos={todos}
@@ -188,7 +197,7 @@ export default function Dashboard() {
           {view === "calendar" && (
             <CalendarView
               initialDate={calendarDate}
-              onOpenNote={(path) => void openMemo(path)}
+              onOpenNote={openMemo}
               onOpenSettings={() => setView("settings")}
             />
           )}

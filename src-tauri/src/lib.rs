@@ -17,14 +17,6 @@ use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_window_state::StateFlags;
 
-fn show_main(app: &tauri::AppHandle) {
-    if let Some(w) = app.get_webview_window("main") {
-        let _ = w.show();
-        let _ = w.unminimize();
-        let _ = w.set_focus();
-    }
-}
-
 // 창 전체를 반투명하게 (팝업 모드 투명도 슬라이더용).
 // Tauri에는 창 투명도 API가 없어 Windows 레이어드 윈도우 알파값을 직접 설정한다.
 // 1.0이면 레이어드 스타일 자체를 떼어내 평소 렌더링 경로로 되돌린다.
@@ -75,8 +67,7 @@ fn register_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
     if !s.shortcut_quick_memo.trim().is_empty() {
         let r = gs.on_shortcut(s.shortcut_quick_memo.as_str(), |app, _shortcut, event| {
             if event.state == ShortcutState::Pressed {
-                show_main(app);
-                let _ = app.emit("open-quick-memo", ());
+                orb::open_quick_memo(app);
             }
         });
         if r.is_err() {
@@ -227,7 +218,8 @@ fn check_for_updates(app: tauri::AppHandle) {
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            show_main(app);
+            // 작업 표시줄·시작 메뉴에서 다시 실행하면 이미 켜진 Orbit 창을 앞으로
+            orb::show_dashboard(app.clone(), None);
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_dialog::init())
@@ -238,9 +230,8 @@ pub fn run() {
             Some(vec!["--autostart"]),
         ))
         .plugin(
-            // 워크스페이스 창 크기·위치 기억 (표시 여부는 복원하지 않음).
-            // 오브 창은 제외 — 펼친 채 종료하면 다음 시작에 펼친 크기의 투명 창이 복원돼
-            // 클릭을 가로채므로, 오브 위치는 설정 파일에 따로 둔다.
+            // Orbit 창 크기·위치 기억 (표시 여부는 복원하지 않음 — 시작 때는 오브만).
+            // 오브 창은 제외하고 위치를 설정 파일에 따로 둔다.
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
                 .with_denylist(&[orb::ORB])
@@ -282,17 +273,13 @@ pub fn run() {
                 }
             });
 
-            // 트레이: 좌클릭 = Orbit 대시보드, 메뉴 = Orbit/메모 열기/오브 표시·숨김/업데이트 확인/종료
+            // 트레이: 좌클릭 = Orbit 창, 메뉴 = Orbit 열기/오브 표시·숨김/업데이트 확인/종료
             let dash_item = MenuItem::with_id(app, "dashboard", "Orbit 열기", true, None::<&str>)?;
-            let open_item = MenuItem::with_id(app, "open", "메모 열기", true, None::<&str>)?;
             let orb_item = MenuItem::with_id(app, "orb", "오브 표시/숨김", true, None::<&str>)?;
             let update_item =
                 MenuItem::with_id(app, "update", "업데이트 확인", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-            let menu = Menu::with_items(
-                app,
-                &[&dash_item, &open_item, &orb_item, &update_item, &quit_item],
-            )?;
+            let menu = Menu::with_items(app, &[&dash_item, &orb_item, &update_item, &quit_item])?;
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().expect("window icon").clone())
                 .menu(&menu)
@@ -300,7 +287,6 @@ pub fn run() {
                 .tooltip("Orbit (Ctrl+Alt+M)")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "dashboard" => orb::show_dashboard(app.clone(), None),
-                    "open" => show_main(app),
                     "orb" => {
                         if let Some(w) = app.get_webview_window(orb::ORB) {
                             let visible = w.is_visible().unwrap_or(true);
@@ -369,7 +355,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
-                // 오브에서 Alt+F4: 사라지게 두지 않는다. 대시보드·메모 창 닫기 = 숨김 (오브·트레이로 복귀)
+                // 오브에서 Alt+F4: 사라지게 두지 않는다. Orbit 창 닫기 = 숨김 (오브·트레이로 복귀)
                 if window.label() != orb::ORB {
                     let _ = window.hide();
                 }
@@ -404,7 +390,6 @@ pub fn run() {
             settings::write_settings,
             settings::update_settings,
             open_data_root,
-            orb::show_workspace,
             orb::show_dashboard,
             orb::toggle_dashboard,
             orb::set_orb_visible,

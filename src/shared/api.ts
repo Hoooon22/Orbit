@@ -47,10 +47,6 @@ export const appendQuickMemo = (path: string, block: string, rest: string) =>
 export const saveImage = (data: number[], ext: string) =>
   invoke<string>("save_image", { data, ext });
 
-// 메모 창에서 파일이 아닌 화면을 탭·선택 상태에 넣을 때 쓰는 센티널 ("::"로 시작)
-export const TODO_VIEW = "::todo";
-export const isVirtualView = (path: string) => path.startsWith("::");
-
 export type Todo = {
   id: string;
   text: string;
@@ -165,10 +161,7 @@ export const setWindowOpacity = (opacity: number) =>
 
 export const setOrbVisible = (visible: boolean) =>
   invoke<void>("set_orb_visible", { visible });
-// 예전 메모 UI 창을 앞으로. target(메모 경로·가상 뷰)이 있으면 그 탭을 연다
-export const showWorkspace = (target?: string) =>
-  invoke<void>("show_workspace", { target: target ?? null });
-// Orbit 대시보드. view: "home" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
+// Orbit 창. view: "home" | "memo[@경로]" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
 export const showDashboard = (view?: string) =>
   invoke<void>("show_dashboard", { view: view ?? null });
 export const toggleDashboard = () => invoke<void>("toggle_dashboard");
@@ -181,12 +174,9 @@ export const writeFavorites = (favorites: string[]) =>
 // 앱 설정. 노트 루트의 .settings.json 한 파일. 필드를 더하면 Rust settings.rs도 같이 고친다.
 export type Settings = {
   theme: "dark" | "light";
-  pinned: boolean; // 워크스페이스 창 항상 위
-  sidebarWidth: number;
-  fontSize: number;
-  todoPanelOpen: boolean;
-  tabs: string[];
-  activeTab: string;
+  pinned: boolean; // Orbit 창 항상 위
+  fontSize: number; // 메모 본문 글자 크기
+  memoSideWidth: number; // 메모 화면의 목록 너비
   orbVisible: boolean;
   orbOpacity: number; // 접힌 오브의 투명도 0.3~1.0
   orbX: number | null; // 접힌 오브의 위치 (물리 픽셀). null이면 화면 오른쪽 아래

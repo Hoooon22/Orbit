@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
-import { listTree, QUICK_MEMO, readFavorites, writeFavorites, isVirtualView } from "../../shared/api";
+import { listTree, QUICK_MEMO, readFavorites, writeFavorites } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 
@@ -55,7 +55,7 @@ export const useMemoStore = create<MemoStore>((set, get) => {
         .catch(reportError),
 
     toggleFavorite: (path) => {
-      if (!path || path === QUICK_MEMO || isVirtualView(path)) return;
+      if (!path || path === QUICK_MEMO) return;
       applyFavorites((prev) =>
         prev.includes(path) ? prev.filter((p) => p !== path) : [...prev, path],
       );

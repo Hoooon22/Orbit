@@ -6,8 +6,7 @@ use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow};
 use crate::settings::Settings;
 
 pub const ORB: &str = "orb";
-pub const MAIN: &str = "main"; // 예전 DesktopMemo UI (메모 워크스페이스)
-pub const DASHBOARD: &str = "dashboard"; // Orbit 대시보드
+pub const DASHBOARD: &str = "dashboard"; // Orbit 창 (메모·할 일·캘린더·클립보드·런처·설정)
 
 /// 논리 픽셀. 오브(56) + 그림자 여백.
 const ORB_SIZE: (f64, f64) = (72.0, 72.0);
@@ -70,20 +69,7 @@ fn set_bounds(window: &WebviewWindow, x: i32, y: i32, w: i32, h: i32) -> Result<
     }
 }
 
-/// 예전 메모 UI(main 창)를 앞으로 가져오고, 열 대상(메모 경로·가상 뷰)이 있으면 알려준다.
-#[tauri::command]
-pub fn show_workspace(app: AppHandle, target: Option<String>) {
-    if let Some(w) = app.get_webview_window(MAIN) {
-        let _ = w.show();
-        let _ = w.unminimize();
-        let _ = w.set_focus();
-    }
-    if let Some(t) = target {
-        let _ = app.emit_to(MAIN, "navigate", t);
-    }
-}
-
-/// Orbit 대시보드를 앞으로. view("home"·"calendar@2026-09-08" 등)가 있으면 그 화면으로.
+/// Orbit 창을 앞으로. view("home"·"calendar@2026-09-08"·"memo@폴더/메모.md" 등)가 있으면 그 화면으로.
 #[tauri::command]
 pub fn show_dashboard(app: AppHandle, view: Option<String>) {
     if let Some(w) = app.get_webview_window(DASHBOARD) {
@@ -127,9 +113,14 @@ pub fn set_orb_visible(app: AppHandle, visible: bool) {
     set_visible(&app, visible);
 }
 
-/// 전역 단축키(Alt+Space): 대시보드를 열고 런처 입력창에 포커스
+/// 전역 단축키(Alt+Space): Orbit 창을 열고 런처 입력창에 포커스
 pub fn open_launcher(app: &AppHandle) {
     show_dashboard(app.clone(), Some("home@launcher".into()));
+}
+
+/// 전역 단축키(Ctrl+Alt+M): Orbit 창의 메모 화면을 빠른 메모로 연다
+pub fn open_quick_memo(app: &AppHandle) {
+    show_dashboard(app.clone(), Some(format!("memo@{}", crate::notes::QUICK_MEMO)));
 }
 
 /// 시작 시: 저장된 위치가 있으면 그리로, 없으면 화면 오른쪽 아래로. 숨김 설정이면 숨긴다.

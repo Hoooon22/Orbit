@@ -3085,18 +3085,35 @@ body.dashboard-window {
 /* 메모 화면: 트리 + 편집기 */
 .memo-view {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 240px 6px 1fr; /* 실제 너비는 인라인 스타일(설정값) */
   flex: 1;
   min-height: 0;
+}
+
+.memo-view.resizing {
+  cursor: col-resize;
+  user-select: none;
 }
 
 .memo-side {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
-  border-right: 1px solid var(--border);
   background: var(--bg-panel);
   overflow: hidden;
+}
+
+.memo-resizer {
+  cursor: col-resize;
+  background: var(--border);
+  width: 6px;
+  transition: background 120ms;
+}
+
+.memo-resizer:hover,
+.memo-view.resizing .memo-resizer {
+  background: var(--accent);
 }
 
 .memo-side .tree {

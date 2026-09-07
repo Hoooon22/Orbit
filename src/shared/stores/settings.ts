@@ -1,17 +1,14 @@
 import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
-import { QUICK_MEMO, readSettings, updateSettings, writeSettings } from "../api";
+import { readSettings, updateSettings, writeSettings } from "../api";
 import type { Settings } from "../api";
 import { reportError } from "./error";
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: "dark",
   pinned: false,
-  sidebarWidth: 240,
   fontSize: 14,
-  todoPanelOpen: true,
-  tabs: [QUICK_MEMO],
-  activeTab: QUICK_MEMO,
+  memoSideWidth: 240,
   orbVisible: true,
   orbOpacity: 1,
   orbX: null,
@@ -40,41 +37,10 @@ function applyTheme(theme: Settings["theme"]) {
   }
 }
 
-// 설정 파일이 생기기 전(v0.2.x까지) localStorage에 흩어져 있던 값을 한 번 끌어온다
+// 설정 파일이 없을 때(첫 실행)의 시작값. 테마는 localStorage에 남은 값을 따른다.
 function importLegacy(): Settings {
   const s = { ...DEFAULT_SETTINGS };
-  const num = (k: string, min: number, max: number, fallback: number) => {
-    const v = Number(localStorage.getItem(k));
-    return v >= min && v <= max ? v : fallback;
-  };
   if (localStorage.getItem("theme") === "light") s.theme = "light";
-  s.pinned = localStorage.getItem("always-on-top") === "1";
-  s.sidebarWidth = num("sidebar-width", 160, 480, s.sidebarWidth);
-  s.fontSize = num("editor-font-size", 10, 32, s.fontSize);
-  s.todoPanelOpen = localStorage.getItem("todo-panel-open") !== "0";
-  try {
-    const tabs: unknown = JSON.parse(localStorage.getItem("open-tabs") ?? "");
-    if (Array.isArray(tabs) && tabs.length > 0 && tabs.every((p) => typeof p === "string")) {
-      s.tabs = tabs;
-      const a = localStorage.getItem("active-tab");
-      s.activeTab = a && tabs.includes(a) ? a : tabs[0];
-    }
-  } catch {
-    // 저장된 탭 없음
-  }
-  for (const k of [
-    "always-on-top",
-    "sidebar-width",
-    "editor-font-size",
-    "todo-panel-open",
-    "open-tabs",
-    "active-tab",
-    "popup-mode",
-    "popup-opacity",
-    "normal-bounds",
-    "popup-bounds",
-  ])
-    localStorage.removeItem(k);
   return s;
 }
 

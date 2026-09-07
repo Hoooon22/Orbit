@@ -7,14 +7,19 @@ import {
   QUICK_MEMO,
   renameEntry,
   reorderEntry,
-  showWorkspace,
 } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
+import { useSettings } from "../../shared/stores/settings";
 import { useMemoStore } from "../../modules/memo/store";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
 import Editor from "../../modules/memo/Editor";
+import SearchModal from "../../modules/memo/SearchModal";
+
+type Props = {
+  requested: { path: string; seq: number } | null; // 캘린더·단축키 등에서 "이 메모 열어 줘"
+};
 
 function parentDir(path: string): string {
   const i = path.lastIndexOf("/");
@@ -45,9 +50,8 @@ function allFolderPaths(nodes: TreeNode[], out = new Set<string>()): Set<string>
   return out;
 }
 
-// Orbit 창의 메모 화면: 왼쪽 트리, 오른쪽 편집기 하나. 탭·분할·검색 같은 큰 작업은
-// "메모 창에서 열기"로 원래 DesktopMemo 창에 맡긴다.
-export default function MemoView() {
+// 메모 화면: 왼쪽 트리(빠른 메모·즐겨찾기·폴더), 오른쪽 편집기. Ctrl+F로 제목·본문 검색.
+export default function MemoView({ requested }: Props) {
   const tree = useMemoStore((s) => s.tree);
   const favorites = useMemoStore((s) => s.favorites);
   const refreshTree = useMemoStore((s) => s.refreshTree);
@@ -61,6 +65,46 @@ export default function MemoView() {
   const [dragging, setDragging] = useState<string | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [collapsedOnce, setCollapsedOnce] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  // 목록 너비: 경계선을 끌어 조절하고 설정에 저장 (긴 제목이 잘리지 않게 넓힐 수 있다)
+  const sideWidth = useSettings((s) => s.settings.memoSideWidth);
+  const updateSettings = useSettings((s) => s.update);
+  const [resizing, setResizing] = useState(false);
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startW = sideWidth;
+    setResizing(true);
+    const onMove = (ev: MouseEvent) =>
+      updateSettings({ memoSideWidth: Math.min(600, Math.max(160, startW + ev.clientX - startX)) });
+    const onUp = () => {
+      setResizing(false);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  // 밖에서 열어 달라는 메모 (같은 경로를 다시 요청해도 seq가 바뀌어 반응한다)
+  useEffect(() => {
+    if (!requested) return;
+    setSelected(requested.path);
+    setTargetDir(requested.path === QUICK_MEMO ? "" : parentDir(requested.path));
+    expandTo(parentDir(requested.path));
+  }, [requested]);
+
+  // Ctrl+F 검색 (검색창이 열려 있을 때 Esc는 검색창만 닫는다)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
+        e.preventDefault();
+        setSearchOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // 처음 트리를 받으면 폴더를 모두 접어 둔다
   useEffect(() => {
@@ -172,7 +216,10 @@ export default function MemoView() {
   };
 
   return (
-    <div className="memo-view">
+    <div
+      className={"memo-view" + (resizing ? " resizing" : "")}
+      style={{ gridTemplateColumns: `${sideWidth}px 6px 1fr` }}
+    >
       <aside className="memo-side">
         <div className="memo-side-actions">
           <button onClick={() => void newFolder()} title="새 폴더">
@@ -183,10 +230,10 @@ export default function MemoView() {
           </button>
           <button
             className="memo-open-full"
-            onClick={() => showWorkspace(selected).catch(reportError)}
-            title="탭·분할·검색이 있는 메모 창에서 이 메모 열기"
+            onClick={() => setSearchOpen(true)}
+            title="제목과 본문에서 찾기 (Ctrl+F)"
           >
-            창에서 열기 ⧉
+            🔍 검색
           </button>
         </div>
         <div className="pinned">
@@ -249,6 +296,7 @@ export default function MemoView() {
           />
         </nav>
       </aside>
+      <div className="memo-resizer" onMouseDown={startResize} title="드래그하여 목록 너비 조절" />
       <div className="memo-main">
         <Editor
           key={selected}
@@ -258,6 +306,14 @@ export default function MemoView() {
           onToggleFavorite={() => toggleFavorite(selected)}
         />
       </div>
+      {searchOpen && (
+        <SearchModal
+          currentPath={selected}
+          onClose={() => setSearchOpen(false)}
+          onSelectNote={selectNote}
+          onError={reportError}
+        />
+      )}
     </div>
   );
 }

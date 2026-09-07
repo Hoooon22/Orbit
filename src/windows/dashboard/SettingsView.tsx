@@ -78,7 +78,7 @@ export default function SettingsView({ onOpenLauncher }: Props) {
           <label className="settings-row">
             <span>
               빠른 메모 열기
-              <small>어디서든 메모 창의 빠른 메모로. 예: ctrl+alt+m</small>
+              <small>어디서든 Orbit 창의 메모 화면을 빠른 메모로. 예: ctrl+alt+m</small>
             </span>
             <input
               className="settings-key"
@@ -134,10 +134,7 @@ export default function SettingsView({ onOpenLauncher }: Props) {
             </select>
           </label>
           <label className="settings-row">
-            <span>
-              메모 창을 항상 위에 고정
-              <small>예전 DesktopMemo 창(메모 열기)에 적용됩니다.</small>
-            </span>
+            <span>Orbit 창을 항상 위에 고정</span>
             <input
               type="checkbox"
               checked={settings.pinned}
