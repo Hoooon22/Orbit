@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { todayStr } from "../../shared/dates";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
-import { useTodos } from "../../modules/todo/store";
+import { pendingNow, useTodos } from "../../modules/todo/store";
 import { useAllEvents } from "../../modules/calendar/googleStore";
 import { monthOf } from "../../modules/calendar/calendar";
 import Agenda from "../../modules/calendar/Agenda";
@@ -24,9 +24,10 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
   const events = useAllEvents();
   const [month, setMonth] = useState(() => monthOf(todayStr()));
   const [draft, setDraft] = useState("");
+  const [draftKind, setDraftKind] = useState<"now" | "later">("now");
   const preview = describeParsed(parseTodoInput(draft));
   const todoInput = useRef<HTMLInputElement>(null);
-  const pending = todos.filter((t) => !t.done).length;
+  const pending = pendingNow(todos);
 
   useEffect(() => {
     if (launcherFocus === 0) return;
@@ -35,7 +36,7 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
 
   const submitTodo = () => {
     if (!draft.trim()) return;
-    addTodo(draft);
+    addTodo(draft, draftKind);
     setDraft("");
   };
 
@@ -60,17 +61,26 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
 
       <section className="home-col">
         <h2 className="home-title">
-          할 일 {pending > 0 && <span className="home-count">{pending}</span>}
+          당장 할 일 {pending > 0 && <span className="home-count">{pending}</span>}
           <button className="home-link" onClick={onOpenTodos}>
             전체 보기 ›
           </button>
         </h2>
         <div className="home-card home-todo">
           <div className="orb-todo-add">
+            <button
+              className={"todo-kind-pick" + (draftKind === "later" ? " later" : "")}
+              title="추가할 묶음 (클릭해서 바꾸기): 당장 할 일 / 기억해야 할 일"
+              onClick={() => setDraftKind((k) => (k === "now" ? "later" : "now"))}
+            >
+              {draftKind === "now" ? "⚡" : "🗂"}
+            </button>
             <input
               ref={todoInput}
               value={draft}
-              placeholder="할 일 입력 후 Enter (예: 내일 3시 회의)"
+              placeholder={
+                draftKind === "now" ? "당장 할 일 입력 후 Enter (예: 내일 3시 회의)" : "기억해야 할 일 입력 후 Enter"
+              }
               spellCheck={false}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {

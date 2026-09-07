@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { todayStr } from "../../shared/dates";
-import { deadline, useTodos } from "./store";
+import { deadline, isNow, useTodos } from "./store";
+import type { Todo } from "../../shared/api";
 
 type Props = {
   onOpenView: () => void; // 항목 이름을 누르면 전체 할 일 화면으로
@@ -34,9 +35,70 @@ export default function TodoPanel({ onOpenView }: Props) {
   const dismissFired = useTodos((s) => s.dismissFired);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<{ id: string; before: boolean } | null>(null);
+  const [laterOpen, setLaterOpen] = useState(false);
 
   const today = todayStr();
-  const pending = todos.filter((t) => !t.done);
+  const pending = todos.filter((t) => !t.done && isNow(t));
+  const later = todos.filter((t) => !t.done && !isNow(t));
+
+  const renderItem = (t: Todo) => {
+    const d = deadline(t);
+    const urgency = !d ? "" : d < today ? " overdue" : d === today ? " today" : "";
+    return (
+      <li
+        key={t.id}
+        className={
+          "todo-panel-item" +
+          urgency +
+          (dropAt?.id === t.id ? (dropAt.before ? " drop-before" : " drop-after") : "")
+        }
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("application/x-todo", t.id);
+          e.dataTransfer.effectAllowed = "move";
+          setDragId(t.id);
+        }}
+        onDragOver={(e) => {
+          if (!dragId || dragId === t.id) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+          const r = e.currentTarget.getBoundingClientRect();
+          setDropAt({ id: t.id, before: e.clientY < r.top + r.height / 2 });
+        }}
+        onDragLeave={() => setDropAt((d) => (d?.id === t.id ? null : d))}
+        onDrop={(e) => {
+          e.preventDefault();
+          if (dragId && dragId !== t.id && dropAt?.id === t.id) reorder(dragId, t.id, dropAt.before);
+          setDragId(null);
+          setDropAt(null);
+        }}
+        onDragEnd={() => {
+          setDragId(null);
+          setDropAt(null);
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={false}
+          onChange={() => patch(t.id, { done: true })}
+          aria-label={`완료 처리: ${t.text || "(내용 없음)"}`}
+        />
+        <button className="todo-panel-label" onClick={onOpenView} title={t.text}>
+          {t.text || "(내용 없음)"}
+        </button>
+        {d && (
+          <span
+            className="todo-panel-date"
+            title={t.remindAt !== undefined ? `알림 ${timeLabel(t.remindAt)}` : undefined}
+          >
+            {dateLabel(d)}
+            {t.time ? ` ${t.time}` : ""}
+            {t.remindAt !== undefined ? " 🔔" : ""}
+          </span>
+        )}
+      </li>
+    );
+  };
 
   return (
     <div className="todo-panel compact">
@@ -73,67 +135,17 @@ export default function TodoPanel({ onOpenView }: Props) {
         </ul>
       )}
       <ul className="todo-panel-list">
-        {pending.map((t) => {
-          const d = deadline(t);
-          const urgency = !d ? "" : d < today ? " overdue" : d === today ? " today" : "";
-          return (
-            <li
-              key={t.id}
-              className={
-                "todo-panel-item" +
-                urgency +
-                (dropAt?.id === t.id ? (dropAt.before ? " drop-before" : " drop-after") : "")
-              }
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData("application/x-todo", t.id);
-                e.dataTransfer.effectAllowed = "move";
-                setDragId(t.id);
-              }}
-              onDragOver={(e) => {
-                if (!dragId || dragId === t.id) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                const r = e.currentTarget.getBoundingClientRect();
-                setDropAt({ id: t.id, before: e.clientY < r.top + r.height / 2 });
-              }}
-              onDragLeave={() => setDropAt((d) => (d?.id === t.id ? null : d))}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragId && dragId !== t.id && dropAt?.id === t.id)
-                  reorder(dragId, t.id, dropAt.before);
-                setDragId(null);
-                setDropAt(null);
-              }}
-              onDragEnd={() => {
-                setDragId(null);
-                setDropAt(null);
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={false}
-                onChange={() => patch(t.id, { done: true })}
-                aria-label={`완료 처리: ${t.text || "(내용 없음)"}`}
-              />
-              <button className="todo-panel-label" onClick={onOpenView} title={t.text}>
-                {t.text || "(내용 없음)"}
-              </button>
-              {d && (
-                <span
-                  className="todo-panel-date"
-                  title={t.remindAt !== undefined ? `알림 ${timeLabel(t.remindAt)}` : undefined}
-                >
-                  {dateLabel(d)}
-                  {t.time ? ` ${t.time}` : ""}
-                  {t.remindAt !== undefined ? " 🔔" : ""}
-                </span>
-              )}
-            </li>
-          );
-        })}
-        {pending.length === 0 && <li className="todo-panel-empty">남은 할 일 없음</li>}
+        {pending.map(renderItem)}
+        {pending.length === 0 && <li className="todo-panel-empty">당장 할 일 없음</li>}
       </ul>
+      {later.length > 0 && (
+        <>
+          <button className="todo-later-head" onClick={() => setLaterOpen((v) => !v)}>
+            {laterOpen ? "▾" : "▸"} 🗂 기억해야 할 일 {later.length}
+          </button>
+          {laterOpen && <ul className="todo-panel-list later">{later.map(renderItem)}</ul>}
+        </>
+      )}
     </div>
   );
 }

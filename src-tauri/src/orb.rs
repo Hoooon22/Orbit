@@ -22,11 +22,26 @@ fn physical(logical: (f64, f64), scale: f64) -> (i32, i32) {
 /// 창을 만질 때마다 다시 호출한다.
 #[cfg(windows)]
 fn strip_caption(window: &WebviewWindow) -> Result<(), String> {
+    strip_caption_hwnd(window.hwnd().map_err(|e| e.to_string())?)
+}
+
+/// 어떤 창 이벤트든 오브 창에서 오면 캡션이 되살아났는지 확인해 떼어낸다.
+/// (tao는 표시·포커스 등 상태가 바뀔 때 스타일을 다시 계산해 캡션을 붙이고, 그러면 창 제목이 그려진다)
+pub fn ensure_stripped(window: &tauri::Window) {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        let _ = strip_caption_hwnd(hwnd);
+    }
+    #[cfg(not(windows))]
+    let _ = window;
+}
+
+#[cfg(windows)]
+fn strip_caption_hwnd(hwnd: windows::Win32::Foundation::HWND) -> Result<(), String> {
     use windows::Win32::UI::WindowsAndMessaging::{
         GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED,
         SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_SYSMENU,
     };
-    let hwnd = window.hwnd().map_err(|e| e.to_string())?;
     let unwanted = (WS_CAPTION.0 | WS_SYSMENU.0) as isize;
     unsafe {
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);

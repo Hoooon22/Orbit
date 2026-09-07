@@ -55,6 +55,7 @@ export type Todo = {
   end?: string;
   time?: string; // HH:MM — 마감일(end ?? start)의 시각
   remindAt?: number; // epoch ms. 없으면 알림 없음. Rust 스케줄러가 이 값만 본다
+  kind?: "later"; // "기억해야 할 일"(장기). 없으면 "당장 할 일"
 };
 
 // 일정. 할 일과 달리 완료가 없고 날짜 범위·반복이 있어 따로 둔다 (.events.json)

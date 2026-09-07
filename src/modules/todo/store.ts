@@ -16,6 +16,10 @@ import { parseTodoInput } from "../../shared/todoParse";
 // 마감일은 종료일이 있으면 종료일, 없으면 시작일
 export const deadline = (t: Todo) => t.end ?? t.start;
 
+// "당장 할 일"인지 (기억해야 할 일은 kind: "later"). 배지·개수는 당장 할 일만 센다.
+export const isNow = (t: Todo) => t.kind !== "later";
+export const pendingNow = (todos: Todo[]) => todos.filter((t) => !t.done && isNow(t)).length;
+
 // 마감 시각(epoch ms). 시각이 없는 날짜만 있는 할 일은 그날 09:00으로 본다 (알림 오프셋 계산용).
 export function dueMs(t: Todo): number | undefined {
   const d = deadline(t);
@@ -35,7 +39,7 @@ type TodoStore = {
   todos: Todo[];
   fired: Fired[]; // 울렸지만 아직 닫지 않은 알림
   init: () => void;
-  add: (text: string) => void;
+  add: (text: string, kind?: "now" | "later") => void;
   patch: (id: string, p: Partial<Todo>) => void;
   remove: (id: string) => void;
   reorder: (dragged: string, target: string, before: boolean) => void;
@@ -96,10 +100,11 @@ export const useTodos = create<TodoStore>((set, get) => {
       });
     },
 
-    add: (text) => {
+    add: (text, kind = "now") => {
       const p = parseTodoInput(text);
       if (!p.text) return;
       const t: Todo = { id: crypto.randomUUID(), text: p.text, done: false };
+      if (kind === "later") t.kind = "later";
       if (p.start) t.start = p.start;
       if (p.time) t.time = p.time;
       if (p.remindAt) t.remindAt = p.remindAt;

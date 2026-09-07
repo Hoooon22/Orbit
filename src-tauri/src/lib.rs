@@ -353,6 +353,10 @@ pub fn run() {
             Ok(())
         })
         .on_window_event(|window, event| {
+            // 오브 창은 어떤 이벤트가 와도 캡션 스타일이 되살아났는지 확인 (창 제목이 그려지는 것 방지)
+            if window.label() == orb::ORB {
+                orb::ensure_stripped(window);
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 // 오브에서 Alt+F4: 사라지게 두지 않는다. Orbit 창 닫기 = 숨김 (오브·트레이로 복귀)
