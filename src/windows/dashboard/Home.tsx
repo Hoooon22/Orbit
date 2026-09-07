@@ -9,16 +9,18 @@ import MiniCalendar from "../../modules/calendar/MiniCalendar";
 import TodoPanel from "../../modules/todo/TodoPanel";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 import Launcher from "../../modules/launcher/Launcher";
+import type { CommandId } from "../../modules/launcher/commands";
 
 type Props = {
   launcherFocus: number; // 값이 바뀌면 런처 입력창에 포커스 (Alt+Space)
   onOpenCalendar: (date: string) => void;
   onOpenTodos: () => void;
   onLaunched: () => void;
+  onCommand: (id: CommandId) => void;
 };
 
 // 대시보드 홈: 한 화면에 오늘·이번 주 / 할 일 / 런처·클립보드
-export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLaunched }: Props) {
+export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLaunched, onCommand }: Props) {
   const todos = useTodos((s) => s.todos);
   const addTodo = useTodos((s) => s.add);
   const events = useAllEvents();
@@ -100,7 +102,7 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
       <section className="home-col">
         <h2 className="home-title">실행</h2>
         <div className="home-card home-launcher">
-          <Launcher onLaunched={onLaunched} />
+          <Launcher onLaunched={onLaunched} onCommand={onCommand} />
         </div>
         <h2 className="home-title">클립보드</h2>
         <div className="home-card home-clip">

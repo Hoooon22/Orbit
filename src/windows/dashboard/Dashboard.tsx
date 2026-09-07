@@ -17,6 +17,7 @@ import TodoList from "../../modules/todo/TodoList";
 import SettingsView from "./SettingsView";
 import MemoView from "./MemoView";
 import Home from "./Home";
+import type { CommandId } from "../../modules/launcher/commands";
 
 export type View = "home" | "memo" | "todo" | "calendar" | "clipboard" | "launcher" | "settings";
 
@@ -113,6 +114,13 @@ export default function Dashboard() {
   const hide = () => void getCurrentWindow().hide();
   const toggleMax = () => void getCurrentWindow().toggleMaximize();
 
+  // 런처의 "/" 명령
+  const runCommand = (id: CommandId) => {
+    if (id === "hide") return hide();
+    if (id === "sync") return void useGoogle.getState().sync();
+    setView(id);
+  };
+
   // 프레임이 없으므로 머리줄을 잡아 창을 옮기고, 더블클릭으로 최대화한다 (버튼 위에서는 제외)
   const onHead = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -180,6 +188,7 @@ export default function Dashboard() {
               }}
               onOpenTodos={() => setView("todo")}
               onLaunched={hide}
+              onCommand={runCommand}
             />
           )}
           {view === "memo" && <MemoView requested={memoPath} />}
