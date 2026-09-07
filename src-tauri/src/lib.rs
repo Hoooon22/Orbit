@@ -29,6 +29,9 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
             GetWindowLongPtrW, SetLayeredWindowAttributes, SetWindowLongPtrW, GWL_EXSTYLE,
             LWA_ALPHA, WS_EX_LAYERED,
         };
+        use windows::Win32::Graphics::Gdi::{
+            RedrawWindow, RDW_ALLCHILDREN, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
+        };
         let hwnd = window.hwnd().map_err(|e| e.to_string())?;
         let alpha = (opacity.clamp(0.2, 1.0) * 255.0).round() as u8;
         let layered = WS_EX_LAYERED.0 as isize;
@@ -41,6 +44,13 @@ fn set_window_opacity(window: tauri::Window, opacity: f64) -> Result<(), String>
                 SetLayeredWindowAttributes(hwnd, COLORREF(0), alpha, LWA_ALPHA)
                     .map_err(|e| e.to_string())?;
             }
+            // 스타일이 바뀌면 예전 프레임 그림이 남으므로 다시 그리게 한다
+            let _ = RedrawWindow(
+                Some(hwnd),
+                None,
+                None,
+                RDW_INVALIDATE | RDW_FRAME | RDW_ALLCHILDREN | RDW_UPDATENOW,
+            );
         }
     }
     #[cfg(not(windows))]
