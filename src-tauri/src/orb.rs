@@ -139,8 +139,8 @@ pub fn set_orb_visible(app: AppHandle, visible: bool) {
     set_visible(&app, visible);
 }
 
-/// 전역 단축키(Alt+Space): Orbit 창이 닫혀 있으면 열면서 홈의 런처 입력창에 포커스.
-/// 이미 떠 있거나 최소화돼 있으면 보던 화면 그대로 앞으로만 가져온다 (홈으로 튕기지 않는다).
+/// 전역 단축키(Alt+Space): Orbit 창을 최대화해서 앞으로. 닫혀 있었으면 홈의 런처 입력창에 포커스,
+/// 이미 떠 있거나 최소화돼 있으면 보던 화면 그대로 (홈으로 튕기지 않는다).
 pub fn open_launcher(app: &AppHandle) {
     let shown = app
         .get_webview_window(DASHBOARD)
@@ -148,6 +148,9 @@ pub fn open_launcher(app: &AppHandle) {
         .unwrap_or(false);
     let view = if shown { None } else { Some("home@launcher".into()) };
     show_dashboard(app.clone(), view);
+    if let Some(w) = app.get_webview_window(DASHBOARD) {
+        let _ = w.maximize();
+    }
 }
 
 /// 전역 단축키(Ctrl+Alt+M): Orbit 창의 메모 화면을 빠른 메모로 연다
