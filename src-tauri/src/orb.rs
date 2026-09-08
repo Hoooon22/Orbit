@@ -139,9 +139,15 @@ pub fn set_orb_visible(app: AppHandle, visible: bool) {
     set_visible(&app, visible);
 }
 
-/// 전역 단축키(Alt+Space): Orbit 창을 열고 런처 입력창에 포커스
+/// 전역 단축키(Alt+Space): Orbit 창이 닫혀 있으면 열면서 홈의 런처 입력창에 포커스.
+/// 이미 떠 있거나 최소화돼 있으면 보던 화면 그대로 앞으로만 가져온다 (홈으로 튕기지 않는다).
 pub fn open_launcher(app: &AppHandle) {
-    show_dashboard(app.clone(), Some("home@launcher".into()));
+    let shown = app
+        .get_webview_window(DASHBOARD)
+        .map(|w| w.is_visible().unwrap_or(false))
+        .unwrap_or(false);
+    let view = if shown { None } else { Some("home@launcher".into()) };
+    show_dashboard(app.clone(), view);
 }
 
 /// 전역 단축키(Ctrl+Alt+M): Orbit 창의 메모 화면을 빠른 메모로 연다
