@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { QUICK_MEMO } from "../../shared/api";
 import { todayStr } from "../../shared/dates";
+import { useSettings } from "../../shared/stores/settings";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
+import Editor from "../../modules/memo/Editor";
 import { pendingNow, useTodos } from "../../modules/todo/store";
 import { useAllEvents } from "../../modules/calendar/googleStore";
 import { monthOf } from "../../modules/calendar/calendar";
@@ -30,6 +33,9 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
   const preview = describeParsed(parseTodoInput(draft));
   const todoInput = useRef<HTMLInputElement>(null);
   const pending = pendingNow(todos);
+  // 당장 할 일 아래의 빠른 메모 칸. 접힘/펼침은 설정에 남아 다음 실행에도 이어진다
+  const quickOpen = useSettings((s) => s.settings.homeQuickMemoOpen);
+  const updateSettings = useSettings((s) => s.update);
 
   useEffect(() => {
     if (launcherFocus === 0) return;
@@ -96,6 +102,25 @@ export default function Home({ launcherFocus, onOpenCalendar, onOpenTodos, onLau
             {preview && <div className="orb-todo-preview">→ {preview}</div>}
           </div>
           <TodoPanel onOpenView={onOpenTodos} />
+        </div>
+        <div className={"home-card home-quick" + (quickOpen ? " open" : "")}>
+          <button
+            className="home-quick-toggle"
+            onClick={() => updateSettings({ homeQuickMemoOpen: !quickOpen })}
+            title={quickOpen ? "빠른 메모 접기" : "빠른 메모 펼치기"}
+          >
+            <span className="todo-panel-fold">{quickOpen ? "▾" : "▴"}</span>
+            빠른 메모
+          </button>
+          {quickOpen && (
+            <Editor
+              path={QUICK_MEMO}
+              compact
+              onRename={async () => false}
+              isFavorite={false}
+              onToggleFavorite={() => {}}
+            />
+          )}
         </div>
       </section>
 

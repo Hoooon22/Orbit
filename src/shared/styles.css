@@ -3318,6 +3318,7 @@ body.dashboard-window {
 .home {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: minmax(0, 1fr); /* 칸 내용이 길어도 행이 화면을 넘지 않게 */
   gap: 14px;
   flex: 1;
   min-height: 0;
@@ -3330,6 +3331,7 @@ body.dashboard-window {
   gap: 8px;
   min-width: 0;
   min-height: 0;
+  overflow: hidden; /* 칸 안의 카드가 각자 스크롤하고, 칸 자체는 넘치지 않는다 */
 }
 
 .home-title {
@@ -3381,6 +3383,48 @@ body.dashboard-window {
 
 .home-todo {
   flex: 1;
+}
+
+/* 당장 할 일 아래 접이식 빠른 메모. 접으면 토글 줄만, 펼치면 칸의 절반을 차지한다 */
+.home-quick {
+  flex: 0 0 auto;
+}
+
+.home-quick.open {
+  flex: 0 0 50%;
+}
+
+.home-quick-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 7px 10px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-quick-toggle::after {
+  content: "//";
+  margin-left: auto;
+  color: var(--accent);
+}
+
+.home-quick-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+.home-quick.open .home-quick-toggle {
+  border-bottom: 1px solid var(--border);
+}
+
+.home-quick .editor.compact .editor-body .ProseMirror {
+  padding-bottom: 40px;
 }
 
 .home-launcher {

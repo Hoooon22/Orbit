@@ -30,6 +30,8 @@ pub struct Settings {
     pub shortcut_launcher: String,
     /// 구글 일정 중 제목에 이 단어가 들어가면 Orbit에서 숨긴다 (구글에는 그대로). 대소문자 무시.
     pub google_hidden_titles: Vec<String>,
+    /// 홈 화면 아래쪽 빠른 메모 칸이 펼쳐져 있는지 (토글 상태를 기억)
+    pub home_quick_memo_open: bool,
 }
 
 impl Default for Settings {
@@ -47,6 +49,7 @@ impl Default for Settings {
             shortcut_quick_memo: "ctrl+alt+m".into(),
             shortcut_launcher: "alt+space".into(),
             google_hidden_titles: Vec::new(),
+            home_quick_memo_open: false,
         }
     }
 }
