@@ -21,15 +21,63 @@ import type { CommandId } from "../../modules/launcher/commands";
 
 export type View = "home" | "memo" | "todo" | "calendar" | "clipboard" | "launcher" | "settings";
 
-const NAV: [View, string, string][] = [
-  ["home", "🏠", "홈"],
-  ["memo", "📝", "메모"],
-  ["todo", "☑️", "할 일"],
-  ["calendar", "📅", "캘린더"],
-  ["clipboard", "📋", "클립보드"],
-  ["launcher", "🚀", "런처"],
-  ["settings", "⚙️", "설정"],
+const NAV: [View, string][] = [
+  ["home", "홈"],
+  ["memo", "메모"],
+  ["todo", "할 일"],
+  ["calendar", "캘린더"],
+  ["clipboard", "클립보드"],
+  ["launcher", "런처"],
+  ["settings", "설정"],
 ];
+
+// 레일 아이콘: 16×16 단색 선 (색·굵기는 바깥 svg 속성). 이모지는 흑백 디자인과 어긋나 쓰지 않는다.
+const ICON: Record<View, JSX.Element> = {
+  home: (
+    <>
+      <path d="M2.5 8 8 3l5.5 5" />
+      <path d="M4 7.5V13h8V7.5" />
+    </>
+  ),
+  memo: (
+    <>
+      <rect x="3" y="2.5" width="10" height="11" />
+      <path d="M5.5 6h5M5.5 8.5h5M5.5 11h3" />
+    </>
+  ),
+  todo: (
+    <>
+      <rect x="2.5" y="2.5" width="11" height="11" />
+      <path d="m5 8 2 2 4-4" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="2.5" y="3.5" width="11" height="10" />
+      <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
+    </>
+  ),
+  clipboard: (
+    <>
+      <rect x="3.5" y="3" width="9" height="11" />
+      <path d="M6 3V2h4v1M5.5 7h5M5.5 9.5h5" />
+    </>
+  ),
+  launcher: (
+    <>
+      <path d="m3 4 4 4-4 4" />
+      <path d="M8.5 12H13" />
+    </>
+  ),
+  settings: (
+    <>
+      <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
+      <circle cx="10" cy="4.5" r="1.5" fill="currentColor" />
+      <circle cx="6" cy="8" r="1.5" fill="currentColor" />
+      <circle cx="9" cy="11.5" r="1.5" fill="currentColor" />
+    </>
+  ),
+};
 
 const isView = (s: string): s is View => NAV.some(([v]) => v === s);
 
@@ -161,14 +209,25 @@ export default function Dashboard() {
       </header>
       <div className="dash-body">
         <nav className="dash-rail">
-          {NAV.map(([v, icon, label]) => (
+          {NAV.map(([v, label]) => (
             <button
               key={v}
               className={"dash-rail-btn" + (view === v ? " on" : "")}
               onClick={() => setView(v)}
               title={label}
             >
-              <span className="dash-rail-icon">{icon}</span>
+              <svg
+                className="dash-rail-icon"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="square"
+                strokeLinejoin="miter"
+                aria-hidden="true"
+              >
+                {ICON[v]}
+              </svg>
               <span className="dash-rail-label">{label}</span>
             </button>
           ))}

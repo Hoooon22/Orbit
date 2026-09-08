@@ -83,7 +83,7 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 
 ### 퀵 런처
 
-<kbd>Alt</kbd>+<kbd>Space</kbd>(설정에서 변경 가능)를 누르면 Orbit 창이 열리고 실행 칸에 커서가 갑니다. 앱 이름을 치고 <kbd>Enter</kbd>.
+<kbd>Alt</kbd>+<kbd>Space</kbd>(설정에서 변경 가능)를 누르면 Orbit 창이 열리고 실행 칸에 커서가 갑니다. 앱 이름을 치고 <kbd>Enter</kbd>. 창이 이미 떠 있거나 최소화돼 있을 때는 보던 화면 그대로 앞으로만 가져옵니다.
 
 - 시작 메뉴의 바로가기를 자동으로 읽습니다 (10분마다, 런처 화면의 "다시 읽기"로도)
 - 한글 초성으로도 찾습니다: "ㅋㄹ" → 크롬. 영문 앱을 한글로 찾고 싶으면 런처 화면에서 한글 이름으로 항목을 더하세요
@@ -118,7 +118,7 @@ Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), �
 
 | 키 | 하는 일 |
 | --- | --- |
-| <kbd>Alt</kbd>+<kbd>Space</kbd> | Orbit 창 열기 + 앱 실행 (다른 프로그램에서도 동작) |
+| <kbd>Alt</kbd>+<kbd>Space</kbd> | Orbit 창 열기 + 앱 실행 (다른 프로그램에서도 동작). 이미 떠 있으면 그 화면 그대로 앞으로 |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Orbit 창의 빠른 메모 열기 (다른 프로그램에서도 동작) |
 | <kbd>Esc</kbd> | Orbit 창 숨기기 |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | (메모 화면) 제목·본문 검색 |
@@ -128,6 +128,8 @@ Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), �
 ## 개발
 
 [Tauri 2](https://tauri.app) + React 18 + TypeScript로 만들었습니다. 편집기는 [TipTap](https://tiptap.dev), 마크다운 직렬화는 `tiptap-markdown`을 씁니다.
+
+화면은 [devzip](https://devzip.site)과 같은 흑백 미니멀 디자인입니다. 둥근 모서리·그림자 없이 가는 선과 타이포로만 구성하고, 강조색(터미널 그린)은 선택·상태 표시에만 씁니다. 색·글꼴 토큰은 `src/shared/styles.css` 맨 위에 있고, 글꼴(Pretendard, JetBrains Mono)은 npm 패키지로 번들해 오프라인에서도 같게 보입니다.
 
 준비물은 Node 22와 Rust stable 툴체인, 그리고 Windows입니다.
 

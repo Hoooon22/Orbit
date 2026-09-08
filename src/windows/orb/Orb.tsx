@@ -57,28 +57,17 @@ export default function Orb({ opacity, onActivate }: Props) {
           down.current = null;
         }}
       >
-        {/* 앱 아이콘과 같은 행성: 구체 위로 기울어진 궤도 고리가 앞뒤로 지나가고 작은 위성이 돈다 */}
+        {/* 앱 아이콘과 같은 행성(흑백): 원판 위로 기울어진 궤도 고리가 앞뒤로 지나가고 강조색 위성이 돈다.
+            색은 CSS 변수라 테마를 따른다 */}
         <svg className="orb-planet" viewBox="0 0 72 72" aria-hidden="true">
-          <defs>
-            <radialGradient id="orb-sphere" cx="0.36" cy="0.32" r="0.75">
-              <stop offset="0" stopColor="#a797ff" />
-              <stop offset="0.45" stopColor="#5b4bd6" />
-              <stop offset="1" stopColor="#1f1852" />
-            </radialGradient>
-            <linearGradient id="orb-ring" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#ffd166" />
-              <stop offset="1" stopColor="#ff8c42" />
-            </linearGradient>
-          </defs>
           <g transform="rotate(-24 36 36)">
-            {/* 고리 뒤쪽 절반 (구체에 가려지는 쪽) */}
-            <path d="M5 36 a31 9.5 0 0 1 62 0" fill="none" stroke="#b8924a" strokeWidth="3" strokeLinecap="round" />
+            {/* 고리 뒤쪽 절반 (원판에 가려지는 쪽) */}
+            <path d="M5 36 a31 9.5 0 0 1 62 0" fill="none" stroke="var(--fg-dim)" strokeWidth="2" />
           </g>
-          <circle cx="36" cy="36" r="23" fill="url(#orb-sphere)" />
-          <ellipse cx="28" cy="27" rx="8.5" ry="5" fill="#fff" opacity="0.22" transform="rotate(-30 28 27)" />
+          <circle cx="36" cy="36" r="23" fill="var(--bg-panel)" stroke="var(--border-strong)" strokeWidth="1.5" />
           <g transform="rotate(-24 36 36)">
-            <path d="M5 36 a31 9.5 0 0 0 62 0" fill="none" stroke="url(#orb-ring)" strokeWidth="3" strokeLinecap="round" />
-            <circle cx="67" cy="36" r="3.4" fill="#ffd166" />
+            <path d="M5 36 a31 9.5 0 0 0 62 0" fill="none" stroke="var(--fg)" strokeWidth="2" />
+            <circle cx="67" cy="36" r="3.4" fill="var(--accent)" />
           </g>
         </svg>
         <Clock size="orb" />

@@ -179,7 +179,7 @@ export default function TodoList({
   return (
     <section className="todo-view">
       <header className="editor-header">
-        <span className="todo-title">☑ 할 일</span>
+        <span className="todo-title">할 일</span>
       </header>
       <div className="todo-add">
         <button

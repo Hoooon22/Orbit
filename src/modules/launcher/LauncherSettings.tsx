@@ -26,7 +26,7 @@ export default function LauncherSettings() {
   return (
     <section className="settings-view">
       <header className="editor-header">
-        <span className="todo-title">🚀 런처</span>
+        <span className="todo-title">런처</span>
       </header>
       <div className="settings-body">
         <p className="settings-note">

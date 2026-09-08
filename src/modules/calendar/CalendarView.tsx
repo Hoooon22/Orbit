@@ -124,7 +124,7 @@ export default function CalendarView({ initialDate, onOpenNote, onOpenSettings }
   return (
     <section className="calendar-view">
       <header className="editor-header">
-        <span className="todo-title">📅 캘린더</span>
+        <span className="todo-title">캘린더</span>
         <span className="calendar-tools">
           {hasGoogle ? (
             <>

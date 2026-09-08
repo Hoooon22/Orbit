@@ -1,35 +1,19 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <!-- 구체: 왼쪽 위에서 빛을 받는 남보라색 오브 -->
-    <radialGradient id="orb" cx="0.36" cy="0.32" r="0.75">
-      <stop offset="0" stop-color="#9d8cff"/>
-      <stop offset="0.45" stop-color="#5b4bd6"/>
-      <stop offset="1" stop-color="#231b5c"/>
-    </radialGradient>
-    <!-- 궤도 고리: 앞쪽은 밝게, 뒤로 갈수록 어둡게 -->
-    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#ffd166"/>
-      <stop offset="1" stop-color="#ff8c42"/>
-    </linearGradient>
-  </defs>
+  <!-- 흑백 행성: 어두운 원판 + 밝은 테두리, 기울어진 궤도 고리, 강조색(터미널 그린) 위성.
+       오브(src/windows/orb/Orb.tsx)와 같은 형태. 색은 devzip 다크 토큰을 그대로 쓴다. -->
 
-  <!-- 구체 그림자 -->
-  <circle cx="524" cy="540" r="300" fill="#000000" opacity="0.25"/>
-
-  <!-- 고리 뒤쪽 절반 (구체에 가려지는 부분) -->
+  <!-- 고리 뒤쪽 절반 (원판에 가려지는 부분) -->
   <g transform="rotate(-24 512 512)">
-    <path d="M132 512 a380 120 0 0 1 760 0" fill="none" stroke="#c9a15a" stroke-width="44" stroke-linecap="round"/>
+    <path d="M132 512 a380 120 0 0 1 760 0" fill="none" stroke="#A9A9A9" stroke-width="28"/>
   </g>
 
-  <!-- 구체 -->
-  <circle cx="512" cy="512" r="300" fill="url(#orb)"/>
-  <!-- 반사광 -->
-  <ellipse cx="410" cy="392" rx="110" ry="70" fill="#ffffff" opacity="0.28" transform="rotate(-30 410 392)"/>
+  <!-- 원판 -->
+  <circle cx="512" cy="512" r="300" fill="#171717" stroke="#F2F2F2" stroke-width="20"/>
 
   <!-- 고리 앞쪽 절반 -->
   <g transform="rotate(-24 512 512)">
-    <path d="M132 512 a380 120 0 0 0 760 0" fill="none" stroke="url(#ring)" stroke-width="44" stroke-linecap="round"/>
+    <path d="M132 512 a380 120 0 0 0 760 0" fill="none" stroke="#F2F2F2" stroke-width="28"/>
     <!-- 고리 위를 도는 작은 위성 -->
-    <circle cx="892" cy="512" r="46" fill="#ffd166"/>
+    <circle cx="892" cy="512" r="46" fill="#3DD68C"/>
   </g>
 </svg>

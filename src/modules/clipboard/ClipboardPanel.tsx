@@ -144,7 +144,7 @@ export default function ClipboardPanel({ layout }: Props) {
   return (
     <section className="clip-view">
       <header className="editor-header">
-        <span className="todo-title">📋 클립보드</span>
+        <span className="todo-title">클립보드</span>
         <span className="clip-tools">
           <label>
             <input

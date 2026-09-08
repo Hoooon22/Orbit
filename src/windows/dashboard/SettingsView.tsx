@@ -49,7 +49,7 @@ export default function SettingsView({ onOpenLauncher }: Props) {
   return (
     <section className="settings-view">
       <header className="editor-header">
-        <span className="todo-title">⚙️ 설정</span>
+        <span className="todo-title">설정</span>
       </header>
       <div className="settings-body">
         <section className="settings-section">
