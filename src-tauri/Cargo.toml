@@ -2,7 +2,7 @@
 # 실행 파일 이름(orbit.exe)이 여기서 나온다. 옛 DesktopMemo(app.exe)의 언인스톨러가
 # 같은 이름의 프로세스를 죽이지 않도록 반드시 다른 이름을 쓴다.
 name = "orbit"
-version = "0.17.1"
+version = "0.17.2"
 description = "화면 구석에 늘 떠 있는 Windows 개인 비서 (메모·할 일·일정·클립보드·런처)"
 authors = ["kwonkim"]
 license = ""
