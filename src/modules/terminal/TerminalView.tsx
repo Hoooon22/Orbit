@@ -31,7 +31,7 @@ function ensure(): [Terminal, FitAddon, HTMLDivElement] {
   if (term && fit && host) return [term, fit, host];
   const css = getComputedStyle(document.documentElement);
   const t = new Terminal({
-    fontFamily: css.getPropertyValue("--font-mono").trim(),
+    fontFamily: css.getPropertyValue("--font-term").trim(),
     fontSize: 13,
     cursorBlink: true,
     scrollback: 5000,

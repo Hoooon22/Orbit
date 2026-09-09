@@ -38,6 +38,7 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 
 - `claude` 명령이 PATH에 있어야 합니다(`npm i -g @anthropic-ai/claude-code`). 없으면 터미널에 그렇게 표시되고, 설치한 뒤 다시 실행하면 됩니다
 - 셸은 PowerShell 7(`%ProgramFiles%\PowerShell\7\pwsh.exe`)을 쓰고, 없으면 Windows 기본 `powershell.exe`로 떨어집니다. claude가 끝나도 프롬프트는 남아 그 자리에서 다시 실행할 수 있습니다
+- 글꼴은 Windows 터미널과 같은 **Sarasa Term K Nerd Font**를 씁니다. 앱에 번들된 글꼴이 아니라 시스템에 설치돼 있어야 하고, 없으면 D2Coding Nerd Font → Cascadia Mono 순으로 떨어집니다 (`--font-term`, `src/shared/styles.css`)
 - 세션은 앱이 켜져 있는 동안 하나로 유지됩니다. 다른 화면에 갔다 와도 하던 대화가 그대로 있고, 세션이 끝나면 아무 키나 눌러 다시 시작합니다
 
 ### 메모
