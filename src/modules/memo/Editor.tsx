@@ -330,10 +330,9 @@ export default function Editor({
         editor.commands.setContent("", false);
       });
 
-    // 노트 전환·언마운트 시 대기 중인 저장을 즉시 반영하고, 보던 자리를 남긴다
+    // 노트 전환·언마운트 시 대기 중인 저장을 즉시 반영한다
     return () => {
       stale = true;
-      rememberView(path, editor, body);
       if (timer.current !== undefined) {
         window.clearTimeout(timer.current);
         timer.current = undefined;
@@ -386,6 +385,38 @@ export default function Editor({
     return () => {
       void unChanged.then((f) => f());
       void unQuit.then((f) => f());
+    };
+  }, [editor]);
+
+  // 보던 자리(커서·스크롤)를 기억한다. 값은 움직일 때마다 잡아 두고 잠잠해지면 저장한다.
+  // 메모를 옮기면 Editor가 통째로 다시 만들어지는데, 그때는 본문 div가 이미 문서에서 떨어져 나가
+  // scrollTop이 0으로 읽힌다. 언마운트 시점에 읽으면 늦으므로 미리 들고 있어야 한다.
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (!el || !editor) return;
+    const view = { pos: editor.state.selection.from, top: el.scrollTop };
+    let save: number | undefined;
+    const schedule = () => {
+      if (save !== undefined) window.clearTimeout(save);
+      save = window.setTimeout(() => saveView(pathRef.current, view), 250);
+    };
+    const onScroll = () => {
+      view.top = el.scrollTop;
+      schedule();
+    };
+    const onSelect = () => {
+      view.pos = editor.state.selection.from;
+      schedule();
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    editor.on("selectionUpdate", onSelect);
+    return () => {
+      if (save !== undefined) {
+        window.clearTimeout(save);
+        saveView(pathRef.current, view); // 마지막 250ms 안의 움직임도 남긴다
+      }
+      el.removeEventListener("scroll", onScroll);
+      editor.off("selectionUpdate", onSelect);
     };
   }, [editor]);
 
