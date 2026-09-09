@@ -3238,6 +3238,21 @@ body.dashboard-window {
   margin: 10px 16px 0;
 }
 
+/* AI 화면: 메모 폴더에서 claude를 띄운 내장 터미널 (modules/terminal/TerminalView.tsx) */
+.term {
+  flex: 1;
+  min-height: 0;
+  padding: 8px 6px 8px 12px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+/* xterm이 붙는 자리. React가 아니라 모듈이 들고 있는 DOM이라 크기만 잡아 준다 */
+.term-host {
+  width: 100%;
+  height: 100%;
+}
+
 /* 메모 화면: 트리 + 편집기 */
 .memo-view {
   display: grid;

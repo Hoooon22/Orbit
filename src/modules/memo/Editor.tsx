@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { Extension, mergeAttributes } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
+import type { Editor as TiptapEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Image from "@tiptap/extension-image";
@@ -31,8 +32,15 @@ import type { NoteTimes, TreeNode } from "../../shared/api";
 import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { openEditors } from "./openEditors";
+import { loadView, saveView } from "./viewState";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+
+// 지금 보던 자리(커서·스크롤)를 남긴다. 메모를 옮길 때와 앱을 끌 때 부른다.
+function rememberView(path: string, editor: TiptapEditor | null, body: HTMLElement | null) {
+  if (!editor || !body) return;
+  saveView(path, { pos: editor.state.selection.from, top: body.scrollTop });
+}
 
 const SAVE_LABEL: Record<SaveState, string> = {
   idle: "",
@@ -292,6 +300,7 @@ export default function Editor({
     pathRef.current = path;
     if (!editor) return;
     let stale = false; // 빠른 노트 전환 시 늦게 도착한 응답이 화면을 덮지 않도록
+    const body = bodyRef.current; // 본문 스크롤 칸. 메모가 바뀌어도 같은 div라 여기서 잡아 둔다
     setSaveState("idle");
     setTimes(null);
     noteTimes(path)
@@ -304,7 +313,16 @@ export default function Editor({
         if (stale) return;
         contentRef.current = text;
         editor.commands.setContent(text, false);
-        editor.commands.focus();
+        // 지난번에 보던 자리로. 커서까지 되돌려야 이어서 쳐도 화면이 맨 위로 튀지 않는다.
+        // (범위를 벗어난 위치는 TipTap이 문서 안으로 맞춰 준다)
+        const view = loadView(path);
+        editor.commands.focus(view ? view.pos : null);
+        if (view) {
+          // focus가 커서를 화면에 넣느라 스크롤을 건드리므로 그 뒤에 정확한 위치로 맞춘다
+          requestAnimationFrame(() => {
+            if (!stale && body) body.scrollTop = view.top;
+          });
+        }
       })
       .catch(() => {
         if (stale) return;
@@ -312,9 +330,10 @@ export default function Editor({
         editor.commands.setContent("", false);
       });
 
-    // 노트 전환·언마운트 시 대기 중인 저장을 즉시 반영한다
+    // 노트 전환·언마운트 시 대기 중인 저장을 즉시 반영하고, 보던 자리를 남긴다
     return () => {
       stale = true;
+      rememberView(path, editor, body);
       if (timer.current !== undefined) {
         window.clearTimeout(timer.current);
         timer.current = undefined;
@@ -361,6 +380,7 @@ export default function Editor({
         .catch(() => {});
     }).catch(() => () => {});
     const unQuit = listen("app-quitting", () => {
+      rememberView(pathRef.current, editor, bodyRef.current);
       void flushNow();
     }).catch(() => () => {});
     return () => {

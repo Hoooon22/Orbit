@@ -5,6 +5,7 @@ import { chosung, isChosungQuery } from "../../shared/hangul";
 
 export type CommandId =
   | "home"
+  | "ai"
   | "memo"
   | "todo"
   | "calendar"
@@ -18,6 +19,7 @@ export type Command = { id: CommandId; icon: string; label: string; aliases: str
 
 export const COMMANDS: Command[] = [
   { id: "home", icon: "🏠", label: "홈", aliases: ["홈", "home"] },
+  { id: "ai", icon: "▮", label: "AI 터미널", aliases: ["ai", "터미널", "claude", "terminal"] },
   { id: "memo", icon: "📝", label: "메모", aliases: ["메모", "memo", "note"] },
   { id: "todo", icon: "☑️", label: "할 일", aliases: ["할일", "할 일", "todo"] },
   { id: "calendar", icon: "📅", label: "캘린더", aliases: ["캘린더", "달력", "일정", "calendar", "cal"] },

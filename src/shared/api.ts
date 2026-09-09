@@ -135,6 +135,14 @@ export const launcherAddCustom = (name: string, target: string) =>
 export const launcherRemoveCustom = (id: string) =>
   invoke<void>("launcher_remove_custom", { id });
 
+// AI 화면의 내장 터미널 (Rust term.rs). 노트 루트에서 claude를 띄운 셸 하나를 앱 전체가 함께 쓴다.
+// 출력은 "term-output"(문자열), 세션이 끝나면 "term-exit" 이벤트로 온다.
+export const termStart = (cols: number, rows: number) =>
+  invoke<void>("term_start", { cols, rows });
+export const termWrite = (data: string) => invoke<void>("term_write", { data });
+export const termResize = (cols: number, rows: number) =>
+  invoke<void>("term_resize", { cols, rows });
+
 // 설정의 전역 단축키를 다시 등록한다. 실패하면 어느 키가 안 됐는지 메시지로 거부된다
 export const applyShortcuts = () => invoke<void>("apply_shortcuts");
 

@@ -14,15 +14,25 @@ import CalendarView from "../../modules/calendar/CalendarView";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 import LauncherSettings from "../../modules/launcher/LauncherSettings";
 import TodoList from "../../modules/todo/TodoList";
+import TerminalView from "../../modules/terminal/TerminalView";
 import SettingsView from "./SettingsView";
 import MemoView from "./MemoView";
 import Home from "./Home";
 import type { CommandId } from "../../modules/launcher/commands";
 
-export type View = "home" | "memo" | "todo" | "calendar" | "clipboard" | "launcher" | "settings";
+export type View =
+  | "home"
+  | "ai"
+  | "memo"
+  | "todo"
+  | "calendar"
+  | "clipboard"
+  | "launcher"
+  | "settings";
 
 const NAV: [View, string][] = [
   ["home", "홈"],
+  ["ai", "AI"],
   ["memo", "메모"],
   ["todo", "할 일"],
   ["calendar", "캘린더"],
@@ -37,6 +47,12 @@ const ICON: Record<View, JSX.Element> = {
     <>
       <path d="M2.5 8 8 3l5.5 5" />
       <path d="M4 7.5V13h8V7.5" />
+    </>
+  ),
+  ai: (
+    <>
+      <rect x="2" y="3" width="12" height="10" />
+      <path d="m4.5 7 1.5 1.5-1.5 1.5M8.5 10h3" />
     </>
   ),
   memo: (
@@ -132,7 +148,20 @@ export default function Dashboard() {
       if (v === "home" && arg === "launcher") setLauncherFocus((n) => n + 1);
     }).catch(() => () => {});
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") void getCurrentWindow().hide();
+      // AI 화면의 터미널 안에서는 키를 claude가 받아야 한다 (창 숨김·화면 전환에 뺏기지 않게)
+      const inTerm = !!(e.target as HTMLElement | null)?.closest(".term");
+      if (inTerm) return;
+      if (e.key === "Escape") {
+        void getCurrentWindow().hide();
+        return;
+      }
+      // Ctrl+1~8: 왼쪽 레일에 보이는 순서대로 화면 전환
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
+        const nav = NAV[Number(e.key) - 1];
+        if (!nav) return;
+        e.preventDefault();
+        setView(nav[0]);
+      }
     };
     window.addEventListener("keydown", onKey);
     // 최대화 여부에 따라 둥근 모서리·테두리를 뺀다 (최대화 창에 모서리가 남으면 어색하다)
@@ -209,12 +238,12 @@ export default function Dashboard() {
       </header>
       <div className="dash-body">
         <nav className="dash-rail">
-          {NAV.map(([v, label]) => (
+          {NAV.map(([v, label], i) => (
             <button
               key={v}
               className={"dash-rail-btn" + (view === v ? " on" : "")}
               onClick={() => setView(v)}
-              title={label}
+              title={`${label} (Ctrl+${i + 1})`}
             >
               <svg
                 className="dash-rail-icon"
@@ -250,6 +279,7 @@ export default function Dashboard() {
               onCommand={runCommand}
             />
           )}
+          {view === "ai" && <TerminalView />}
           {view === "memo" && <MemoView requested={memoPath} />}
           {view === "todo" && (
             <TodoList

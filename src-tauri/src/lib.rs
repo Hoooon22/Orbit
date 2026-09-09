@@ -7,6 +7,7 @@ mod orb;
 mod reminders;
 mod settings;
 mod store;
+mod term;
 
 use std::path::{Path, PathBuf};
 
@@ -343,6 +344,7 @@ pub fn run() {
             orb::place_on_start(app.handle(), &loaded.clone().unwrap_or_default());
             app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
             app.manage(store::ListLock(std::sync::Mutex::new(())));
+            app.manage(term::TermState::default());
             app.manage(NotesRoot(root));
 
             // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
@@ -427,6 +429,9 @@ pub fn run() {
             google::google_set_calendar_enabled,
             google::google_sync,
             google::google_events,
+            term::term_start,
+            term::term_write,
+            term::term_resize,
             apply_shortcuts,
             autostart_enabled,
             set_autostart
