@@ -8,6 +8,7 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -38,6 +39,8 @@ pub struct ReminderState {
     ledger: Mutex<HashMap<String, u64>>,
     /// 울렸지만 아직 사용자가 닫지 않은 알림. 창이 나중에 떠도 보여줄 수 있게 들고 있는다.
     pending: Mutex<Vec<Fired>>,
+    /// 트레이 "알림 일시중지". 이 세션에서만 유효하고 저장하지 않는다 (재시작 뒤에도 꺼진 알림은 함정).
+    pub paused: AtomicBool,
 }
 
 impl ReminderState {
@@ -46,7 +49,7 @@ impl ReminderState {
             .ok()
             .and_then(|t| serde_json::from_str(&t).ok())
             .unwrap_or_default();
-        Self { ledger: Mutex::new(ledger), pending: Mutex::new(Vec::new()) }
+        Self { ledger: Mutex::new(ledger), pending: Mutex::new(Vec::new()), paused: AtomicBool::new(false) }
     }
 }
 
@@ -150,6 +153,11 @@ pub fn tick(app: &AppHandle) {
     ) else {
         return;
     };
+    // 일시중지·회의 중에는 검사 자체를 건너뛴다. 원장에 적지 않으므로 미룬 알림은 풀리는 다음 틱에
+    // 그대로 잡히고, 5분 넘게 미뤄졌으면 "놓친 알림"으로 묶인다. 따로 보관할 상태가 없다.
+    if state.paused.load(Ordering::Relaxed) || crate::meeting::is_active(app) {
+        return;
+    }
     let todos = crate::store::load_list(&root.0, "todos").unwrap_or_default();
     let now = now_ms();
     let fired = {
@@ -180,11 +188,13 @@ pub fn tick(app: &AppHandle) {
     let _ = app.emit("reminders-fired", &fired);
 }
 
-/// 시작 직후 한 번(놓친 알림 처리), 이후 매 분 경계마다 검사
+/// 시작 직후 한 번(놓친 알림 처리), 이후 매 분 경계마다 검사.
+/// 회의 판정을 먼저 갱신해, 회의가 끝난 바로 그 틱에 미뤄 둔 알림이 나간다.
 pub fn spawn(app: AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(Duration::from_secs(5));
         loop {
+            crate::meeting::refresh(&app);
             tick(&app);
             let secs = (now_ms() / 1000) % 60;
             std::thread::sleep(Duration::from_secs(60 - secs));

@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { collapseOrb, expandOrb } from "../../shared/api";
-import type { BubbleSide, Fired } from "../../shared/api";
+import type { BubbleSide, Fired, Meeting } from "../../shared/api";
+import { todayStr } from "../../shared/dates";
 import { reportError } from "../../shared/stores/error";
 
 // 오브 옆에 잠깐 뜨는 말풍선. 큐는 오브 창이 갖는다 — 표시 시간·순서는 화면 관심사이고
@@ -83,6 +84,12 @@ export const useBubble = create<BubbleStore>((set, get) => {
             view: "todo",
           });
         }
+      });
+      // 회의가 시작되면 한 번 알린다. 끝날 때는 조용히 (미뤄 둔 알림이 곧 따로 온다)
+      void listen<Meeting | null>("meeting-changed", (e) => {
+        const m = e.payload;
+        if (!m) return;
+        get().push({ key: "meeting", title: "회의 중", body: `${m.title} · ~${m.endLabel}`, view: `calendar@${todayStr()}` });
       });
     },
 

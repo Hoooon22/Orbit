@@ -110,6 +110,7 @@ pub fn update_settings(
     let serde_json::Value::Object(patch) = patch else {
         return Err("patch는 객체여야 합니다".into());
     };
+    let touches_meeting = patch.contains_key("meetingModeEnabled");
     let mut cur = state.0.lock().map_err(|e| e.to_string())?;
     let mut merged = serde_json::to_value(cur.clone().unwrap_or_default()).map_err(|e| e.to_string())?;
     if let serde_json::Value::Object(map) = &mut merged {
@@ -118,7 +119,13 @@ pub fn update_settings(
     let next: Settings = serde_json::from_value(merged).map_err(|e| e.to_string())?;
     save(&root.0, &next)?;
     *cur = Some(next.clone());
+    drop(cur);
     let _ = app.emit("settings-changed", ());
+    if touches_meeting {
+        // 회의 모드는 다음 분 틱을 기다리지 않고 바로 반영 (설정 락을 놓은 뒤에 — refresh가 다시 잠근다)
+        crate::meeting::refresh(&app);
+        crate::meeting::sync_tray(&app);
+    }
     Ok(next)
 }
 

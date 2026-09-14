@@ -7,6 +7,7 @@ import { eventsOn } from "../../modules/calendar/calendar";
 import Clock from "../../modules/calendar/Clock";
 import Bubble from "./Bubble";
 import { useBubble } from "./bubbleStore";
+import { useOrbStatus } from "./status";
 
 type Props = {
   opacity: number; // 설정의 오브 투명도 (0.3~1). 마우스를 올리면 잠시 또렷하게
@@ -25,10 +26,17 @@ export default function Orb({ opacity, onActivate }: Props) {
   const [hover, setHover] = useState(false);
   const bubble = useBubble((s) => s.current);
   const side = useBubble((s) => s.side);
+  // 상태 표현: 회의 중 = 원판 선이 강조색·시계 대신 끝 시각, 자리 비움 = 고리·위성이 흐려짐, 알림 대기 = 위성 점멸
+  const away = useOrbStatus((s) => s.away);
+  const meeting = useOrbStatus((s) => s.meeting);
+  const alert = useTodos((s) => s.fired.length > 0);
   const tip =
     `Orbit — 클릭해서 열기, 끌어서 옮기기` +
     (pending ? `\n당장 할 일 ${pending}` : "") +
-    (todayEvents ? `\n오늘 일정 ${todayEvents}` : "");
+    (todayEvents ? `\n오늘 일정 ${todayEvents}` : "") +
+    (meeting ? `\n회의 중 · ${meeting.title} · ~${meeting.endLabel}` : "") +
+    (away ? "\n자리 비움" : "") +
+    (alert ? "\n닫지 않은 알림 있음" : "");
 
   return (
     <div
@@ -38,8 +46,9 @@ export default function Orb({ opacity, onActivate }: Props) {
       onMouseLeave={() => setHover(false)}
     >
       <button
-        className="orb"
-        style={{ opacity: hover ? 1 : Math.min(1, Math.max(0.3, opacity)) }}
+        className={"orb" + (meeting ? " meeting" : "") + (away ? " away" : "") + (alert ? " alert" : "")}
+        // 자리 비움이면 설정과 무관하게 가장 흐리게 (0.3)
+        style={{ opacity: hover ? 1 : away ? 0.3 : Math.min(1, Math.max(0.3, opacity)) }}
         title={tip}
         aria-label="Orbit 열기"
         onMouseDown={(e) => {
@@ -67,15 +76,15 @@ export default function Orb({ opacity, onActivate }: Props) {
         <svg className="orb-planet" viewBox="0 0 72 72" aria-hidden="true">
           <g transform="rotate(-24 36 36)">
             {/* 고리 뒤쪽 절반 (원판에 가려지는 쪽) */}
-            <path d="M5 36 a31 9.5 0 0 1 62 0" fill="none" stroke="var(--fg-dim)" strokeWidth="2" />
+            <path className="orb-ring-back" d="M5 36 a31 9.5 0 0 1 62 0" fill="none" stroke="var(--fg-dim)" strokeWidth="2" />
           </g>
-          <circle cx="36" cy="36" r="23" fill="var(--bg-panel)" stroke="var(--border-strong)" strokeWidth="1.5" />
+          <circle className="orb-disc" cx="36" cy="36" r="23" fill="var(--bg-panel)" stroke="var(--border-strong)" strokeWidth="1.5" />
           <g transform="rotate(-24 36 36)">
-            <path d="M5 36 a31 9.5 0 0 0 62 0" fill="none" stroke="var(--fg)" strokeWidth="2" />
-            <circle cx="67" cy="36" r="3.4" fill="var(--accent)" />
+            <path className="orb-ring-front" d="M5 36 a31 9.5 0 0 0 62 0" fill="none" stroke="var(--fg)" strokeWidth="2" />
+            <circle className="orb-sat" cx="67" cy="36" r="3.4" fill="var(--accent)" />
           </g>
         </svg>
-        <Clock size="orb" />
+        {meeting ? <span className="clock-orb orb-until">~{meeting.endLabel}</span> : <Clock size="orb" />}
         {pending > 0 && <span className="orb-badge">{pending > 99 ? "99+" : pending}</span>}
         {todayEvents > 0 && <span className="orb-badge events">{todayEvents}</span>}
       </button>

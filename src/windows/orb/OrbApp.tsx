@@ -7,6 +7,7 @@ import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
 import { useGoogle } from "../../modules/calendar/googleStore";
 import { useBubble } from "./bubbleStore";
+import { useOrbStatus } from "./status";
 import Orb from "./Orb";
 
 // 오브 창: 화면 구석의 구슬 하나. 클릭하면 Orbit 대시보드 창을 열고 닫는다.
@@ -20,6 +21,7 @@ export default function OrbApp() {
     useEvents.getState().init(); // 오브의 오늘 일정 개수
     useGoogle.getState().init();
     useBubble.getState().init(); // 알림 말풍선
+    useOrbStatus.getState().init(); // 자리 비움·회의 표시
   }, []);
 
   // 투명도는 창(레이어드 윈도우)이 아니라 구슬 그림(CSS)에 건다.

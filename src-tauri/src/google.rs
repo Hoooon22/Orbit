@@ -127,6 +127,11 @@ impl GoogleState {
     fn has_accounts(&self) -> bool {
         self.file.lock().map(|f| !f.accounts.is_empty()).unwrap_or(false)
     }
+
+    /// 받아 둔 일정 사본 (회의 모드 판정용)
+    pub fn events_snapshot(&self) -> Vec<GEvent> {
+        self.events.lock().map(|e| e.clone()).unwrap_or_default()
+    }
 }
 
 fn now_ms() -> u64 {

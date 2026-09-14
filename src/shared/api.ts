@@ -107,6 +107,10 @@ export type Fired = { id: string; text: string; remindAt: number; missed: boolea
 export const checkReminders = () => invoke<Fired[]>("check_reminders");
 export const dismissReminder = (id: string) => invoke<void>("dismiss_reminder", { id });
 
+// 회의 모드 (Rust meeting.rs). 지금 진행 중인 일정. 바뀌면 "meeting-changed"(Meeting | null)가 온다
+export type Meeting = { id: string; title: string; endLabel: string };
+export const meetingStatus = () => invoke<Meeting | null>("meeting_status");
+
 // 클립보드 히스토리 (Rust clipboard.rs, %LOCALAPPDATA%\...\clipboard.json)
 export type ClipItem = { id: string; text: string; copiedAt: number; pinned: boolean; count: number };
 export const clipboardHistory = () => invoke<ClipItem[]>("clipboard_history");

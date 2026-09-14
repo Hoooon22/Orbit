@@ -3,6 +3,7 @@ mod clipboard;
 mod google;
 mod idle;
 mod launcher;
+mod meeting;
 mod migrate;
 mod notes;
 mod orb;
@@ -15,9 +16,29 @@ mod usage;
 use std::path::{Path, PathBuf};
 
 use notes::NotesRoot;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{Emitter, Manager};
+
+/// 트레이 메뉴의 체크 항목. 상태가 바뀌면 메뉴를 다시 만들지 않고 `set_checked`만 한다.
+pub struct TrayItems {
+    pub meeting: CheckMenuItem<tauri::Wry>,
+    pub pause: CheckMenuItem<tauri::Wry>,
+}
+
+/// 트레이·설정 화면 공용: 설정 한 필드를 바꾸고 저장·방송한다 (오브 표시, 회의 모드 토글)
+fn toggle_setting(app: &tauri::AppHandle, f: impl FnOnce(&mut settings::Settings)) {
+    let Some(s) = app.try_state::<settings::SettingsState>() else { return };
+    if let Ok(mut cur) = s.0.lock() {
+        let mut next = cur.clone().unwrap_or_default();
+        f(&mut next);
+        if let Some(root) = app.try_state::<NotesRoot>() {
+            let _ = settings::save(&root.0, &next);
+        }
+        *cur = Some(next);
+    }
+    let _ = app.emit("settings-changed", ());
+}
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_window_state::StateFlags;
 
@@ -307,13 +328,39 @@ pub fn run() {
                 }
             });
 
-            // 트레이: 좌클릭 = Orbit 창, 메뉴 = Orbit 열기/오브 표시·숨김/업데이트 확인/종료
+            // 트레이: 좌클릭 = Orbit 창. 메뉴 = 열기·오브 / 회의 모드·알림 일시중지 / 캡처·색상 / 폴더·업데이트·종료
+            let loaded = settings::load(&root);
+            let meeting_on = loaded.as_ref().map(|s| s.meeting_mode_enabled).unwrap_or(false);
             let dash_item = MenuItem::with_id(app, "dashboard", "Orbit 열기", true, None::<&str>)?;
             let orb_item = MenuItem::with_id(app, "orb", "오브 표시/숨김", true, None::<&str>)?;
+            let meeting_item =
+                CheckMenuItem::with_id(app, "meeting", "회의 모드", true, meeting_on, None::<&str>)?;
+            let pause_item =
+                CheckMenuItem::with_id(app, "pause", "알림 일시중지", true, false, None::<&str>)?;
+            let capture_item = MenuItem::with_id(app, "capture", "영역 캡처", true, None::<&str>)?;
+            let color_item = MenuItem::with_id(app, "color", "색상 추출", true, None::<&str>)?;
+            let folder_item = MenuItem::with_id(app, "folder", "데이터 폴더 열기", true, None::<&str>)?;
             let update_item =
                 MenuItem::with_id(app, "update", "업데이트 확인", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "종료", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&dash_item, &orb_item, &update_item, &quit_item])?;
+            let menu = Menu::with_items(
+                app,
+                &[
+                    &dash_item,
+                    &orb_item,
+                    &PredefinedMenuItem::separator(app)?,
+                    &meeting_item,
+                    &pause_item,
+                    &PredefinedMenuItem::separator(app)?,
+                    &capture_item,
+                    &color_item,
+                    &PredefinedMenuItem::separator(app)?,
+                    &folder_item,
+                    &update_item,
+                    &quit_item,
+                ],
+            )?;
+            app.manage(TrayItems { meeting: meeting_item, pause: pause_item });
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().expect("window icon").clone())
                 .menu(&menu)
@@ -326,17 +373,29 @@ pub fn run() {
                             let visible = w.is_visible().unwrap_or(true);
                             orb::set_visible(app, !visible);
                             // 설정에도 남겨 다음 시작 때 같은 상태로
-                            if let Some(s) = app.try_state::<settings::SettingsState>() {
-                                if let Ok(mut cur) = s.0.lock() {
-                                    let mut next = cur.clone().unwrap_or_default();
-                                    next.orb_visible = !visible;
-                                    if let Some(root) = app.try_state::<NotesRoot>() {
-                                        let _ = settings::save(&root.0, &next);
-                                    }
-                                    *cur = Some(next);
-                                    let _ = app.emit("settings-changed", ());
-                                }
+                            toggle_setting(app, |s| s.orb_visible = !visible);
+                        }
+                    }
+                    "meeting" => {
+                        // 메뉴가 스스로 체크를 뒤집지만, 설정값을 진실로 삼아 sync_tray가 다시 맞춘다
+                        toggle_setting(app, |s| s.meeting_mode_enabled = !s.meeting_mode_enabled);
+                        meeting::refresh(app);
+                        meeting::sync_tray(app);
+                    }
+                    "pause" => {
+                        if let Some(r) = app.try_state::<reminders::ReminderState>() {
+                            let now = !r.paused.fetch_xor(true, std::sync::atomic::Ordering::Relaxed);
+                            if let Some(items) = app.try_state::<TrayItems>() {
+                                let _ = items.pause.set_checked(now);
                             }
+                        }
+                    }
+                    "capture" => capture::start_async(app, capture::Mode::Region),
+                    "color" => capture::start_async(app, capture::Mode::Color),
+                    "folder" => {
+                        if let Some(root) = app.try_state::<NotesRoot>() {
+                            use tauri_plugin_opener::OpenerExt;
+                            let _ = app.opener().open_path(root.0.to_string_lossy(), None::<&str>);
                         }
                     }
                     "update" => check_for_updates(app.clone()),
@@ -364,12 +423,12 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            let loaded = settings::load(&root);
             orb::place_on_start(app.handle(), &loaded.clone().unwrap_or_default());
             app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
             app.manage(store::ListLock(std::sync::Mutex::new(())));
             app.manage(term::TermState::default());
             app.manage(capture::CaptureState::default());
+            app.manage(meeting::MeetingState(std::sync::Mutex::new(None)));
             app.manage(NotesRoot(root));
 
             // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
@@ -478,7 +537,8 @@ pub fn run() {
             capture::capture_shot,
             capture::capture_region,
             capture::capture_color,
-            capture::capture_cancel
+            capture::capture_cancel,
+            meeting::meeting_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

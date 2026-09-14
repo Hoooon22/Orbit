@@ -217,6 +217,20 @@ export default function SettingsView({ onOpenLauncher }: Props) {
           </div>
           <label className="settings-row">
             <span>
+              회의 모드
+              <small>
+                진행 중인 일정(종일 제외)이 있으면 할 일 알림을 끝날 때까지 미루고, 오브에 회의 끝 시각을 보여 줍니다.
+                트레이 메뉴의 "회의 모드"와 같습니다.
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.meetingModeEnabled}
+              onChange={(e) => update({ meetingModeEnabled: e.target.checked })}
+            />
+          </label>
+          <label className="settings-row">
+            <span>
               오브 투명도
               <small>마우스를 올리면 잠시 또렷해집니다.</small>
             </span>

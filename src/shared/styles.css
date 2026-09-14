@@ -3184,6 +3184,45 @@ body.orb-window {
   letter-spacing: 0.02em;
 }
 
+/* 오브 상태 (Orb.tsx가 붙이는 클래스). CSS 속성이 SVG의 presentation attribute보다 우선한다.
+   회의 중: 원판 선이 강조색, 시계 대신 끝 시각. 자리 비움: 앞 고리·위성이 뒤로 물러남.
+   알림 대기: 위성 점만 천천히 점멸 — 사용자가 반응해야 하는 유일한 상태라 앱에서 유일한 keyframes. */
+.orb.meeting .orb-disc {
+  stroke: var(--accent);
+}
+
+.orb.meeting .orb-until {
+  color: var(--accent);
+}
+
+.orb.away .orb-ring-front {
+  stroke: var(--fg-mute);
+}
+
+.orb.away .orb-sat {
+  fill: var(--fg-mute);
+}
+
+.orb.alert .orb-sat {
+  animation: orb-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes orb-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orb.alert .orb-sat {
+    animation: none;
+  }
+}
+
 /* 말풍선: 알림이 오면 Rust가 창을 옆으로 넓히고(expand_orb) 오브는 한쪽 끝에 붙는다.
    side-left = 말풍선이 오브 왼쪽(기본), side-right = 화면 왼쪽 끝이라 오른쪽으로 */
 .orb-root.side-left {
