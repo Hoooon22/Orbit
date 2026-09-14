@@ -20,7 +20,7 @@
 | 창 | 역할 | 여는 법 |
 | --- | --- | --- |
 | **오브** | 화면 구석의 구슬. 시각, 남은 할 일 개수, 오늘 일정 개수 | 앱을 켜면 늘 떠 있음. 끌어서 옮김. 안 보이면 트레이의 "오브 표시/숨김" 또는 설정의 "오브 위치 초기화" |
-| **Orbit** | 홈(오늘·할 일·실행·클립보드), AI, 메모, 할 일, 캘린더, 클립보드, 런처, 설정 | 오브 클릭, 트레이 아이콘 클릭, 작업 표시줄의 Orbit, <kbd>Alt</kbd>+<kbd>Space</kbd>, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> |
+| **Orbit** | 홈(오늘·할 일·실행·클립보드), AI, 메모, 할 일, 캘린더, 클립보드, 런처, 통계, 설정 | 오브 클릭, 트레이 아이콘 클릭, 작업 표시줄의 Orbit, <kbd>Alt</kbd>+<kbd>Space</kbd>, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> |
 
 Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클릭하거나 ▢ 버튼으로 최대화합니다. 닫아도(<kbd>Esc</kbd>, ×) 프로그램이 끝나지 않고 오브와 트레이만 남습니다. 완전히 끄려면 트레이 아이콘을 우클릭해 종료를 누르세요.
 
@@ -101,12 +101,20 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 - 한글 초성으로도 찾습니다: "ㅋㄹ" → 크롬. 영문 앱을 한글로 찾고 싶으면 런처 화면에서 한글 이름으로 항목을 더하세요
 - 자주·최근 실행한 항목이 위로 올라오고, 빈 입력에서는 최근 실행 목록이 보입니다
 - 주소(`https://…`)나 폴더 경로를 그대로 치면 항목으로 더할 수 있습니다. 폴더는 탐색기로, 주소는 브라우저로 열립니다
-- **`/`로 Orbit 명령**: `/ai` `/터미널`, `/메모` `/memo`, `/할일` `/todo`, `/캘린더` `/cal`, `/클립보드` `/clip`, `/런처`, `/설정` `/settings`, `/동기화` `/sync`, `/숨기기` `/hide`. 한글·영문·초성 모두 됩니다
+- **`/`로 Orbit 명령**: `/ai` `/터미널`, `/메모` `/memo`, `/할일` `/todo`, `/캘린더` `/cal`, `/클립보드` `/clip`, `/런처`, `/통계` `/stats`, `/설정` `/settings`, `/동기화` `/sync`, `/숨기기` `/hide`. 한글·영문·초성 모두 됩니다
 - <kbd>Tab</kbd>은 맨 위 항목의 이름으로 자동완성, <kbd>↑</kbd><kbd>↓</kbd>로 고르고 <kbd>Enter</kbd>
+
+### 사용 통계
+
+어느 앱을 얼마나 썼는지 하루 단위로 보여 줍니다. 5초마다 맨 앞에 있는 창의 앱(실행 파일 이름)을 확인해 시간을 더하고, 많이 쓴 순서로 막대와 함께 나열합니다. 헤더의 ‹ ›(또는 <kbd>←</kbd><kbd>→</kbd>)로 지난 날을 넘겨 봅니다.
+
+- 5분 이상 키·마우스 입력이 없으면 자리 비움으로 보고 앱 대신 "자리 비움"에 더합니다. 절전에서 깨어난 뒤 첫 측정은 15초까지만 인정합니다
+- Orbit 자신은 세지 않습니다. 스토어 앱은 실행 파일이 `applicationframehost`라 그 이름으로 묶입니다
+- 기록은 `%LOCALAPPDATA%\com.kwonkim.orbit\usage.json`에 30일분을 두고, 설정에서 기록을 끌 수 있습니다
 
 ### 설정
 
-Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), 테마, Orbit 창 항상 위에 고정, 메모 글자 크기, 오브 표시와 투명도, 구글 캘린더, 클립보드 기록. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
+Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), 테마, Orbit 창 항상 위에 고정, 메모 글자 크기, 오브 표시와 투명도, 구글 캘린더, 클립보드 기록, 사용 통계 기록. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
 
 ## 저장되는 곳
 
@@ -124,7 +132,7 @@ Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), �
 
 `.`으로 시작하는 파일은 앱 화면에 나오지 않습니다.
 
-이미 울린 알림을 기억하는 장부(`reminded.json`), 클립보드 기록(`clipboard.json`), 런처의 직접 추가 항목·사용 기록(`launcher.json`), 구글 계정 토큰과 일정 캐시(`google.json`, `google-events.json`)는 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
+이미 울린 알림을 기억하는 장부(`reminded.json`), 클립보드 기록(`clipboard.json`), 런처의 직접 추가 항목·사용 기록(`launcher.json`), 구글 계정 토큰과 일정 캐시(`google.json`, `google-events.json`), 앱 사용 시간(`usage.json`)은 기기마다 다른 정보라 문서 폴더가 아닌 `%LOCALAPPDATA%\com.kwonkim.orbit\`에 둡니다.
 
 ## 단축키
 
@@ -133,7 +141,7 @@ Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), �
 | <kbd>Alt</kbd>+<kbd>Space</kbd> | Orbit 창을 최대화해서 열기 + 앱 실행 (다른 프로그램에서도 동작). 이미 떠 있으면 그 화면 그대로 |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Orbit 창의 빠른 메모 열기 (다른 프로그램에서도 동작) |
 | <kbd>Esc</kbd> | Orbit 창 숨기기 |
-| <kbd>Ctrl</kbd>+<kbd>1</kbd>~<kbd>8</kbd> | 왼쪽 레일 순서대로 화면 전환 (홈·AI·메모·할 일·캘린더·클립보드·런처·설정) |
+| <kbd>Ctrl</kbd>+<kbd>1</kbd>~<kbd>9</kbd> | 왼쪽 레일 순서대로 화면 전환 (홈·AI·메모·할 일·캘린더·클립보드·런처·통계·설정) |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | (메모 화면) 제목·본문 검색 |
 | <kbd>Ctrl</kbd>+<kbd>S</kbd> | (메모 화면) 즉시 저장 |
 | <kbd>Ctrl</kbd>+마우스휠 | (메모 화면) 글자 크기 |
@@ -165,7 +173,8 @@ src/
 │  ├─ calendar/                 시계, 일정 store, 구글 store(googleStore), 날짜 계산(calendar.ts), 미니 달력, 월간 그리드(MonthGrid), Agenda, 캘린더 화면
 │  ├─ terminal/                 AI 화면의 내장 터미널 (xterm.js ↔ Rust term.rs)
 │  ├─ clipboard/                클립보드 히스토리 store, 검색·복사·고정 패널
-│  └─ launcher/                 런처 store, 순위(rank.ts: 퍼지+초성+사용 빈도), 실행 칸, 항목 관리 화면
+│  ├─ launcher/                 런처 store, 순위(rank.ts: 퍼지+초성+사용 빈도), 실행 칸, 항목 관리 화면
+│  └─ usage/                    앱 사용 시간 store, 시간 표기(format.ts), 통계 화면
 └─ windows/
    ├─ dashboard/                Orbit 창 (Dashboard.tsx 레일·헤더, Home.tsx 세 칸, MemoView 트리+편집기, SettingsView)
    └─ orb/                      오브 (Orb.tsx 구슬, OrbApp.tsx 위치 저장·투명도)
@@ -176,6 +185,8 @@ src-tauri/src/
 ├─ clipboard.rs                 클립보드 변경 리스너(clipboard-win), 200개 기록·고정·중복 합치기
 ├─ launcher.rs                  시작 메뉴 .lnk/.url 색인, 직접 추가 항목, 실행(opener)·사용 기록
 ├─ google.rs                    구글 캘린더 OAuth(PKCE, 127.0.0.1 리다이렉트), 토큰 갱신, 15분마다 일정 받기
+├─ usage.rs                     5초마다 포그라운드 앱(QueryFullProcessImageNameW)에 시간 누적, usage.json 30일
+├─ idle.rs                      마지막 입력 이후 초(GetLastInputInfo), 5분 넘으면 idle-changed
 ├─ term.rs                      AI 화면의 터미널: 메모 폴더에서 claude를 띄운 ConPTY 세션(portable-pty)
 ├─ notes.rs                     메모 파일 읽기·쓰기·이동·검색
 ├─ store.rs                     .todos.json 같은 목록 파일을 항목 단위로 고치고 변경 이벤트 발송

@@ -11,6 +11,7 @@ export type CommandId =
   | "calendar"
   | "clipboard"
   | "launcher"
+  | "stats"
   | "settings"
   | "sync"
   | "hide";
@@ -25,6 +26,7 @@ export const COMMANDS: Command[] = [
   { id: "calendar", icon: "📅", label: "캘린더", aliases: ["캘린더", "달력", "일정", "calendar", "cal"] },
   { id: "clipboard", icon: "📋", label: "클립보드", aliases: ["클립보드", "클립", "clipboard", "clip"] },
   { id: "launcher", icon: "🚀", label: "런처 설정", aliases: ["런처", "launcher"] },
+  { id: "stats", icon: "📊", label: "사용 통계", aliases: ["통계", "사용시간", "stats", "usage"] },
   { id: "settings", icon: "⚙️", label: "설정", aliases: ["설정", "settings", "config"] },
   { id: "sync", icon: "⟳", label: "구글 캘린더 지금 동기화", aliases: ["동기화", "sync"] },
   { id: "hide", icon: "×", label: "Orbit 창 숨기기", aliases: ["숨기기", "닫기", "hide", "close"] },

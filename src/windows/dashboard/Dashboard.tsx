@@ -9,6 +9,8 @@ import { useEvents } from "../../modules/calendar/store";
 import { useGoogle } from "../../modules/calendar/googleStore";
 import { useClipboard } from "../../modules/clipboard/store";
 import { useLauncher } from "../../modules/launcher/store";
+import { useUsage } from "../../modules/usage/store";
+import UsageView from "../../modules/usage/UsageView";
 import Clock from "../../modules/calendar/Clock";
 import CalendarView from "../../modules/calendar/CalendarView";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
@@ -28,6 +30,7 @@ export type View =
   | "calendar"
   | "clipboard"
   | "launcher"
+  | "stats"
   | "settings";
 
 const NAV: [View, string][] = [
@@ -38,6 +41,7 @@ const NAV: [View, string][] = [
   ["calendar", "캘린더"],
   ["clipboard", "클립보드"],
   ["launcher", "런처"],
+  ["stats", "통계"],
   ["settings", "설정"],
 ];
 
@@ -85,6 +89,12 @@ const ICON: Record<View, JSX.Element> = {
       <path d="M8.5 12H13" />
     </>
   ),
+  stats: (
+    <>
+      <path d="M3 13V8M6.5 13V4M10 13V6.5M13.5 13V10" />
+      <path d="M2 13.5h12" />
+    </>
+  ),
   settings: (
     <>
       <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" />
@@ -125,6 +135,7 @@ export default function Dashboard() {
     useGoogle.getState().init();
     useClipboard.getState().init();
     useLauncher.getState().init();
+    useUsage.getState().init();
   }, []);
 
   const openMemo = (path: string) => {
@@ -155,7 +166,7 @@ export default function Dashboard() {
         void getCurrentWindow().hide();
         return;
       }
-      // Ctrl+1~8: 왼쪽 레일에 보이는 순서대로 화면 전환
+      // Ctrl+1~9: 왼쪽 레일에 보이는 순서대로 화면 전환
       if (e.ctrlKey && !e.shiftKey && !e.altKey && /^[1-9]$/.test(e.key)) {
         const nav = NAV[Number(e.key) - 1];
         if (!nav) return;
@@ -301,6 +312,7 @@ export default function Dashboard() {
           )}
           {view === "clipboard" && <ClipboardPanel layout="full" />}
           {view === "launcher" && <LauncherSettings />}
+          {view === "stats" && <UsageView />}
           {view === "settings" && <SettingsView onOpenLauncher={() => setView("launcher")} />}
         </main>
       </div>

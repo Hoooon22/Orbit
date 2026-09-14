@@ -42,9 +42,20 @@ base64 = "0.22"
 rand = "0.8"
 # AI 화면의 내장 터미널. Windows에서는 ConPTY를 써서 진짜 콘솔을 만든다
 portable-pty = "0.9"
+# 영역 캡처·색상 추출: 커서가 있는 모니터를 통째로 찍는다 (screenshots 크레이트의 후속)
+xcap = "0.9"
+# 캡처한 그림을 PNG(메모 삽입·오버레이 배경)·BMP(클립보드 CF_BITMAP)로 인코딩
+image = { version = "0.25", default-features = false, features = ["png", "bmp"] }
 
-# 창 반투명(레이어드 윈도우)·오브 창 크기 조정 — Tauri에 없는 Win32 호출을 직접 한다
+# 창 반투명(레이어드 윈도우)·오브 창 크기 조정·포그라운드 앱·마지막 입력 시각 — Tauri에 없는 Win32 호출을 직접 한다
 [target.'cfg(windows)'.dependencies]
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi"] }
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_UI_WindowsAndMessaging",
+  "Win32_Graphics_Gdi",
+  "Win32_System_Threading",            # OpenProcess·QueryFullProcessImageNameW (사용 통계)
+  "Win32_UI_Input_KeyboardAndMouse",   # GetLastInputInfo (자리 비움 감지)
+  "Win32_System_SystemInformation",    # GetTickCount
+] }
 # 클립보드 변경 감시(AddClipboardFormatListener)와 읽기·쓰기. tauri-plugin-clipboard-manager는 변경 알림이 없다
 clipboard-win = { version = "5", features = ["monitor"] }

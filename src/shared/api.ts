@@ -146,6 +146,14 @@ export const termResize = (cols: number, rows: number) =>
 // 설정의 전역 단축키를 다시 등록한다. 실패하면 어느 키가 안 됐는지 메시지로 거부된다
 export const applyShortcuts = () => invoke<void>("apply_shortcuts");
 
+// 자리 비움 (Rust idle.rs). 마지막 입력 이후 초. 5분을 넘는 순간과 돌아온 순간 "idle-changed"가 온다
+export type IdleChange = { idle: boolean; seconds: number };
+export const idleSeconds = () => invoke<number>("idle_seconds");
+
+// 앱 사용 시간 (Rust usage.rs, %LOCALAPPDATA%\...\usage.json). 날짜 오름차순, 최근 30일
+export type DayUsage = { date: string; apps: Record<string, number>; idle: number }; // 초
+export const usageHistory = () => invoke<DayUsage[]>("usage_history");
+
 // 로그인 시 자동 시작
 export const autostartEnabled = () => invoke<boolean>("autostart_enabled");
 export const setAutostart = (enabled: boolean) => invoke<void>("set_autostart", { enabled });
@@ -197,6 +205,10 @@ export type Settings = {
   shortcutLauncher: string;
   googleHiddenTitles: string[]; // 제목에 이 단어가 들어간 구글 일정은 Orbit에서 숨김
   homeQuickMemoOpen: boolean; // 홈 아래쪽 빠른 메모 칸이 펼쳐져 있는지
+  usageEnabled: boolean; // 앱 사용 시간 기록
+  shortcutCapture: string; // 영역 캡처 전역 단축키. 비우면 없음
+  shortcutColorPick: string; // 색상 추출 전역 단축키. 비우면 없음
+  meetingModeEnabled: boolean; // 진행 중인 일정 동안 알림을 미루고 오브에 회의 표시
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");

@@ -18,6 +18,10 @@ export const DEFAULT_SETTINGS: Settings = {
   shortcutLauncher: "alt+space",
   googleHiddenTitles: [],
   homeQuickMemoOpen: false,
+  usageEnabled: true,
+  shortcutCapture: "ctrl+alt+c",
+  shortcutColorPick: "",
+  meetingModeEnabled: false,
 };
 
 type SettingsStore = {

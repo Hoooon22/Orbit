@@ -1,5 +1,6 @@
 mod clipboard;
 mod google;
+mod idle;
 mod launcher;
 mod migrate;
 mod notes;
@@ -8,6 +9,7 @@ mod reminders;
 mod settings;
 mod store;
 mod term;
+mod usage;
 
 use std::path::{Path, PathBuf};
 
@@ -323,6 +325,7 @@ pub fn run() {
                         let handle = app.clone();
                         std::thread::spawn(move || {
                             std::thread::sleep(std::time::Duration::from_millis(700));
+                            usage::flush(&handle);
                             handle.exit(0);
                         });
                     }
@@ -355,10 +358,12 @@ pub fn run() {
             launcher::warm_up(&launcher);
             app.manage(launcher);
             app.manage(google::GoogleState::load(&local));
+            app.manage(usage::UsageState::load(&local));
             app.manage(reminders::LocalDir(local));
             reminders::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
             google::spawn(app.handle().clone());
+            usage::spawn(app.handle().clone());
 
             // 전역 단축키는 설정(SettingsState)이 준비된 뒤에. 다른 프로그램이 쥔 키는 조용히 건너뛴다.
             let _ = register_shortcuts(app.handle());
@@ -434,7 +439,9 @@ pub fn run() {
             term::term_resize,
             apply_shortcuts,
             autostart_enabled,
-            set_autostart
+            set_autostart,
+            idle::idle_seconds,
+            usage::usage_history
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

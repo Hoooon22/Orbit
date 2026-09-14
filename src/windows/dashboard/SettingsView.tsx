@@ -335,6 +335,23 @@ export default function SettingsView({ onOpenLauncher }: Props) {
           </label>
         </section>
         <section className="settings-section">
+          <h3>사용 통계</h3>
+          <label className="settings-row">
+            <span>
+              앱 사용 시간 기록
+              <small>
+                5초마다 앞에 있는 창의 앱을 확인해 앱별 시간을 셉니다. 5분 이상 입력이 없으면 자리 비움으로 보고 세지 않습니다.
+                %LOCALAPPDATA% 안에 30일분을 둡니다.
+              </small>
+            </span>
+            <input
+              type="checkbox"
+              checked={settings.usageEnabled}
+              onChange={(e) => update({ usageEnabled: e.target.checked })}
+            />
+          </label>
+        </section>
+        <section className="settings-section">
           <h3>런처</h3>
           <div className="settings-row">
             <span>
