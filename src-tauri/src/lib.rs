@@ -1,3 +1,4 @@
+mod capture;
 mod clipboard;
 mod google;
 mod idle;
@@ -95,6 +96,26 @@ fn register_shortcuts(app: &tauri::AppHandle) -> Result<(), String> {
         });
         if r.is_err() {
             failed.push(format!("런처({})", s.shortcut_launcher));
+        }
+    }
+    if !s.shortcut_capture.trim().is_empty() {
+        let r = gs.on_shortcut(s.shortcut_capture.as_str(), |app, _shortcut, event| {
+            if event.state == ShortcutState::Pressed {
+                capture::start_async(app, capture::Mode::Region);
+            }
+        });
+        if r.is_err() {
+            failed.push(format!("영역 캡처({})", s.shortcut_capture));
+        }
+    }
+    if !s.shortcut_color_pick.trim().is_empty() {
+        let r = gs.on_shortcut(s.shortcut_color_pick.as_str(), |app, _shortcut, event| {
+            if event.state == ShortcutState::Pressed {
+                capture::start_async(app, capture::Mode::Color);
+            }
+        });
+        if r.is_err() {
+            failed.push(format!("색상 추출({})", s.shortcut_color_pick));
         }
     }
     if failed.is_empty() {
@@ -244,10 +265,10 @@ pub fn run() {
         ))
         .plugin(
             // Orbit 창 크기·위치 기억 (표시 여부는 복원하지 않음 — 시작 때는 오브만).
-            // 오브 창은 제외하고 위치를 설정 파일에 따로 둔다.
+            // 오브 창은 제외하고 위치를 설정 파일에 따로 둔다. 캡처 오버레이는 매번 모니터 크기로 만든다.
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
-                .with_denylist(&[orb::ORB])
+                .with_denylist(&[orb::ORB, capture::OVERLAY])
                 .build(),
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -348,6 +369,7 @@ pub fn run() {
             app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
             app.manage(store::ListLock(std::sync::Mutex::new(())));
             app.manage(term::TermState::default());
+            app.manage(capture::CaptureState::default());
             app.manage(NotesRoot(root));
 
             // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
@@ -373,6 +395,13 @@ pub fn run() {
             // 오브 창은 어떤 이벤트가 와도 캡션 스타일이 되살아났는지 확인 (창 제목이 그려지는 것 방지)
             if window.label() == orb::ORB {
                 orb::ensure_stripped(window);
+            }
+            // 캡처 오버레이는 그냥 닫히게 두고(Alt+F4 포함), 사라진 뒤 숨겼던 창을 되살린다
+            if window.label() == capture::OVERLAY {
+                if let tauri::WindowEvent::Destroyed = event {
+                    capture::on_overlay_closed(window.app_handle());
+                }
+                return;
             }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
@@ -441,7 +470,13 @@ pub fn run() {
             autostart_enabled,
             set_autostart,
             idle::idle_seconds,
-            usage::usage_history
+            usage::usage_history,
+            capture::capture_start,
+            capture::capture_mode,
+            capture::capture_shot,
+            capture::capture_region,
+            capture::capture_color,
+            capture::capture_cancel
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

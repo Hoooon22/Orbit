@@ -14,6 +14,8 @@ export type CommandId =
   | "stats"
   | "settings"
   | "sync"
+  | "capture"
+  | "color"
   | "hide";
 
 export type Command = { id: CommandId; icon: string; label: string; aliases: string[] };
@@ -29,6 +31,8 @@ export const COMMANDS: Command[] = [
   { id: "stats", icon: "📊", label: "사용 통계", aliases: ["통계", "사용시간", "stats", "usage"] },
   { id: "settings", icon: "⚙️", label: "설정", aliases: ["설정", "settings", "config"] },
   { id: "sync", icon: "⟳", label: "구글 캘린더 지금 동기화", aliases: ["동기화", "sync"] },
+  { id: "capture", icon: "▣", label: "영역 캡처 (클립보드로)", aliases: ["캡처", "스크린샷", "capture", "screenshot"] },
+  { id: "color", icon: "◧", label: "색상 추출 (스포이드)", aliases: ["색상", "색", "스포이드", "color", "picker"] },
   { id: "hide", icon: "×", label: "Orbit 창 숨기기", aliases: ["숨기기", "닫기", "hide", "close"] },
 ];
 

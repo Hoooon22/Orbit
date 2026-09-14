@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { captureStart } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
-import { useError } from "../../shared/stores/error";
+import { reportError, useError } from "../../shared/stores/error";
 import { useMemoStore } from "../../modules/memo/store";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
@@ -206,6 +207,8 @@ export default function Dashboard() {
   const runCommand = (id: CommandId) => {
     if (id === "hide") return hide();
     if (id === "sync") return void useGoogle.getState().sync();
+    if (id === "capture") return void captureStart("region").catch(reportError);
+    if (id === "color") return void captureStart("color").catch(reportError);
     setView(id);
   };
 

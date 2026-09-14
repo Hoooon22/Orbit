@@ -3220,6 +3220,107 @@ body.orb-window {
   letter-spacing: 0.04em;
 }
 
+/* ── 캡처 오버레이 ───────────────────── */
+/* 모니터를 덮는 창. 찍어 둔 화면(img) 위에 선택 밖만 막으로 덮고, 선택은 1px 선으로만 표시한다. */
+
+body.capture-window {
+  background: transparent;
+  overflow: hidden;
+}
+
+.capture-root {
+  position: fixed;
+  inset: 0;
+  cursor: crosshair;
+  overflow: hidden;
+}
+
+.capture-shot {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.capture-dim {
+  position: absolute;
+  background: var(--backdrop);
+  pointer-events: none;
+}
+
+.capture-sel {
+  position: absolute;
+  border: 1px solid var(--border-strong);
+  pointer-events: none;
+}
+
+.capture-size,
+.capture-hint,
+.capture-hex {
+  position: absolute;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 11px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.capture-size,
+.capture-hex {
+  font-family: var(--font-mono);
+}
+
+.capture-hint {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 5px 12px;
+  font-size: 12px;
+  color: var(--fg-dim);
+}
+
+.capture-loupe {
+  position: absolute;
+  pointer-events: none;
+}
+
+.capture-loupe canvas {
+  display: block;
+  width: 144px;
+  height: 144px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+}
+
+/* 가운데 한 칸(12px) 테두리. 바깥 흰 선 안쪽에 배경색 선을 겹쳐 밝은 색 위에서도 보인다 */
+.capture-loupe-center {
+  position: absolute;
+  left: 67px;
+  top: 67px;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border-strong);
+  outline: 1px solid var(--bg);
+}
+
+.capture-hex {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.capture-hex i {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--border-strong);
+}
+
 /* ── Orbit 대시보드 창 ─────────────────── */
 /* 프레임 없는 투명 창 위에 각진 카드 하나. 머리줄을 끌어 옮기고 Esc·×로 숨긴다. */
 

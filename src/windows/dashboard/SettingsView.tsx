@@ -23,6 +23,8 @@ export default function SettingsView({ onOpenLauncher }: Props) {
   // 단축키는 적용 버튼을 눌러야 등록된다 (입력 도중 반쯤 적힌 키가 등록되지 않게)
   const [quickKey, setQuickKey] = useState(settings.shortcutQuickMemo);
   const [launcherKey, setLauncherKey] = useState(settings.shortcutLauncher);
+  const [captureKey, setCaptureKey] = useState(settings.shortcutCapture);
+  const [colorKey, setColorKey] = useState(settings.shortcutColorPick);
   const [keyMsg, setKeyMsg] = useState("");
   // 구글 캘린더
   const google = useGoogle((s) => s.status);
@@ -100,6 +102,31 @@ export default function SettingsView({ onOpenLauncher }: Props) {
               onChange={(e) => setLauncherKey(e.target.value)}
             />
           </label>
+          <label className="settings-row">
+            <span>
+              영역 캡처
+              <small>화면을 끌어 고른 부분을 클립보드에 그림으로. 예: ctrl+alt+c</small>
+            </span>
+            <input
+              className="settings-key"
+              value={captureKey}
+              spellCheck={false}
+              onChange={(e) => setCaptureKey(e.target.value)}
+            />
+          </label>
+          <label className="settings-row">
+            <span>
+              색상 추출
+              <small>커서 아래 픽셀의 색(#RRGGBB)을 클립보드에. 런처의 /색상 으로도 됩니다</small>
+            </span>
+            <input
+              className="settings-key"
+              value={colorKey}
+              spellCheck={false}
+              placeholder="비움"
+              onChange={(e) => setColorKey(e.target.value)}
+            />
+          </label>
           <div className="settings-row">
             <span>
               <small>{keyMsg || "비워 두면 그 단축키는 쓰지 않습니다. 바꾼 뒤 적용을 누르세요."}</small>
@@ -109,6 +136,8 @@ export default function SettingsView({ onOpenLauncher }: Props) {
                 update({
                   shortcutQuickMemo: quickKey.trim().toLowerCase(),
                   shortcutLauncher: launcherKey.trim().toLowerCase(),
+                  shortcutCapture: captureKey.trim().toLowerCase(),
+                  shortcutColorPick: colorKey.trim().toLowerCase(),
                 });
                 // 저장이 300ms 뒤라 그 뒤에 등록해야 새 값을 읽는다
                 window.setTimeout(() => {

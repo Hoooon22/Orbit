@@ -154,6 +154,19 @@ export const idleSeconds = () => invoke<number>("idle_seconds");
 export type DayUsage = { date: string; apps: Record<string, number>; idle: number }; // 초
 export const usageHistory = () => invoke<DayUsage[]>("usage_history");
 
+// 영역 캡처·색상 추출 (Rust capture.rs). 커서가 있는 모니터를 찍은 뒤 오버레이 창을 띄운다.
+// 영역은 클립보드에 그림으로 올라가고 "capture-done"이, 색은 #RRGGBB 텍스트로 올라가고 "color-picked"가 온다
+export type CaptureMode = "region" | "color";
+export type CaptureDone = { width: number; height: number }; // 물리 px
+export const captureStart = (mode: CaptureMode) => invoke<void>("capture_start", { mode });
+// 아래 넷은 오버레이 창만 부른다
+export const captureMode = () => invoke<CaptureMode>("capture_mode");
+export const captureShot = () => invoke<ArrayBuffer>("capture_shot"); // 스냅샷 PNG
+export const captureRegion = (x: number, y: number, w: number, h: number) =>
+  invoke<void>("capture_region", { x, y, w, h }); // 오버레이 CSS px
+export const captureColor = (hex: string) => invoke<void>("capture_color", { hex });
+export const captureCancel = () => invoke<void>("capture_cancel");
+
 // 로그인 시 자동 시작
 export const autostartEnabled = () => invoke<boolean>("autostart_enabled");
 export const setAutostart = (enabled: boolean) => invoke<void>("set_autostart", { enabled });

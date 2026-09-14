@@ -22,6 +22,8 @@
 | **오브** | 화면 구석의 구슬. 시각, 남은 할 일 개수, 오늘 일정 개수 | 앱을 켜면 늘 떠 있음. 끌어서 옮김. 안 보이면 트레이의 "오브 표시/숨김" 또는 설정의 "오브 위치 초기화" |
 | **Orbit** | 홈(오늘·할 일·실행·클립보드), AI, 메모, 할 일, 캘린더, 클립보드, 런처, 통계, 설정 | 오브 클릭, 트레이 아이콘 클릭, 작업 표시줄의 Orbit, <kbd>Alt</kbd>+<kbd>Space</kbd>, <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> |
 
+영역 캡처·색상 추출 중에는 모니터를 덮는 세 번째 창(오버레이)이 잠깐 뜨고 끝나면 사라집니다.
+
 Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클릭하거나 ▢ 버튼으로 최대화합니다. 닫아도(<kbd>Esc</kbd>, ×) 프로그램이 끝나지 않고 오브와 트레이만 남습니다. 완전히 끄려면 트레이 아이콘을 우클릭해 종료를 누르세요.
 
 ## Orbit 창에서 하는 것
@@ -101,7 +103,7 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 - 한글 초성으로도 찾습니다: "ㅋㄹ" → 크롬. 영문 앱을 한글로 찾고 싶으면 런처 화면에서 한글 이름으로 항목을 더하세요
 - 자주·최근 실행한 항목이 위로 올라오고, 빈 입력에서는 최근 실행 목록이 보입니다
 - 주소(`https://…`)나 폴더 경로를 그대로 치면 항목으로 더할 수 있습니다. 폴더는 탐색기로, 주소는 브라우저로 열립니다
-- **`/`로 Orbit 명령**: `/ai` `/터미널`, `/메모` `/memo`, `/할일` `/todo`, `/캘린더` `/cal`, `/클립보드` `/clip`, `/런처`, `/통계` `/stats`, `/설정` `/settings`, `/동기화` `/sync`, `/숨기기` `/hide`. 한글·영문·초성 모두 됩니다
+- **`/`로 Orbit 명령**: `/ai` `/터미널`, `/메모` `/memo`, `/할일` `/todo`, `/캘린더` `/cal`, `/클립보드` `/clip`, `/런처`, `/통계` `/stats`, `/설정` `/settings`, `/동기화` `/sync`, `/캡처` `/capture`, `/색상` `/color`, `/숨기기` `/hide`. 한글·영문·초성 모두 됩니다
 - <kbd>Tab</kbd>은 맨 위 항목의 이름으로 자동완성, <kbd>↑</kbd><kbd>↓</kbd>로 고르고 <kbd>Enter</kbd>
 
 ### 사용 통계
@@ -112,9 +114,19 @@ Orbit 창은 가장자리를 끌어 크기를 바꾸고, 머리줄을 더블클�
 - Orbit 자신은 세지 않습니다. 스토어 앱은 실행 파일이 `applicationframehost`라 그 이름으로 묶입니다
 - 기록은 `%LOCALAPPDATA%\com.kwonkim.orbit\usage.json`에 30일분을 두고, 설정에서 기록을 끌 수 있습니다
 
+### 영역 캡처와 색상 추출
+
+<kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd>(설정에서 변경·해제) 또는 런처의 `/캡처`를 누르면 커서가 있는 모니터가 그 순간의 화면으로 얼어붙고, 끌어서 고른 부분이 클립보드에 그림으로 올라갑니다. 그림판·슬랙·브라우저 어디든 <kbd>Ctrl</kbd>+<kbd>V</kbd>. <kbd>Esc</kbd>나 우클릭으로 취소합니다.
+
+`/색상`(단축키는 설정에서 비어 있음)은 같은 오버레이에 12배 루페가 붙습니다. 클릭하면 그 픽셀의 색이 `#RRGGBB` 텍스트로 클립보드에 올라가고, 클립보드 히스토리에도 그대로 남아 홈의 클립보드 칸 맨 위에서 다시 복사할 수 있습니다.
+
+- 캡처하는 동안 오브와 Orbit 창은 잠시 숨겨져 그림에 찍히지 않고, 끝나면 되돌아옵니다
+- 화면을 오버레이 **전에** 찍어 두므로 어둡게 덮인 채 찍히지 않고, 배율이 다른 모니터에서도 좌표가 맞습니다. 두 모니터에 걸친 선택은 안 됩니다
+- 그림은 24비트 비트맵(CF_BITMAP)으로 올라가 투명도는 없습니다
+
 ### 설정
 
-Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), 테마, Orbit 창 항상 위에 고정, 메모 글자 크기, 오브 표시와 투명도, 구글 캘린더, 클립보드 기록, 사용 통계 기록. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
+Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처·영역 캡처·색상 추출), 테마, Orbit 창 항상 위에 고정, 메모 글자 크기, 오브 표시와 투명도, 구글 캘린더, 클립보드 기록, 사용 통계 기록. 설정은 메모 폴더의 `.settings.json`에 저장되어 앱을 다시 설치해도 남습니다.
 
 ## 저장되는 곳
 
@@ -140,6 +152,7 @@ Windows 로그인 시 자동 시작, 전역 단축키(빠른 메모·런처), �
 | --- | --- |
 | <kbd>Alt</kbd>+<kbd>Space</kbd> | Orbit 창을 최대화해서 열기 + 앱 실행 (다른 프로그램에서도 동작). 이미 떠 있으면 그 화면 그대로 |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>M</kbd> | Orbit 창의 빠른 메모 열기 (다른 프로그램에서도 동작) |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>C</kbd> | 영역 캡처 → 클립보드 (다른 프로그램에서도 동작, 설정에서 변경·해제) |
 | <kbd>Esc</kbd> | Orbit 창 숨기기 |
 | <kbd>Ctrl</kbd>+<kbd>1</kbd>~<kbd>9</kbd> | 왼쪽 레일 순서대로 화면 전환 (홈·AI·메모·할 일·캘린더·클립보드·런처·통계·설정) |
 | <kbd>Ctrl</kbd>+<kbd>F</kbd> | (메모 화면) 제목·본문 검색 |
@@ -164,7 +177,7 @@ cd src-tauri && cargo test
 ```
 
 ```
-dashboard.html / orb.html       창마다 HTML 엔트리 하나 (Orbit 창 / 오브)
+dashboard.html / orb.html / capture.html   창마다 HTML 엔트리 하나 (Orbit 창 / 오브 / 캡처 오버레이)
 src/
 ├─ shared/                      api.ts(Tauri 커맨드 래퍼), stores/(설정·오류), dates, fuzzy, hangul, todoParse, styles.css
 ├─ modules/
@@ -177,7 +190,8 @@ src/
 │  └─ usage/                    앱 사용 시간 store, 시간 표기(format.ts), 통계 화면
 └─ windows/
    ├─ dashboard/                Orbit 창 (Dashboard.tsx 레일·헤더, Home.tsx 세 칸, MemoView 트리+편집기, SettingsView)
-   └─ orb/                      오브 (Orb.tsx 구슬, OrbApp.tsx 위치 저장·투명도)
+   ├─ orb/                      오브 (Orb.tsx 구슬, OrbApp.tsx 위치 저장·투명도)
+   └─ capture/                  캡처 오버레이 (드래그 선택, 12배 루페)
 src-tauri/src/
 ├─ lib.rs                       트레이, 전역 단축키(설정 기반), 창 이벤트, 파일 워처, 자동 시작
 ├─ orb.rs                       오브 창 배치(SetWindowPos·캡션 스타일 제거), Orbit 창 열기·토글
@@ -187,6 +201,7 @@ src-tauri/src/
 ├─ google.rs                    구글 캘린더 OAuth(PKCE, 127.0.0.1 리다이렉트), 토큰 갱신, 15분마다 일정 받기
 ├─ usage.rs                     5초마다 포그라운드 앱(QueryFullProcessImageNameW)에 시간 누적, usage.json 30일
 ├─ idle.rs                      마지막 입력 이후 초(GetLastInputInfo), 5분 넘으면 idle-changed
+├─ capture.rs                   커서 모니터 스냅샷(xcap) → 오버레이 창 생성·파괴, 영역 자르기(CF_BITMAP), 색 텍스트 복사
 ├─ term.rs                      AI 화면의 터미널: 메모 폴더에서 claude를 띄운 ConPTY 세션(portable-pty)
 ├─ notes.rs                     메모 파일 읽기·쓰기·이동·검색
 ├─ store.rs                     .todos.json 같은 목록 파일을 항목 단위로 고치고 변경 이벤트 발송
