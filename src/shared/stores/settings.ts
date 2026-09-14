@@ -75,15 +75,23 @@ export const useSettings = create<SettingsStore>((set, get) => ({
   init: async () => {
     if (inited) return;
     inited = true;
+    // 읽기 실패(앱이 아직 준비 중 등)는 "파일 없음"과 다르다 — 기본값을 써서 설정을 덮지 않고 잠시 뒤 다시 읽는다
     let s: Settings | null = null;
-    try {
-      s = await readSettings();
-    } catch (e) {
-      reportError(e);
+    let failed = false;
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        s = await readSettings();
+        failed = false;
+        break;
+      } catch (e) {
+        failed = true;
+        if (attempt === 9) reportError(e);
+        await new Promise((r) => window.setTimeout(r, 300));
+      }
     }
     if (!s) {
       s = importLegacy();
-      writeSettings(s).catch(reportError);
+      if (!failed) writeSettings(s).catch(reportError);
     }
     set({ settings: s, loaded: true });
     applyTheme(s.theme);

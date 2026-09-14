@@ -304,6 +304,28 @@ pub fn run() {
                 std::fs::write(&quick, "")?;
             }
 
+            // 커맨드가 쓰는 상태는 전부 여기서 먼저 등록한다. 창(dashboard·orb·panel)의 웹뷰는 이미 뜨는 중이라,
+            // 아래 트레이 생성·오브 배치(SetWindowPos·RedrawWindow)가 메시지를 펌프하는 사이에 첫 IPC가 들어온다.
+            // 그때 상태가 없으면 "state not managed" 오류로 설정·메모 목록을 못 읽는다.
+            let loaded = settings::load(&root);
+            app.manage(settings::SettingsState(std::sync::Mutex::new(loaded.clone())));
+            app.manage(store::ListLock(std::sync::Mutex::new(())));
+            app.manage(term::TermState::default());
+            app.manage(capture::CaptureState::default());
+            app.manage(panel::PanelState::default());
+            app.manage(meeting::MeetingState(std::sync::Mutex::new(None)));
+            app.manage(NotesRoot(root.clone()));
+            // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
+            let local = app.path().app_local_data_dir()?;
+            app.manage(reminders::ReminderState::load(&local));
+            app.manage(clipboard::ClipState::load(&local));
+            let launcher = launcher::LauncherState::load(&local);
+            launcher::warm_up(&launcher);
+            app.manage(launcher);
+            app.manage(google::GoogleState::load(&local));
+            app.manage(usage::UsageState::load(&local));
+            app.manage(reminders::LocalDir(local));
+
             // 외부 변경 감지 → 프런트에 알림 (연속 이벤트는 300ms 잠잠해질 때까지 병합)
             let handle = app.handle().clone();
             let watch_root = root.clone();
@@ -331,7 +353,6 @@ pub fn run() {
             });
 
             // 트레이: 좌클릭 = Orbit 창. 메뉴 = 열기·오브 / 회의 모드·알림 일시중지 / 캡처·색상 / 폴더·업데이트·종료
-            let loaded = settings::load(&root);
             let meeting_on = loaded.as_ref().map(|s| s.meeting_mode_enabled).unwrap_or(false);
             let dash_item = MenuItem::with_id(app, "dashboard", "Orbit 열기", true, None::<&str>)?;
             let orb_item = MenuItem::with_id(app, "orb", "오브 표시/숨김", true, None::<&str>)?;
@@ -425,25 +446,7 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            orb::place_on_start(app.handle(), &loaded.clone().unwrap_or_default());
-            app.manage(settings::SettingsState(std::sync::Mutex::new(loaded)));
-            app.manage(store::ListLock(std::sync::Mutex::new(())));
-            app.manage(term::TermState::default());
-            app.manage(capture::CaptureState::default());
-            app.manage(panel::PanelState::default());
-            app.manage(meeting::MeetingState(std::sync::Mutex::new(None)));
-            app.manage(NotesRoot(root));
-
-            // 리마인더: 발송 원장은 문서 폴더가 아닌 로컬 데이터 폴더에 (기기 종속, 동기화 불필요)
-            let local = app.path().app_local_data_dir()?;
-            app.manage(reminders::ReminderState::load(&local));
-            app.manage(clipboard::ClipState::load(&local));
-            let launcher = launcher::LauncherState::load(&local);
-            launcher::warm_up(&launcher);
-            app.manage(launcher);
-            app.manage(google::GoogleState::load(&local));
-            app.manage(usage::UsageState::load(&local));
-            app.manage(reminders::LocalDir(local));
+            orb::place_on_start(app.handle(), &loaded.unwrap_or_default());
             reminders::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
             google::spawn(app.handle().clone());
