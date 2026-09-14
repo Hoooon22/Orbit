@@ -11,6 +11,8 @@ pub const DASHBOARD: &str = "dashboard"; // Orbit 창 (메모·할 일·캘린�
 /// 논리 픽셀. 오브(56) + 그림자 여백.
 const ORB_SIZE: (f64, f64) = (72.0, 72.0);
 const MARGIN: f64 = 16.0; // 첫 실행 때 화면 오른쪽 아래에서 띄우는 간격
+/// 말풍선 폭(논리). 알림이 오면 오브 창을 이만큼 넓혀 옆에 말풍선을 그린다 (72 + 232 = 304).
+const BUBBLE_W: f64 = 232.0;
 
 fn physical(logical: (f64, f64), scale: f64) -> (i32, i32) {
     ((logical.0 * scale).round() as i32, (logical.1 * scale).round() as i32)
@@ -209,6 +211,41 @@ pub fn place_on_start(app: &AppHandle, settings: &Settings) {
     if !settings.orb_visible {
         let _ = w.hide();
     }
+}
+
+/// 오브 창의 현재 위치·배율과 말풍선 폭(물리)
+fn orb_metrics(app: &AppHandle) -> Result<(WebviewWindow, PhysicalPosition<i32>, (i32, i32), i32), String> {
+    let w = app.get_webview_window(ORB).ok_or("오브 창이 없습니다")?;
+    let pos = w.outer_position().map_err(|e| e.to_string())?;
+    let scale = w.scale_factor().unwrap_or(1.0);
+    let size = physical(ORB_SIZE, scale);
+    let bw = physical((BUBBLE_W, 0.0), scale).0;
+    Ok((w, pos, size, bw))
+}
+
+/// 말풍선 자리만큼 창을 넓힌다. 오브는 제자리에 두고 왼쪽으로 펼치되, 왼쪽에 공간이 없으면
+/// 오른쪽으로. 어느 쪽에 그려야 하는지("left" | "right")를 돌려준다. 확장 상태는 Rust가 갖지 않는다.
+#[tauri::command]
+pub fn expand_orb(app: AppHandle) -> Result<String, String> {
+    let (w, pos, (ow, oh), bw) = orb_metrics(&app)?;
+    let left_edge = app
+        .monitor_from_point(pos.x as f64, pos.y as f64)
+        .ok()
+        .flatten()
+        .map(|m| m.work_area().position.x)
+        .unwrap_or(i32::MIN);
+    let side = if pos.x - bw >= left_edge { "left" } else { "right" };
+    let x = if side == "left" { pos.x - bw } else { pos.x };
+    set_bounds(&w, x, pos.y, ow + bw, oh)?;
+    Ok(side.into())
+}
+
+/// 말풍선을 닫고 72px로 되돌린다. side는 expand_orb가 돌려준 값 — 펼친 채 끌어 옮겼어도 오브 자리가 유지된다.
+#[tauri::command]
+pub fn collapse_orb(app: AppHandle, side: String) -> Result<(), String> {
+    let (w, pos, (ow, oh), bw) = orb_metrics(&app)?;
+    let x = if side == "left" { pos.x + bw } else { pos.x };
+    set_bounds(&w, x, pos.y, ow, oh)
 }
 
 /// 설정의 "오브 위치 초기화": 주 모니터 오른쪽 아래로 옮기고 보이게 한다.

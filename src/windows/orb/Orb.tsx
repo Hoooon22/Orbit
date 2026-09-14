@@ -5,6 +5,8 @@ import { pendingNow, useTodos } from "../../modules/todo/store";
 import { useAllEvents } from "../../modules/calendar/googleStore";
 import { eventsOn } from "../../modules/calendar/calendar";
 import Clock from "../../modules/calendar/Clock";
+import Bubble from "./Bubble";
+import { useBubble } from "./bubbleStore";
 
 type Props = {
   opacity: number; // 설정의 오브 투명도 (0.3~1). 마우스를 올리면 잠시 또렷하게
@@ -21,6 +23,8 @@ export default function Orb({ opacity, onActivate }: Props) {
   const todayEvents = eventsOn(events, todayStr()).length;
   const down = useRef<{ x: number; y: number } | null>(null);
   const [hover, setHover] = useState(false);
+  const bubble = useBubble((s) => s.current);
+  const side = useBubble((s) => s.side);
   const tip =
     `Orbit — 클릭해서 열기, 끌어서 옮기기` +
     (pending ? `\n당장 할 일 ${pending}` : "") +
@@ -28,7 +32,8 @@ export default function Orb({ opacity, onActivate }: Props) {
 
   return (
     <div
-      className="orb-root"
+      // 말풍선이 있으면 창이 넓어져 있다: 오브를 한쪽 끝에 붙이고 나머지를 말풍선이 채운다
+      className={"orb-root" + (bubble ? ` side-${side}` : "")}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
@@ -74,6 +79,7 @@ export default function Orb({ opacity, onActivate }: Props) {
         {pending > 0 && <span className="orb-badge">{pending > 99 ? "99+" : pending}</span>}
         {todayEvents > 0 && <span className="orb-badge events">{todayEvents}</span>}
       </button>
+      <Bubble />
     </div>
   );
 }

@@ -134,7 +134,14 @@ fn notify(app: &AppHandle, fired: &[Fired]) {
     }
 }
 
-/// 한 번 검사: 울릴 것 찾기 → 토스트 → 원장 갱신·저장 → 창들에 알림
+/// 오브가 화면에 있으면 오브 옆 말풍선이 알림을 맡고, 숨겨져 있을 때만 Windows 토스트를 띄운다
+fn orb_shown(app: &AppHandle) -> bool {
+    app.get_webview_window(crate::orb::ORB)
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false)
+}
+
+/// 한 번 검사: 울릴 것 찾기 → 토스트(오브 숨김일 때) → 원장 갱신·저장 → 창들에 알림
 pub fn tick(app: &AppHandle) {
     let (Some(root), Some(local), Some(state)) = (
         app.try_state::<NotesRoot>(),
@@ -161,7 +168,9 @@ pub fn tick(app: &AppHandle) {
     if fired.is_empty() {
         return;
     }
-    notify(app, &fired);
+    if !orb_shown(app) {
+        notify(app, &fired);
+    }
     if let Ok(mut pending) = state.pending.lock() {
         for f in &fired {
             pending.retain(|p| p.id != f.id);

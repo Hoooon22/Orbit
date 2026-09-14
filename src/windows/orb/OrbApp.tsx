@@ -6,6 +6,7 @@ import { reportError } from "../../shared/stores/error";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
 import { useGoogle } from "../../modules/calendar/googleStore";
+import { useBubble } from "./bubbleStore";
 import Orb from "./Orb";
 
 // 오브 창: 화면 구석의 구슬 하나. 클릭하면 Orbit 대시보드 창을 열고 닫는다.
@@ -18,6 +19,7 @@ export default function OrbApp() {
     useTodos.getState().init(); // 배지의 남은 할 일 개수
     useEvents.getState().init(); // 오브의 오늘 일정 개수
     useGoogle.getState().init();
+    useBubble.getState().init(); // 알림 말풍선
   }, []);
 
   // 투명도는 창(레이어드 윈도우)이 아니라 구슬 그림(CSS)에 건다.
@@ -28,13 +30,16 @@ export default function OrbApp() {
     setWindowOpacity(1).catch(() => {});
   }, [loaded]);
 
-  // 끌어 옮기면 위치 저장 (이동이 멈추고 500ms 뒤)
+  // 끌어 옮기면 위치 저장 (이동이 멈추고 500ms 뒤).
+  // 말풍선으로 창이 넓어진 동안의 이동은 저장하지 않는다 — 왼쪽으로 펼치면 창 x가 바뀌는데
+  // 그 값을 저장하면 다음 시작 때 오브가 232px 왼쪽에 놓인다. 접힌 뒤의 마지막 이동만 남긴다.
   useEffect(() => {
     const win = getCurrentWindow();
     let moveTimer: number | undefined;
     const unMoved = win.onMoved(() => {
       if (moveTimer !== undefined) window.clearTimeout(moveTimer);
       moveTimer = window.setTimeout(() => {
+        if (useBubble.getState().expanded) return;
         win
           .outerPosition()
           .then((p) => useSettings.getState().update({ orbX: p.x, orbY: p.y }))

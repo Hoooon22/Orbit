@@ -3184,6 +3184,54 @@ body.orb-window {
   letter-spacing: 0.02em;
 }
 
+/* 말풍선: 알림이 오면 Rust가 창을 옆으로 넓히고(expand_orb) 오브는 한쪽 끝에 붙는다.
+   side-left = 말풍선이 오브 왼쪽(기본), side-right = 화면 왼쪽 끝이라 오른쪽으로 */
+.orb-root.side-left {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+
+.orb-root.side-right {
+  justify-content: flex-start;
+}
+
+.orb-bubble {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  height: 72px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.orb-bubble:hover {
+  background: var(--bg-hover);
+}
+
+.orb-bubble-title,
+.orb-bubble-body {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orb-bubble-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.orb-bubble-body {
+  font-size: 11px;
+  color: var(--fg-dim);
+}
+
 .orb-badge {
   position: absolute;
   top: 6px;
