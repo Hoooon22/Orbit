@@ -229,7 +229,7 @@ export default function Dashboard() {
           <span className="dash-logo-orb" />
           Orbit
         </span>
-        <Clock size="panel" />
+        <Clock />
         <button
           className="dash-head-btn"
           onClick={() => void getCurrentWindow().minimize()}
@@ -246,7 +246,7 @@ export default function Dashboard() {
         >
           {maximized ? "❐" : "▢"}
         </button>
-        <button className="dash-head-btn" onClick={hide} title="닫기 (Esc) — 오브를 누르면 다시 열림" aria-label="닫기">
+        <button className="dash-head-btn" onClick={hide} title="닫기 (Esc) — 오브 패널의 'Orbit 열기'나 Alt+Space로 다시 열림" aria-label="닫기">
           ×
         </button>
       </header>

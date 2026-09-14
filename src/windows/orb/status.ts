@@ -8,6 +8,8 @@ type OrbStatus = {
   away: boolean; // 5분 넘게 입력이 없음
   meeting: Meeting | null; // 진행 중인 일정 (회의 모드가 켜져 있을 때만)
   init: () => void;
+  // 펫에 마우스를 올리거나 클릭하면 바로 깨운다 (idle-changed는 5초 틱이라 늦다)
+  wake: () => void;
 };
 
 // idle.rs의 IDLE_AFTER_SECS와 같은 값. 처음 뜰 때 한 번 직접 묻고, 이후는 idle-changed로 받는다
@@ -31,4 +33,6 @@ export const useOrbStatus = create<OrbStatus>((set) => ({
       .catch(() => {});
     void listen<Meeting | null>("meeting-changed", (e) => set({ meeting: e.payload }));
   },
+
+  wake: () => set({ away: false }),
 }));

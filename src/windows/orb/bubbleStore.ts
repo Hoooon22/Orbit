@@ -5,6 +5,7 @@ import { collapseOrb, expandOrb } from "../../shared/api";
 import type { BubbleSide, Fired, Meeting } from "../../shared/api";
 import { todayStr } from "../../shared/dates";
 import { reportError } from "../../shared/stores/error";
+import { usePet } from "./petStore";
 
 // 오브 옆에 잠깐 뜨는 말풍선. 큐는 오브 창이 갖는다 — 표시 시간·순서는 화면 관심사이고
 // 영속 진실(아직 닫지 않은 알림)은 Rust ReminderState.pending에 이미 있다.
@@ -23,6 +24,14 @@ type BubbleStore = {
   init: () => void;
   push: (b: Bubble) => void;
   dismiss: () => void;
+  // 미뤄 둔 말풍선이 있으면 띄운다 (펫을 잡았다 놓은 뒤)
+  flush: () => void;
+};
+
+// 펫이 잡혀 있거나 날아가는 동안은 창을 넓히지 않는다 (OS 드래그·물리 루프와 창 x가 어긋난다)
+const petBusy = () => {
+  const p = usePet.getState().phase;
+  return p === "held" || p === "falling" || p === "throwing";
 };
 
 const MAX_QUEUE = 5;
@@ -67,6 +76,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
       inited = true;
       void listen<Fired[]>("reminders-fired", (e) => {
         const { push } = get();
+        usePet.getState().playAction("alert", 6000); // 펫이 흔들리며 !! 표정
         const missed = e.payload.filter((f) => f.missed);
         for (const f of e.payload.filter((f) => !f.missed)) {
           push({ key: f.id, title: f.text, body: `${timeLabel(f.remindAt)} 알림`, view: "todo" });
@@ -102,7 +112,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
           if (!visible) return;
           const { current, expanded } = get();
           if (current?.key === b.key) return;
-          if (expanded) {
+          if (expanded || petBusy()) {
             const i = queue.findIndex((q) => q.key === b.key);
             if (i >= 0) queue[i] = b;
             else if (queue.length < MAX_QUEUE) queue.push(b);
@@ -122,8 +132,12 @@ export const useBubble = create<BubbleStore>((set, get) => {
         .catch(reportError)
         .finally(() => {
           set({ expanded: false });
-          next();
+          if (!petBusy()) next();
         });
+    },
+
+    flush: () => {
+      if (!get().expanded && !get().current && !petBusy()) next();
     },
   };
 });

@@ -21,9 +21,16 @@ pub struct Settings {
     pub font_size: u32, // 메모 본문 글자 크기
     pub memo_side_width: u32, // 메모 화면의 목록 너비 (경계선 드래그로 조절)
     pub orb_visible: bool,
-    pub orb_opacity: f64, // 접힌 오브의 투명도 0.3~1.0 (마우스를 올리면 잠시 또렷)
-    pub orb_x: Option<i32>, // 접힌 오브의 위치 (물리 픽셀). 없으면 화면 오른쪽 아래
-    pub orb_y: Option<i32>,
+    pub orb_opacity: f64, // 오브(펫)의 불투명도 0.1~1.0 = 설정 화면의 투명도 90~0% (마우스를 올리면 잠시 또렷)
+    /// 오브 창의 x (물리 픽셀). 끌어 놓거나 던진 뒤에만 저장한다. 없으면 주 모니터 오른쪽 아래.
+    /// y는 저장하지 않는다 — 펫은 늘 그 모니터 작업 영역의 바닥에 선다.
+    pub orb_x: Option<i32>,
+    /// 펫 캐릭터 "pico" | "mofu" | "sprout" | "nova" | "mochi"
+    pub pet_kind: String,
+    /// 펫 크기 "small" | "medium" | "large" (창 크기는 orb::pet_box)
+    pub pet_size: String,
+    /// 돌아다니기 빈도 "off" | "low" | "normal" | "high"
+    pub pet_wander: String,
     pub clipboard_enabled: bool, // 클립보드 기록 (끄면 감시는 계속하되 기록만 안 함)
     /// 전역 단축키 (tauri-plugin-global-shortcut 표기, 예: "ctrl+alt+m"). 비우면 등록하지 않는다.
     pub shortcut_quick_memo: String,
@@ -51,7 +58,9 @@ impl Default for Settings {
             orb_visible: true,
             orb_opacity: 1.0,
             orb_x: None,
-            orb_y: None,
+            pet_kind: "pico".into(),
+            pet_size: "medium".into(),
+            pet_wander: "normal".into(),
             clipboard_enabled: true,
             shortcut_quick_memo: "ctrl+alt+m".into(),
             shortcut_launcher: "alt+space".into(),
@@ -137,19 +146,20 @@ mod tests {
     fn patch_merges_only_given_fields() {
         let base = Settings { theme: "light".into(), orb_x: Some(10), ..Default::default() };
         let mut v = serde_json::to_value(&base).unwrap();
-        let patch = serde_json::json!({"orbX": 99, "orbY": 5}).as_object().cloned().unwrap();
+        let patch = serde_json::json!({"orbX": 99, "petSize": "large"}).as_object().cloned().unwrap();
         v.as_object_mut().unwrap().extend(patch);
         let next: Settings = serde_json::from_value(v).unwrap();
         assert_eq!(next.theme, "light"); // 건드리지 않은 필드 유지
-        assert_eq!((next.orb_x, next.orb_y), (Some(99), Some(5)));
+        assert_eq!((next.orb_x, next.pet_size.as_str()), (Some(99), "large"));
     }
 
     #[test]
     fn missing_fields_fall_back_to_defaults() {
-        // 옛 버전의 키(tabs 등)가 남아 있어도 무시하고 읽힌다
-        let s: Settings = serde_json::from_str(r#"{"theme":"light","tabs":["a.md"]}"#).unwrap();
+        // 옛 버전의 키(tabs·orbY 등)가 남아 있어도 무시하고 읽힌다
+        let s: Settings = serde_json::from_str(r#"{"theme":"light","tabs":["a.md"],"orbY":700}"#).unwrap();
         assert_eq!(s.theme, "light");
         assert_eq!(s.font_size, 14);
         assert!(s.orb_visible);
+        assert_eq!(s.pet_kind, "pico");
     }
 }

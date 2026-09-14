@@ -199,10 +199,23 @@ export const setOrbVisible = (visible: boolean) =>
   invoke<void>("set_orb_visible", { visible });
 // 오브를 주 모니터 오른쪽 아래로 되돌리고 보이게 (화면 밖으로 나갔을 때)
 export const resetOrbPosition = () => invoke<void>("reset_orb_position");
-// 말풍선: 오브 창을 옆으로 넓힌다(어느 쪽에 그릴지 돌려줌) / 다시 72px로
+// 펫 크기 변경: 창을 논리 크기(width, height)로, 아래-가운데 고정, y는 바닥
+export const resizeOrb = (width: number, height: number) =>
+  invoke<void>("resize_orb", { width, height });
+// 드래그 중 폴링: [커서 x, y (물리), 왼쪽 버튼 눌림]
+export const dragProbe = () => invoke<[number, number, boolean]>("drag_probe");
+// 말풍선: 오브 창을 옆으로 넓힌다(어느 쪽에 그릴지 돌려줌) / 원래 폭으로
 export type BubbleSide = "left" | "right";
 export const expandOrb = () => invoke<BubbleSide>("expand_orb");
 export const collapseOrb = (side: BubbleSide) => invoke<void>("collapse_orb", { side });
+// 펫 옆 패널 창: 펫 클릭으로 토글, 포커스를 잃으면 Rust가 숨김
+export const openPanel = () => invoke<void>("open_panel");
+export const togglePanel = () => invoke<void>("toggle_panel");
+export const hidePanel = () => invoke<void>("hide_panel");
+// 펫 캐릭터·크기·돌아다니기 (설정값. 목록은 windows/orb/pet/catalog.ts)
+export type PetKind = "pico" | "mofu" | "sprout" | "nova" | "mochi";
+export type PetSize = "small" | "medium" | "large";
+export type PetWander = "off" | "low" | "normal" | "high";
 // Orbit 창. view: "home" | "memo[@경로]" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
 export const showDashboard = (view?: string) =>
   invoke<void>("show_dashboard", { view: view ?? null });
@@ -220,9 +233,11 @@ export type Settings = {
   fontSize: number; // 메모 본문 글자 크기
   memoSideWidth: number; // 메모 화면의 목록 너비
   orbVisible: boolean;
-  orbOpacity: number; // 접힌 오브의 투명도 0.3~1.0
-  orbX: number | null; // 접힌 오브의 위치 (물리 픽셀). null이면 화면 오른쪽 아래
-  orbY: number | null;
+  orbOpacity: number; // 오브(펫)의 불투명도 0.1~1.0 (설정 화면의 투명도 90~0%)
+  orbX: number | null; // 오브 창의 x (물리 픽셀), 끌어 놓은 뒤에만 저장. null이면 화면 오른쪽 아래. y는 늘 바닥
+  petKind: PetKind;
+  petSize: PetSize;
+  petWander: PetWander;
   clipboardEnabled: boolean; // 클립보드 기록
   shortcutQuickMemo: string; // 전역 단축키 (예: "ctrl+alt+m"). 비우면 없음
   shortcutLauncher: string;

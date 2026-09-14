@@ -24,10 +24,9 @@ const timeLabel = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 const dateLabel = (d: Date) =>
   `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY[d.getDay()]})`;
 
-// size="orb": 시각만 (오브 안). size="panel": 날짜 + 시각 (패널 머리).
-export default function Clock({ size }: { size: "orb" | "panel" }) {
+// 날짜 + 시각 (Orbit 창 머리).
+export default function Clock() {
   const now = useClock();
-  if (size === "orb") return <span className="clock-orb">{timeLabel(now)}</span>;
   return (
     <span className="clock-panel">
       <span className="clock-date">{dateLabel(now)}</span>

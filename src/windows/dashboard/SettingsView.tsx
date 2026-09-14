@@ -12,6 +12,7 @@ import { relativeTime } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { useGoogle } from "../../modules/calendar/googleStore";
+import PetSettings from "../orb/pet/PetSettings";
 
 type Props = { onOpenLauncher: () => void };
 
@@ -187,10 +188,11 @@ export default function SettingsView({ onOpenLauncher }: Props) {
         </section>
         <section className="settings-section">
           <h3>오브</h3>
+          <PetSettings />
           <label className="settings-row">
             <span>
               화면에 오브 표시
-              <small>트레이 메뉴의 "오브 표시/숨김"과 같습니다. 끌어서 옮기고, 클릭하면 이 창이 열립니다.</small>
+              <small>트레이 메뉴의 "오브 표시/숨김"과 같습니다.</small>
             </span>
             <input
               type="checkbox"
@@ -204,11 +206,11 @@ export default function SettingsView({ onOpenLauncher }: Props) {
           <div className="settings-row">
             <span>
               오브 위치 초기화
-              <small>오브가 안 보이면(모니터를 뗀 뒤 화면 밖에 남는 등) 주 모니터 오른쪽 아래로 되돌리고 켭니다.</small>
+              <small>오브가 안 보이면(모니터를 뗀 뒤 화면 밖에 남는 등) 주 모니터 오른쪽 아래 바닥으로 되돌리고 켭니다.</small>
             </span>
             <button
               onClick={() => {
-                update({ orbVisible: true, orbX: null, orbY: null });
+                update({ orbVisible: true, orbX: null });
                 resetOrbPosition().catch(reportError);
               }}
             >
@@ -219,7 +221,7 @@ export default function SettingsView({ onOpenLauncher }: Props) {
             <span>
               회의 모드
               <small>
-                진행 중인 일정(종일 제외)이 있으면 할 일 알림을 끝날 때까지 미루고, 오브에 회의 끝 시각을 보여 줍니다.
+                진행 중인 일정(종일 제외)이 있으면 할 일 알림을 끝날 때까지 미루고, 펫이 걸음을 멈추고 생각하는 표정을 합니다.
                 트레이 메뉴의 "회의 모드"와 같습니다.
               </small>
             </span>
@@ -228,23 +230,6 @@ export default function SettingsView({ onOpenLauncher }: Props) {
               checked={settings.meetingModeEnabled}
               onChange={(e) => update({ meetingModeEnabled: e.target.checked })}
             />
-          </label>
-          <label className="settings-row">
-            <span>
-              오브 투명도
-              <small>마우스를 올리면 잠시 또렷해집니다.</small>
-            </span>
-            <span className="settings-range">
-              <input
-                type="range"
-                min={30}
-                max={100}
-                step={5}
-                value={Math.round(settings.orbOpacity * 100)}
-                onChange={(e) => update({ orbOpacity: Number(e.target.value) / 100 })}
-              />
-              {Math.round(settings.orbOpacity * 100)}%
-            </span>
           </label>
         </section>
         <section className="settings-section">

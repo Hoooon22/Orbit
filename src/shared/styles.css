@@ -1917,6 +1917,34 @@ button {
   border-color: var(--fg);
 }
 
+/* 펫 캐릭터 고르기: 이모지 + 이름 버튼 5개, 고른 것은 진한 테두리 */
+.pet-picker {
+  display: flex;
+  flex-shrink: 0;
+  gap: 4px;
+}
+
+.pet-picker button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  font-size: 11px;
+}
+
+.pet-picker button[aria-checked="true"] {
+  border-color: var(--border-strong);
+  color: var(--fg);
+}
+
+.pet-picker-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
 .settings-note {
   margin: 10px 0 0;
   font-size: 12px;
@@ -3140,90 +3168,115 @@ body.orb-window {
 
 .orb-root {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   width: 100%;
   height: 100%;
 }
 
-/* 행성 오브: 구체와 궤도 고리는 SVG로 그리고, 시각은 그 위에 겹친다.
-   흑백 원판 + 가는 고리, 위성 하나만 강조색 — 색은 테마 토큰을 따른다 */
-.orb {
+/* 펫 상자: 창 크기와 같다(pet/catalog.ts boxFor). 스프라이트는 아래-가운데, 둘레는 그림자 여백.
+   캐릭터 그림과 동작은 pet/pet.css (WorkPet 골격 애니메이션) */
+.pet {
   display: flex;
-  align-items: center;
+  flex-shrink: 0;
+  align-items: flex-end;
   justify-content: center;
   position: relative;
-  width: 72px;
-  height: 72px;
+  box-sizing: border-box;
+  padding: 0 6px 8px;
   color: var(--fg);
   cursor: grab;
-  transition: transform 120ms ease-out, opacity 150ms ease-out;
+  transition: opacity 150ms ease-out;
 }
 
-.orb:hover {
-  transform: scale(1.06);
-}
-
-.orb:active {
+.pet:active {
   cursor: grabbing;
 }
 
-.orb-planet {
-  position: absolute;
-  inset: 0;
-  width: 72px;
-  height: 72px;
-  pointer-events: none;
+/* ── 펫 패널 창 ─────────────────────────── */
+/* 펫을 클릭하면 옆에 뜨는 380×540 창. Orbit 창(.dash)과 같은 1px 선 카드, 탭 한 줄 */
+
+body.panel-window {
+  background: transparent;
+  overflow: hidden;
 }
 
-.clock-orb {
-  position: relative;
-  font-family: var(--font-mono);
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  height: 44px;
+  padding: 0 6px 0 14px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-open {
+  flex: 1;
+  text-align: right;
+  padding: 4px 8px;
+  color: var(--fg-dim);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
 }
 
-/* 오브 상태 (Orb.tsx가 붙이는 클래스). CSS 속성이 SVG의 presentation attribute보다 우선한다.
-   회의 중: 원판 선이 강조색, 시계 대신 끝 시각. 자리 비움: 앞 고리·위성이 뒤로 물러남.
-   알림 대기: 위성 점만 천천히 점멸 — 사용자가 반응해야 하는 유일한 상태라 앱에서 유일한 keyframes. */
-.orb.meeting .orb-disc {
-  stroke: var(--accent);
+.panel-open:hover {
+  color: var(--fg);
 }
 
-.orb.meeting .orb-until {
-  color: var(--accent);
+.panel-tabs {
+  display: flex;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
 }
 
-.orb.away .orb-ring-front {
-  stroke: var(--fg-mute);
+.panel-tab {
+  flex: 1;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  color: var(--fg-dim);
+  font-size: 12px;
 }
 
-.orb.away .orb-sat {
-  fill: var(--fg-mute);
+.panel-tab:hover {
+  color: var(--fg);
 }
 
-.orb.alert .orb-sat {
-  animation: orb-pulse 2.4s ease-in-out infinite;
+.panel-tab.active {
+  color: var(--fg);
+  border-bottom-color: var(--accent);
 }
 
-@keyframes orb-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
+.panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .orb.alert .orb-sat {
-    animation: none;
-  }
+/* Orbit 창의 홈 카드 안에 있던 모듈들을 패널 한 칸에 그대로 넣는다 */
+.panel-body .todo-panel {
+  flex: 1;
+  max-height: none;
+  border-top: none;
 }
 
-/* 말풍선: 알림이 오면 Rust가 창을 옆으로 넓히고(expand_orb) 오브는 한쪽 끝에 붙는다.
+.panel-pet {
+  padding: 0 12px;
+}
+
+/* 말풍선: 알림이 오면 Rust가 창을 옆으로 넓히고(expand_orb) 펫은 한쪽 끝에 붙는다.
    side-left = 말풍선이 오브 왼쪽(기본), side-right = 화면 왼쪽 끝이라 오른쪽으로 */
 .orb-root.side-left {
   flex-direction: row-reverse;

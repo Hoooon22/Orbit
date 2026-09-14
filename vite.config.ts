@@ -10,9 +10,9 @@ export default defineConfig({
     strictPort: true,
   },
   build: {
-    // 창마다 HTML 엔트리가 하나씩: Orbit 창(dashboard.html), 오브(orb.html), 캡처 오버레이(capture.html)
+    // 창마다 HTML 엔트리가 하나씩: Orbit 창(dashboard.html), 오브(orb.html), 펫 패널(panel.html), 캡처 오버레이(capture.html)
     rollupOptions: {
-      input: { dashboard: 'dashboard.html', orb: 'orb.html', capture: 'capture.html' },
+      input: { dashboard: 'dashboard.html', orb: 'orb.html', panel: 'panel.html', capture: 'capture.html' },
     },
   },
 })

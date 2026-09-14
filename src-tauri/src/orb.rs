@@ -1,25 +1,41 @@
-//! 플로팅 오브 창과 Orbit 대시보드 창.
-//! 오브는 화면 구석의 작은 구슬(72px)이고, 클릭하면 별도의 대시보드 창을 열고 닫는다.
+//! 플로팅 오브(펫) 창과 Orbit 대시보드 창.
+//! 오브는 화면 작업 영역의 바닥을 걸어 다니는 작은 캐릭터고, 클릭하면 별도의 대시보드 창을 열고 닫는다.
+//! 걷기·낙하·던지기 같은 이동은 프론트(petLoop.ts)가 setPosition으로 하고, 여기는 창 크기·바닥 배치·
+//! 말풍선용 넓히기처럼 창 스타일을 건드려야 하는 것만 맡는다.
 
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, WebviewWindow};
+use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, PhysicalSize, WebviewWindow};
 
 use crate::settings::Settings;
 
 pub const ORB: &str = "orb";
 pub const DASHBOARD: &str = "dashboard"; // Orbit 창 (메모·할 일·캘린더·클립보드·런처·설정)
 
-/// 논리 픽셀. 오브(56) + 그림자 여백.
-const ORB_SIZE: (f64, f64) = (72.0, 72.0);
-const MARGIN: f64 = 16.0; // 첫 실행 때 화면 오른쪽 아래에서 띄우는 간격
-/// 말풍선 폭(논리). 알림이 오면 오브 창을 이만큼 넓혀 옆에 말풍선을 그린다 (72 + 232 = 304).
+const MARGIN: f64 = 16.0; // 첫 실행 때 화면 오른쪽 끝에서 띄우는 간격
+/// 말풍선 폭(논리). 알림이 오면 오브 창을 이만큼 넓혀 옆에 말풍선을 그린다.
 const BUBBLE_W: f64 = 232.0;
+
+/// 펫 크기 설정 → 창 논리 크기. 스프라이트(viewBox 240×340)를 높이에 맞추고
+/// drop-shadow 여백(좌우 6, 아래 8)을 더한다. 프론트 pet/catalog.ts의 boxFor와 같은 식이어야 한다.
+pub fn pet_box(size: &str) -> (f64, f64) {
+    let h: f64 = match size {
+        "small" => 80.0,
+        "large" => 160.0,
+        _ => 120.0,
+    };
+    ((h * 240.0 / 340.0).round() + 12.0, h + 8.0)
+}
+
+/// 작업 영역(작업 표시줄 제외) 바닥에 창 아래 변을 맞추는 y
+fn ground_y(work_y: i32, work_h: i32, h: i32) -> i32 {
+    work_y + work_h - h
+}
 
 fn physical(logical: (f64, f64), scale: f64) -> (i32, i32) {
     ((logical.0 * scale).round() as i32, (logical.1 * scale).round() as i32)
 }
 
 /// tao는 프레임 없는 창에도 WS_CAPTION | WS_SYSMENU를 붙여 두는데(그림자·스냅 호환용),
-/// 그러면 Windows가 캡션 버튼이 들어갈 최소 너비(약 136px)를 강제해 72px 오브가 되지 않는다.
+/// 그러면 Windows가 캡션 버튼이 들어갈 최소 너비(약 136px)를 강제해 작은 오브가 되지 않는다.
 /// 두 스타일을 떼어낸다. tao가 표시/숨김 등 상태가 바뀔 때 스타일을 다시 계산하므로
 /// 창을 만질 때마다 다시 호출한다.
 #[cfg(windows)]
@@ -91,7 +107,7 @@ fn set_bounds(window: &WebviewWindow, x: i32, y: i32, w: i32, h: i32) -> Result<
     #[cfg(not(windows))]
     {
         window
-            .set_size(tauri::PhysicalSize::new(w as u32, h as u32))
+            .set_size(PhysicalSize::new(w as u32, h as u32))
             .and_then(|_| window.set_position(PhysicalPosition::new(x, y)))
             .map_err(|e| e.to_string())
     }
@@ -160,74 +176,112 @@ pub fn open_quick_memo(app: &AppHandle) {
     show_dashboard(app.clone(), Some(format!("memo@{}", crate::notes::QUICK_MEMO)));
 }
 
-/// 오브 왼쪽 위 좌표가 어느 모니터의 작업 영역 안에 있는지 (모니터를 떼면 화면 밖에 남을 수 있다)
-fn on_some_monitor(app: &AppHandle, x: i32, y: i32, w: i32, h: i32) -> bool {
-    app.available_monitors()
-        .map(|ms| {
-            ms.iter().any(|m| {
-                let r = m.work_area();
-                let (l, t) = (r.position.x, r.position.y);
-                let (rgt, btm) = (l + r.size.width as i32, t + r.size.height as i32);
-                // 오브의 절반 이상이 안에 들어오면 보이는 것으로 친다
-                x + w / 2 >= l && x + w / 2 <= rgt && y + h / 2 >= t && y + h / 2 <= btm
-            })
-        })
-        .unwrap_or(true)
+fn orb_window(app: &AppHandle) -> Result<WebviewWindow, String> {
+    app.get_webview_window(ORB).ok_or_else(|| "오브 창이 없습니다".into())
 }
 
-/// 주 모니터 오른쪽 아래 (첫 실행·위치 초기화·화면 밖 복구용)
-fn default_position(app: &AppHandle, cw: i32, ch: i32, scale: f64) -> Option<PhysicalPosition<i32>> {
-    let m = app.primary_monitor().ok().flatten()?;
+/// 점이 든 모니터. 없으면(모니터를 뗀 뒤 화면 밖 좌표 등) x만 맞는 모니터, 그것도 없으면 None.
+fn monitor_at(app: &AppHandle, x: i32, y: i32) -> Option<Monitor> {
+    if let Ok(Some(m)) = app.monitor_from_point(x as f64, y as f64) {
+        return Some(m);
+    }
+    app.available_monitors().ok()?.into_iter().find(|m| {
+        let r = m.work_area();
+        x >= r.position.x && x < r.position.x + r.size.width as i32
+    })
+}
+
+/// 창을 모니터 작업 영역의 바닥에 놓는다. x는 작업 영역 안으로 자른다.
+fn place_on_ground(w: &WebviewWindow, m: &Monitor, x: i32, cw: i32, ch: i32) -> Result<(), String> {
     let r = m.work_area();
-    let margin = (MARGIN * scale).round() as i32;
-    Some(PhysicalPosition::new(
-        r.position.x + r.size.width as i32 - cw - margin,
-        r.position.y + r.size.height as i32 - ch - margin,
-    ))
+    let right = (r.position.x + r.size.width as i32 - cw).max(r.position.x);
+    let x = x.clamp(r.position.x, right);
+    set_bounds(w, x, ground_y(r.position.y, r.size.height as i32, ch), cw, ch)
 }
 
-/// 저장된 위치로 놓되, 어느 모니터에도 없으면 주 모니터 오른쪽 아래로.
-fn place(app: &AppHandle, w: &WebviewWindow, saved: (Option<i32>, Option<i32>)) {
+/// 저장된 x가 어느 모니터에 있으면 그 모니터 바닥에, 없으면 주 모니터 오른쪽 아래에 놓는다.
+/// 크기는 논리값으로 받는다 (설정 스토어의 저장이 300ms 늦어 Rust가 설정을 읽으면 낡은 값을 볼 수 있다).
+fn place(app: &AppHandle, w: &WebviewWindow, saved_x: Option<i32>, logical: (f64, f64)) {
     #[cfg(windows)]
     let _ = strip_caption(w);
     let scale = w.scale_factor().unwrap_or(1.0);
-    let (cw, ch) = physical(ORB_SIZE, scale);
-    let pos = match saved {
-        (Some(x), Some(y)) if on_some_monitor(app, x, y, cw, ch) => Some(PhysicalPosition::new(x, y)),
-        _ => default_position(app, cw, ch, scale),
+    let (cw, ch) = physical(logical, scale);
+    let cur_y = w.outer_position().map(|p| p.y).unwrap_or(0);
+    let saved = saved_x.and_then(|x| monitor_at(app, x + cw / 2, cur_y + ch / 2).map(|m| (x, m)));
+    let (x, m) = match saved {
+        Some(v) => v,
+        None => {
+            let Some(m) = app.primary_monitor().ok().flatten() else {
+                return;
+            };
+            let r = m.work_area();
+            (r.position.x + r.size.width as i32 - cw - (MARGIN * scale).round() as i32, m)
+        }
     };
-    if let Some(p) = pos {
-        // 창을 만들 때는 캡션 스타일 때문에 너비가 커져 있으므로 크기도 같이 바로잡는다
-        let _ = set_bounds(w, p.x, p.y, cw, ch);
-    }
+    // 창을 만들 때는 캡션 스타일 때문에 너비가 커져 있으므로 크기도 같이 바로잡는다
+    let _ = place_on_ground(w, &m, x, cw, ch);
 }
 
-/// 시작 시: 저장된 위치가 있으면 그리로, 없으면 화면 오른쪽 아래로. 숨김 설정이면 숨긴다.
+/// 시작 시: 저장된 x가 있으면 그 자리 바닥에, 없으면 주 모니터 오른쪽 아래로. 숨김 설정이면 숨긴다.
 pub fn place_on_start(app: &AppHandle, settings: &Settings) {
     let Some(w) = app.get_webview_window(ORB) else {
         return;
     };
-    place(app, &w, (settings.orb_x, settings.orb_y));
+    place(app, &w, settings.orb_x, pet_box(&settings.pet_size));
     if !settings.orb_visible {
         let _ = w.hide();
     }
 }
 
-/// 오브 창의 현재 위치·배율과 말풍선 폭(물리)
-fn orb_metrics(app: &AppHandle) -> Result<(WebviewWindow, PhysicalPosition<i32>, (i32, i32), i32), String> {
-    let w = app.get_webview_window(ORB).ok_or("오브 창이 없습니다")?;
-    let pos = w.outer_position().map_err(|e| e.to_string())?;
+/// 펫 크기 변경: 창의 아래-가운데를 고정한 채 새 논리 크기로, y는 그 모니터 바닥.
+#[tauri::command]
+pub fn resize_orb(app: AppHandle, width: f64, height: f64) -> Result<(), String> {
+    let w = orb_window(&app)?;
     let scale = w.scale_factor().unwrap_or(1.0);
-    let size = physical(ORB_SIZE, scale);
+    let pos = w.outer_position().map_err(|e| e.to_string())?;
+    let size = w.outer_size().map_err(|e| e.to_string())?;
+    let (cw, ch) = physical((width, height), scale);
+    let (cx, cy) = (pos.x + size.width as i32 / 2, pos.y + size.height as i32 / 2);
+    let m = monitor_at(&app, cx, cy)
+        .or_else(|| app.primary_monitor().ok().flatten())
+        .ok_or("모니터가 없습니다")?;
+    place_on_ground(&w, &m, cx - cw / 2, cw, ch)
+}
+
+/// 드래그 중 16ms 폴링용: (커서 x, y, 왼쪽 버튼 눌림). startDragging()은 놓는 순간을 알려 주지 않으므로
+/// 버튼 상태가 유일한 release 신호다. 커서 좌표는 던지기 속도 계산에 쓴다.
+#[tauri::command]
+pub fn drag_probe(app: AppHandle) -> Result<(f64, f64, bool), String> {
+    let p = app.cursor_position().map_err(|e| e.to_string())?;
+    Ok((p.x, p.y, mouse_pressed()))
+}
+
+#[cfg(windows)]
+fn mouse_pressed() -> bool {
+    use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON};
+    unsafe { (GetAsyncKeyState(VK_LBUTTON.0 as i32) as u16) & 0x8000 != 0 }
+}
+
+#[cfg(not(windows))]
+fn mouse_pressed() -> bool {
+    false
+}
+
+/// 오브 창의 현재 위치·크기와 말풍선 폭(물리). 크기의 진실은 창 자체다.
+fn orb_metrics(app: &AppHandle) -> Result<(WebviewWindow, PhysicalPosition<i32>, PhysicalSize<u32>, i32), String> {
+    let w = orb_window(app)?;
+    let pos = w.outer_position().map_err(|e| e.to_string())?;
+    let size = w.outer_size().map_err(|e| e.to_string())?;
+    let scale = w.scale_factor().unwrap_or(1.0);
     let bw = physical((BUBBLE_W, 0.0), scale).0;
     Ok((w, pos, size, bw))
 }
 
-/// 말풍선 자리만큼 창을 넓힌다. 오브는 제자리에 두고 왼쪽으로 펼치되, 왼쪽에 공간이 없으면
+/// 말풍선 자리만큼 창을 넓힌다. 펫은 제자리에 두고 왼쪽으로 펼치되, 왼쪽에 공간이 없으면
 /// 오른쪽으로. 어느 쪽에 그려야 하는지("left" | "right")를 돌려준다. 확장 상태는 Rust가 갖지 않는다.
 #[tauri::command]
 pub fn expand_orb(app: AppHandle) -> Result<String, String> {
-    let (w, pos, (ow, oh), bw) = orb_metrics(&app)?;
+    let (w, pos, size, bw) = orb_metrics(&app)?;
     let left_edge = app
         .monitor_from_point(pos.x as f64, pos.y as f64)
         .ok()
@@ -236,23 +290,45 @@ pub fn expand_orb(app: AppHandle) -> Result<String, String> {
         .unwrap_or(i32::MIN);
     let side = if pos.x - bw >= left_edge { "left" } else { "right" };
     let x = if side == "left" { pos.x - bw } else { pos.x };
-    set_bounds(&w, x, pos.y, ow + bw, oh)?;
+    set_bounds(&w, x, pos.y, size.width as i32 + bw, size.height as i32)?;
     Ok(side.into())
 }
 
-/// 말풍선을 닫고 72px로 되돌린다. side는 expand_orb가 돌려준 값 — 펼친 채 끌어 옮겼어도 오브 자리가 유지된다.
+/// 말풍선을 닫고 원래 폭으로 되돌린다. side는 expand_orb가 돌려준 값 — 펼친 채 옮겨졌어도 펫 자리가 유지된다.
 #[tauri::command]
 pub fn collapse_orb(app: AppHandle, side: String) -> Result<(), String> {
-    let (w, pos, (ow, oh), bw) = orb_metrics(&app)?;
+    let (w, pos, size, bw) = orb_metrics(&app)?;
     let x = if side == "left" { pos.x + bw } else { pos.x };
-    set_bounds(&w, x, pos.y, ow, oh)
+    set_bounds(&w, x, pos.y, size.width as i32 - bw, size.height as i32)
 }
 
-/// 설정의 "오브 위치 초기화": 주 모니터 오른쪽 아래로 옮기고 보이게 한다.
+/// 설정의 "오브 위치 초기화": 주 모니터 오른쪽 아래로 옮기고 보이게 한다. 크기는 지금 창 크기 그대로.
 #[tauri::command]
 pub fn reset_orb_position(app: AppHandle) -> Result<(), String> {
-    let w = app.get_webview_window(ORB).ok_or("오브 창이 없습니다")?;
-    place(&app, &w, (None, None));
+    let w = orb_window(&app)?;
+    let scale = w.scale_factor().unwrap_or(1.0);
+    let size = w.outer_size().map_err(|e| e.to_string())?;
+    place(&app, &w, None, (size.width as f64 / scale, size.height as f64 / scale));
     set_visible(&app, true);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pet_box_follows_sprite_aspect_with_shadow_margin() {
+        assert_eq!(pet_box("small"), (68.0, 88.0));
+        assert_eq!(pet_box("medium"), (97.0, 128.0));
+        assert_eq!(pet_box("large"), (125.0, 168.0));
+        assert_eq!(pet_box("garbage"), pet_box("medium"));
+    }
+
+    #[test]
+    fn ground_sits_on_work_area_bottom() {
+        assert_eq!(ground_y(0, 1040, 128), 912);
+        // 주 모니터 위쪽의 보조 모니터 (음수 좌표)
+        assert_eq!(ground_y(-1080, 1040, 88), -128);
+    }
 }

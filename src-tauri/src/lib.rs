@@ -7,6 +7,7 @@ mod meeting;
 mod migrate;
 mod notes;
 mod orb;
+mod panel;
 mod reminders;
 mod settings;
 mod store;
@@ -286,10 +287,11 @@ pub fn run() {
         ))
         .plugin(
             // Orbit 창 크기·위치 기억 (표시 여부는 복원하지 않음 — 시작 때는 오브만).
-            // 오브 창은 제외하고 위치를 설정 파일에 따로 둔다. 캡처 오버레이는 매번 모니터 크기로 만든다.
+            // 오브 창은 제외하고 위치를 설정 파일에 따로 둔다. 캡처 오버레이는 매번 모니터 크기로,
+            // 펫 패널은 매번 펫 옆에 놓는다.
             tauri_plugin_window_state::Builder::default()
                 .with_state_flags(StateFlags::all() & !StateFlags::VISIBLE)
-                .with_denylist(&[orb::ORB, capture::OVERLAY])
+                .with_denylist(&[orb::ORB, capture::OVERLAY, panel::PANEL])
                 .build(),
         )
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
@@ -428,6 +430,7 @@ pub fn run() {
             app.manage(store::ListLock(std::sync::Mutex::new(())));
             app.manage(term::TermState::default());
             app.manage(capture::CaptureState::default());
+            app.manage(panel::PanelState::default());
             app.manage(meeting::MeetingState(std::sync::Mutex::new(None)));
             app.manage(NotesRoot(root));
 
@@ -462,10 +465,18 @@ pub fn run() {
                 }
                 return;
             }
+            // 펫 패널은 다른 곳을 클릭하면(포커스를 잃으면) 사라진다
+            if window.label() == panel::PANEL {
+                if let tauri::WindowEvent::Focused(false) = event {
+                    panel::hide(window.app_handle());
+                }
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 // 오브에서 Alt+F4: 사라지게 두지 않는다. Orbit 창 닫기 = 숨김 (오브·트레이로 복귀)
-                if window.label() != orb::ORB {
+                if window.label() == panel::PANEL {
+                    panel::hide(window.app_handle());
+                } else if window.label() != orb::ORB {
                     let _ = window.hide();
                 }
             }
@@ -505,6 +516,11 @@ pub fn run() {
             orb::reset_orb_position,
             orb::expand_orb,
             orb::collapse_orb,
+            orb::resize_orb,
+            orb::drag_probe,
+            panel::open_panel,
+            panel::toggle_panel,
+            panel::hide_panel,
             reminders::check_reminders,
             reminders::dismiss_reminder,
             clipboard::clipboard_history,
