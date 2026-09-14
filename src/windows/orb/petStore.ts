@@ -4,7 +4,7 @@ import type { PetAction } from "./pet/PetSprite";
 // 펫의 순간 상태. 진실은 이 창 하나(펫은 한 마리)라 여기가 원본이다.
 // 50ms 배회 틱·16ms 드래그 폴링 같은 핫 루프는 React를 거치지 않고 getState()로 읽는다.
 export type PetPhase =
-  | "idle" // 서 있음 (커서를 바라보고 배회를 기다림)
+  | "idle" // 서 있음 (배회를 기다림)
   | "walk" // 배회 중
   | "held" // 사용자가 잡고 있음 (OS 드래그 루프)
   | "falling" // 놓은 뒤 바닥으로 떨어지는 중

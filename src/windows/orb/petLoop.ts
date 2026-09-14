@@ -1,9 +1,8 @@
-// 펫의 이동 루프: 배회(50ms) · 커서 바라보기(150ms) · 드래그 폴링(16ms) · 놓은 뒤 낙하/던지기.
+// 펫의 이동 루프: 배회(50ms) · 드래그 폴링(16ms) · 놓은 뒤 낙하/던지기.
 // 창을 옮기는 건 전부 여기서 setPosition으로 한다 (Rust는 창 크기·바닥 배치만).
 // 좌표는 물리 픽셀. 핫 루프는 React 상태 대신 스토어 getState()와 모듈 전역 캐시를 읽는다.
 import {
   currentMonitor,
-  cursorPosition,
   getCurrentWindow,
   monitorFromPoint,
   primaryMonitor,
@@ -38,8 +37,6 @@ import { runWreck } from "./wreck";
 
 const WANDER_TICK_MS = 50;
 const WANDER_SPEED = 80; // 논리 px/s
-const FACE_POLL_MS = 150;
-const FACE_DEADZONE = 30; // 논리 px. 창 중심에서 이보다 가까우면 몸을 돌리지 않는다
 const DRAG_POLL_MS = 16;
 const USER_COOLDOWN_MS = 1500; // 잡았다 놓은 뒤 이만큼은 배회를 쉰다
 const FALL_MS = 500;
@@ -179,31 +176,6 @@ function startWander(): () => void {
     }
   };
   const id = window.setInterval(() => void tick(), WANDER_TICK_MS);
-  return () => window.clearInterval(id);
-}
-
-// ── 서 있을 때 커서 쪽으로 몸 돌리기 ──
-function startFacing(): () => void {
-  let inFlight = false;
-  const tick = async () => {
-    if (inFlight) return;
-    const pet = usePet.getState();
-    const st = useOrbStatus.getState();
-    if (pet.phase !== "idle" || pet.oneShot || pet.hover || st.away || st.meeting || useBubble.getState().expanded) return;
-    inFlight = true;
-    try {
-      const c = await cursorPosition();
-      const dx = c.x - (pos.x + size.w / 2);
-      if (Math.abs(dx) < FACE_DEADZONE * scale) return;
-      const d = dx > 0 ? "right" : "left";
-      if (d !== pet.direction) pet.setDirection(d);
-    } catch {
-      // 커서를 못 읽으면 그대로
-    } finally {
-      inFlight = false;
-    }
-  };
-  const id = window.setInterval(() => void tick(), FACE_POLL_MS);
   return () => window.clearInterval(id);
 }
 
@@ -459,7 +431,7 @@ export function startPetLoops(): () => void {
   rebounds()
     .then(() => (cancelled ? undefined : snapToGround()))
     .catch(reportError);
-  const stops = [startWander(), startFacing(), startReactions(), startSizeSync(), greet()];
+  const stops = [startWander(), startReactions(), startSizeSync(), greet()];
   return () => {
     cancelled = true;
     stops.forEach((f) => f());
