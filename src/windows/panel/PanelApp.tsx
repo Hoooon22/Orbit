@@ -1,38 +1,67 @@
 import { useEffect, useState } from "react";
-import { captureStart, hidePanel, showDashboard } from "../../shared/api";
+import { hidePanel, QUICK_MEMO, showDashboard } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
+import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 import { pendingNow, useTodos } from "../../modules/todo/store";
-import { useEvents } from "../../modules/calendar/store";
-import { useGoogle } from "../../modules/calendar/googleStore";
-import { useClipboard } from "../../modules/clipboard/store";
-import { useLauncher } from "../../modules/launcher/store";
 import TodoPanel from "../../modules/todo/TodoPanel";
-import Agenda from "../../modules/calendar/Agenda";
-import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
-import Launcher from "../../modules/launcher/Launcher";
-import type { CommandId } from "../../modules/launcher/commands";
+import Editor from "../../modules/memo/Editor";
+import TerminalView from "../../modules/terminal/TerminalView";
 import PetSettings from "../orb/pet/PetSettings";
 
-type Tab = "todo" | "today" | "launcher" | "clipboard" | "pet";
+type Tab = "memo" | "todo" | "later" | "ai" | "pet";
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: "memo", label: "빠른 메모" },
+  { id: "todo", label: "할 일" },
+  { id: "later", label: "장기" },
+  { id: "ai", label: "AI" },
+  { id: "pet", label: "펫" },
+];
+
+// 할 일 탭 위의 입력줄. Orbit 창 홈과 같은 자연어 파서(날짜·시각)를 쓴다
+function TodoAdd({ kind }: { kind: "now" | "later" }) {
+  const add = useTodos((s) => s.add);
+  const [draft, setDraft] = useState("");
+  const preview = describeParsed(parseTodoInput(draft));
+  const submit = () => {
+    if (!draft.trim()) return;
+    add(draft, kind);
+    setDraft("");
+  };
+  return (
+    <div className="orb-todo-add">
+      <input
+        value={draft}
+        placeholder={kind === "now" ? "당장 할 일 입력 후 Enter (예: 내일 3시 회의)" : "기억해야 할 일 입력 후 Enter"}
+        spellCheck={false}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") submit();
+          if (e.key === "Escape" && draft) {
+            e.stopPropagation(); // 입력이 있으면 패널을 닫지 않고 입력만 비운다
+            setDraft("");
+          }
+        }}
+      />
+      {preview && <div className="orb-todo-preview">→ {preview}</div>}
+    </div>
+  );
+}
 
 // 펫을 클릭하면 옆에 뜨는 작은 패널 (WorkPet의 패널 자리). 탭마다 Orbit 창의 모듈을 그대로 쓰고,
 // 더 보려면 머리의 "Orbit 열기"로 큰 창에 간다. 다른 곳을 클릭하면 Rust가 숨긴다.
 export default function PanelApp() {
   const loaded = useSettings((s) => s.loaded);
   const pending = useTodos((s) => pendingNow(s.todos));
-  const [tab, setTab] = useState<Tab>("todo");
+  const [tab, setTab] = useState<Tab>("memo");
 
   useEffect(() => {
     void useSettings.getState().init();
     useTodos.getState().init();
-    useEvents.getState().init();
-    useGoogle.getState().init();
-    useClipboard.getState().init();
-    useLauncher.getState().init();
   }, []);
 
-  // Esc로 닫기
+  // Esc로 닫기 (입력창이 stopPropagation으로 막지 않았을 때만)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") hidePanel().catch(reportError);
@@ -45,23 +74,6 @@ export default function PanelApp() {
     hidePanel().catch(reportError);
     showDashboard(view).catch(reportError);
   };
-
-  // 런처의 "/" 명령: 화면 이동은 Orbit 창에서, 캡처·동기화는 바로
-  const runCommand = (id: CommandId) => {
-    if (id === "hide") return void hidePanel().catch(reportError);
-    if (id === "sync") return void useGoogle.getState().sync();
-    if (id === "capture") return void captureStart("region").catch(reportError);
-    if (id === "color") return void captureStart("color").catch(reportError);
-    openDashboard(id);
-  };
-
-  const tabs: { id: Tab; label: string }[] = [
-    { id: "todo", label: pending > 0 ? `할 일 ${pending}` : "할 일" },
-    { id: "today", label: "오늘" },
-    { id: "launcher", label: "실행" },
-    { id: "clipboard", label: "클립보드" },
-    { id: "pet", label: "펫" },
-  ];
 
   if (!loaded) return null;
 
@@ -80,17 +92,30 @@ export default function PanelApp() {
         </button>
       </header>
       <nav className="panel-tabs">
-        {tabs.map((t) => (
+        {TABS.map((t) => (
           <button key={t.id} className={"panel-tab" + (tab === t.id ? " active" : "")} onClick={() => setTab(t.id)}>
             {t.label}
+            {t.id === "todo" && pending > 0 && <span className="panel-tab-count">{pending}</span>}
           </button>
         ))}
       </nav>
       <div className="panel-body">
-        {tab === "todo" && <TodoPanel onOpenView={() => openDashboard("todo")} />}
-        {tab === "today" && <Agenda onOpen={(date) => openDashboard(`calendar@${date}`)} />}
-        {tab === "launcher" && <Launcher onLaunched={() => hidePanel().catch(reportError)} onCommand={runCommand} />}
-        {tab === "clipboard" && <ClipboardPanel layout="compact" />}
+        {tab === "memo" && (
+          <Editor path={QUICK_MEMO} compact onRename={async () => false} isFavorite={false} onToggleFavorite={() => {}} />
+        )}
+        {tab === "todo" && (
+          <>
+            <TodoAdd kind="now" />
+            <TodoPanel only="now" onOpenView={() => openDashboard("todo")} />
+          </>
+        )}
+        {tab === "later" && (
+          <>
+            <TodoAdd kind="later" />
+            <TodoPanel only="later" onOpenView={() => openDashboard("todo")} />
+          </>
+        )}
+        {tab === "ai" && <TerminalView />}
         {tab === "pet" && (
           <div className="panel-pet">
             <PetSettings />

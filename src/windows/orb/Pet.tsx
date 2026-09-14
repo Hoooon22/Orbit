@@ -28,7 +28,7 @@ const DRAG_THRESHOLD = 4; // px. 이보다 덜 움직였으면 클릭으로 본�
 export default function Pet({ opacity, onActivate }: Props) {
   const kind = useSettings((s) => s.settings.petKind);
   const petSize = useSettings((s) => s.settings.petSize);
-  const pending = useTodos((s) => pendingNow(s.todos)); // 노란 배지 = 당장 할 일만
+  const pending = useTodos((s) => pendingNow(s.todos)); // 툴팁용 (배지는 그리지 않는다)
   const events = useAllEvents();
   const todayEvents = eventsOn(events, todayStr()).length;
   const alert = useTodos((s) => s.fired.length > 0);
@@ -106,8 +106,6 @@ export default function Pet({ opacity, onActivate }: Props) {
         }}
       >
         <PetSprite kind={kind} action={action} direction={direction} size={SPRITE_H[petSize] ?? SPRITE_H.medium} />
-        {pending > 0 && <span className="orb-badge">{pending > 99 ? "99+" : pending}</span>}
-        {todayEvents > 0 && <span className="orb-badge events">{todayEvents}</span>}
       </div>
       <Bubble />
     </div>

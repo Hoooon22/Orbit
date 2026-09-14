@@ -17,9 +17,18 @@ const GAP: f64 = 8.0; // 펫과 패널 사이
 /// 그 toggle이 패널을 다시 열지 않도록 방금 숨었으면 무시한다.
 const REOPEN_GUARD: Duration = Duration::from_millis(300);
 
+/// 열자마자 오는 Focused(false)는 무시한다 — 앱이 포그라운드가 아니면 set_focus가 거부되고 그 즉시
+/// 포커스 잃음 이벤트가 와서, 패널이 뜨자마자 사라진다.
+const BLUR_GUARD: Duration = Duration::from_millis(400);
+
 #[derive(Default)]
 pub struct PanelState {
     hidden_at: Mutex<Option<Instant>>,
+    shown_at: Mutex<Option<Instant>>,
+}
+
+fn since(slot: &Mutex<Option<Instant>>) -> Option<Duration> {
+    slot.lock().ok().and_then(|t| *t).map(|t| t.elapsed())
 }
 
 /// 펫 창을 기준으로 패널의 왼쪽 위(물리). 오른쪽에 자리가 없으면 왼쪽, 작업 영역 안으로 자른다.
@@ -47,6 +56,26 @@ fn anchor(app: &AppHandle) -> Option<PhysicalPosition<i32>> {
     ))
 }
 
+/// Windows 11은 최상위 창의 모서리를 둥글게 깎는데, 투명 창 안에 그린 1px 테두리가 모서리에서 잘려 보인다.
+/// 패널과 Orbit 창은 각진 카드이므로 깎지 말라고 한다 (DWMWA_WINDOW_CORNER_PREFERENCE = DONOTROUND).
+pub fn square_corners(window: &tauri::WebviewWindow) {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_DONOTROUND};
+        let pref = DWMWCP_DONOTROUND;
+        unsafe {
+            let _ = DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                &pref as *const _ as *const std::ffi::c_void,
+                std::mem::size_of_val(&pref) as u32,
+            );
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
+}
+
 fn notify(app: &AppHandle, open: bool) {
     let _ = app.emit_to(ORB, "panel-changed", open); // 펫은 패널이 열려 있는 동안 걷지 않는다
 }
@@ -58,13 +87,30 @@ pub fn open_panel(app: AppHandle) -> Result<(), String> {
     if let Some(p) = anchor(&app) {
         let _ = w.set_position(p);
     }
+    if let Some(s) = app.try_state::<PanelState>() {
+        if let Ok(mut t) = s.shown_at.lock() {
+            *t = Some(Instant::now());
+        }
+    }
     w.show().map_err(|e| e.to_string())?;
     let _ = w.set_focus();
     notify(&app, true);
     Ok(())
 }
 
-/// 포커스를 잃었을 때(다른 창 클릭)와 패널 안의 닫기 버튼
+/// 포커스를 잃었을 때 (다른 창 클릭). 열린 직후면 무시
+pub fn on_blur(app: &AppHandle) {
+    let just_shown = app
+        .try_state::<PanelState>()
+        .and_then(|s| since(&s.shown_at))
+        .map(|d| d < BLUR_GUARD)
+        .unwrap_or(false);
+    if !just_shown {
+        hide(app);
+    }
+}
+
+/// 패널 안의 닫기 버튼·Esc·펫 다시 클릭
 pub fn hide(app: &AppHandle) {
     let Some(w) = app.get_webview_window(PANEL) else { return };
     if !w.is_visible().unwrap_or(false) {
@@ -94,8 +140,8 @@ pub fn toggle_panel(app: AppHandle) -> Result<(), String> {
     }
     let just_hidden = app
         .try_state::<PanelState>()
-        .and_then(|s| s.hidden_at.lock().ok().and_then(|t| *t))
-        .map(|t| t.elapsed() < REOPEN_GUARD)
+        .and_then(|s| since(&s.hidden_at))
+        .map(|d| d < REOPEN_GUARD)
         .unwrap_or(false);
     if just_hidden {
         return Ok(());

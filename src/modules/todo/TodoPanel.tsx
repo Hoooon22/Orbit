@@ -5,6 +5,7 @@ import type { Todo } from "../../shared/api";
 
 type Props = {
   onOpenView: () => void; // 항목 이름을 누르면 전체 할 일 화면으로
+  only?: "now" | "later"; // 펫 패널: 당장 할 일 탭 / 기억해야 할 일 탭에 한 묶음만. 없으면 둘 다(장기는 접힘)
 };
 
 // "2026-08-03" → "8/3"
@@ -26,7 +27,7 @@ function tomorrowMorning(): number {
 
 // 남은 할 일 목록 + 울린 알림 스트립. 체크하면 목록에서 사라지고,
 // 완료 항목은 전체 할 일 화면에서 확인·되돌린다. 순서는 전체 화면에서 드래그로 정한 수동 순서.
-export default function TodoPanel({ onOpenView }: Props) {
+export default function TodoPanel({ onOpenView, only }: Props) {
   const todos = useTodos((s) => s.todos);
   const fired = useTodos((s) => s.fired);
   const patch = useTodos((s) => s.patch);
@@ -134,11 +135,18 @@ export default function TodoPanel({ onOpenView }: Props) {
           ))}
         </ul>
       )}
-      <ul className="todo-panel-list">
-        {pending.map(renderItem)}
-        {pending.length === 0 && <li className="todo-panel-empty">당장 할 일 없음</li>}
-      </ul>
-      {later.length > 0 && (
+      {only === "later" ? (
+        <ul className="todo-panel-list later">
+          {later.map(renderItem)}
+          {later.length === 0 && <li className="todo-panel-empty">기억해야 할 일 없음</li>}
+        </ul>
+      ) : (
+        <ul className="todo-panel-list">
+          {pending.map(renderItem)}
+          {pending.length === 0 && <li className="todo-panel-empty">당장 할 일 없음</li>}
+        </ul>
+      )}
+      {only === undefined && later.length > 0 && (
         <>
           <button className="todo-later-head" onClick={() => setLaterOpen((v) => !v)}>
             {laterOpen ? "▾" : "▸"} 🗂 기억해야 할 일 {later.length}

@@ -319,12 +319,13 @@ pub fn run() {
             let local = app.path().app_local_data_dir()?;
             app.manage(reminders::ReminderState::load(&local));
             app.manage(clipboard::ClipState::load(&local));
-            let launcher = launcher::LauncherState::load(&local);
-            launcher::warm_up(&launcher);
-            app.manage(launcher);
+            app.manage(launcher::LauncherState::load(&local));
             app.manage(google::GoogleState::load(&local));
             app.manage(usage::UsageState::load(&local));
             app.manage(reminders::LocalDir(local));
+            // 시작 메뉴 색인(.lnk를 COM으로 푼다)은 느리고 그동안 메시지가 펌프되므로 등록이 다 끝난 뒤 다른 스레드에서
+            let warm = app.handle().clone();
+            std::thread::spawn(move || launcher::warm_up(&warm.state::<launcher::LauncherState>()));
 
             // 외부 변경 감지 → 프런트에 알림 (연속 이벤트는 300ms 잠잠해질 때까지 병합)
             let handle = app.handle().clone();
@@ -447,6 +448,11 @@ pub fn run() {
                 .build(app)?;
 
             orb::place_on_start(app.handle(), &loaded.unwrap_or_default());
+            for label in [panel::PANEL, orb::DASHBOARD] {
+                if let Some(w) = app.get_webview_window(label) {
+                    panel::square_corners(&w);
+                }
+            }
             reminders::spawn(app.handle().clone());
             clipboard::spawn(app.handle().clone());
             google::spawn(app.handle().clone());
@@ -471,7 +477,7 @@ pub fn run() {
             // 펫 패널은 다른 곳을 클릭하면(포커스를 잃으면) 사라진다
             if window.label() == panel::PANEL {
                 if let tauri::WindowEvent::Focused(false) = event {
-                    panel::hide(window.app_handle());
+                    panel::on_blur(window.app_handle());
                 }
             }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
