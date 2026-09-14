@@ -24,7 +24,7 @@ const AWAY_OPACITY = 0.3;
 const DRAG_THRESHOLD = 4; // px. 이보다 덜 움직였으면 클릭으로 본다
 
 // 오브 = 펫 한 마리. 클릭하면 옆에 패널을 열고, 끌면 잡아서 옮긴다(놓으면 떨어지거나 날아간다).
-// startDragging()이 마우스를 가져가 버려 mouseup이 오지 않으므로, 끌기 시작 전에 클릭 여부를 판정한다.
+// 끌기는 petLoop가 커서를 폴링해 창을 옮기므로(OS 드래그 아님) 4px 넘게 움직인 순간 넘긴다.
 export default function Pet({ opacity, onActivate }: Props) {
   const kind = useSettings((s) => s.settings.petKind);
   const petSize = useSettings((s) => s.settings.petSize);
@@ -55,6 +55,7 @@ export default function Pet({ opacity, onActivate }: Props) {
             ? "think"
             : "idle");
 
+  // 상태 요약. 화면에는 그리지 않고 data-tip으로만 둔다 (툴팁·aria-label은 위 주석의 이유로 안 쓴다)
   const tip =
     `Orbit — 클릭하면 패널, 끌어서 옮기기` +
     (pending ? `\n당장 할 일 ${pending}` : "") +
@@ -66,11 +67,11 @@ export default function Pet({ opacity, onActivate }: Props) {
 
   return (
     <div className={"orb-root" + (bubble ? ` side-${side}` : "")}>
+      {/* role="button"·aria-label·title을 주지 않는다: 접근성 컨트롤이 되면 마우스를 올릴 때 Windows가
+          펫 뒤에 반투명 흰 강조 상자를 그린다 (투명 창이라 그대로 보인다) */}
       <div
         className="pet"
-        role="button"
-        aria-label="Orbit 패널 열기"
-        title={tip}
+        data-tip={tip}
         style={{
           width: box.width,
           height: box.height,
@@ -85,8 +86,13 @@ export default function Pet({ opacity, onActivate }: Props) {
           usePet.getState().setHover(false);
           down.current = null;
         }}
+        draggable={false}
+        onDragStart={(e) => e.preventDefault()}
         onMouseDown={(e) => {
           if (e.button !== 0) return;
+          // 기본 동작을 막지 않으면 Chromium이 SVG 그림의 네이티브 드래그를 시작해 반투명 고스트가 펫 뒤에 남고
+          // mouseup을 삼킨다 (클릭이 씹히고 흰 배경이 보이던 원인)
+          e.preventDefault();
           down.current = { x: e.clientX, y: e.clientY };
           // 말풍선은 끌기 전에 접는다 (접을 때 창 x가 바뀌므로 OS 드래그 중엔 못 접는다)
           if (useBubble.getState().current) useBubble.getState().dismiss();

@@ -98,15 +98,34 @@ pub fn open_panel(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-/// 포커스를 잃었을 때 (다른 창 클릭). 열린 직후면 무시
+/// 포커스를 잃었을 때 (다른 창 클릭). 열린 직후거나, 포커스가 우리 앱의 다른 창(펫 등)으로 간 것이면 무시
 pub fn on_blur(app: &AppHandle) {
     let just_shown = app
         .try_state::<PanelState>()
         .and_then(|s| since(&s.shown_at))
         .map(|d| d < BLUR_GUARD)
         .unwrap_or(false);
-    if !just_shown {
+    if !just_shown && !foreground_is_ours() {
         hide(app);
+    }
+}
+
+/// 지금 포그라운드 창이 이 프로세스의 창인지 (펫 클릭 뒤 WebView2가 포커스를 잠깐 가져가는 경우)
+fn foreground_is_ours() -> bool {
+    #[cfg(windows)]
+    unsafe {
+        use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
+        let fg = GetForegroundWindow();
+        if fg.0.is_null() {
+            return false;
+        }
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(fg, Some(&mut pid));
+        pid == std::process::id()
+    }
+    #[cfg(not(windows))]
+    {
+        false
     }
 }
 

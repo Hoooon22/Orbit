@@ -209,7 +209,9 @@ let dragPoll: number | undefined;
 let samples: Sample[] = [];
 
 // Pet.tsx가 마우스가 4px 넘게 움직였을 때 부른다. 시작했으면 true.
-// 말풍선으로 창이 넓어져 있으면 거절한다 — 접을 때 창 x가 옮겨져 OS 드래그 루프와 어긋난다.
+// OS 드래그(startDragging)를 쓰지 않는다 — OS 이동 루프가 도는 동안은 IPC가 멈춰 놓는 순간을 늦게 알고,
+// 말풍선 접기(창 x 이동)와도 어긋난다. 대신 16ms마다 커서를 읽어 잡은 지점을 유지하며 창을 직접 옮기고,
+// 버튼이 떨어지면 놓은 것으로 본다. 커서 표본은 던진 속도 계산에도 쓴다.
 export function beginDrag(): boolean {
   const pet = usePet.getState();
   if (useBubble.getState().expanded || pet.phase === "held" || pet.phase === "throwing" || pet.phase === "falling") return false;
@@ -218,7 +220,7 @@ export function beginDrag(): boolean {
   pet.setPhase("held");
   samples = [];
   let inFlight = false;
-  // startDragging()은 놓는 순간을 알려 주지 않는다. 버튼 상태를 폴링해 release를 잡고, 커서 표본으로 던진 속도를 잰다
+  let grip: { dx: number; dy: number } | null = null; // 커서 − 창 왼쪽 위 (처음 표본에서 잰다)
   dragPoll = window.setInterval(async () => {
     if (inFlight) return;
     inFlight = true;
@@ -227,14 +229,18 @@ export function beginDrag(): boolean {
       const t = performance.now();
       samples.push({ t, x, y });
       while (samples.length > 2 && t - samples[0].t > 260) samples.shift();
-      if (!pressed) void release();
+      if (!pressed) {
+        void release();
+        return;
+      }
+      if (!grip) grip = { dx: x - pos.x, dy: y - pos.y };
+      await move(Math.round(x - grip.dx), Math.round(y - grip.dy));
     } catch {
       void release();
     } finally {
       inFlight = false;
     }
   }, DRAG_POLL_MS);
-  win.startDragging().catch(reportError);
   return true;
 }
 
@@ -245,7 +251,6 @@ async function release() {
   const v = throwVelocity(samples);
   samples = [];
   lastUserActionAt = Date.now();
-  await new Promise((r) => window.setTimeout(r, 30)); // OS 드래그 루프가 마지막 이동을 끝낼 시간
   const b = await rebounds(); // 다른 모니터로 옮겼으면 그 모니터를 새 집으로
   const pet = usePet.getState();
   if (!b) {

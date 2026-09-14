@@ -54,6 +54,7 @@ windows = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
   "Win32_Graphics_Gdi",
   "Win32_Graphics_Dwm",                # DwmSetWindowAttribute (패널·Orbit 창 모서리 각지게)
+  "Win32_UI_Shell",                    # SetWindowSubclass (오브 창 스타일 감시)
   "Win32_System_Threading",            # OpenProcess·QueryFullProcessImageNameW (사용 통계)
   "Win32_UI_Input_KeyboardAndMouse",   # GetLastInputInfo (자리 비움 감지)
   "Win32_System_SystemInformation",    # GetTickCount

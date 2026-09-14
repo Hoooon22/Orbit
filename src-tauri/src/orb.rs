@@ -57,14 +57,20 @@ pub fn ensure_stripped(window: &tauri::Window) {
 #[cfg(windows)]
 fn strip_caption_hwnd(hwnd: windows::Win32::Foundation::HWND) -> Result<(), String> {
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_STYLE, SWP_FRAMECHANGED,
-        SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_SYSMENU,
+        GetWindowLongPtrW, SetWindowLongPtrW, SetWindowPos, GWL_EXSTYLE, GWL_STYLE, SWP_FRAMECHANGED,
+        SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SWP_NOZORDER, WS_CAPTION, WS_EX_NOACTIVATE, WS_SYSMENU,
     };
     use windows::Win32::Graphics::Gdi::{
         RedrawWindow, RDW_ALLCHILDREN, RDW_FRAME, RDW_INVALIDATE, RDW_UPDATENOW,
     };
     let unwanted = (WS_CAPTION.0 | WS_SYSMENU.0) as isize;
     unsafe {
+        // 클릭해도 활성화(키보드 포커스)되지 않는 창으로. 활성화되면 Windows가 펫 뒤에 반투명 상자
+        // (포커스 표시·IME 표시기)를 그려 남긴다. 마우스 입력·드래그는 그대로 받고, 사용자가 쓰던 앱의 포커스도 뺏지 않는다.
+        let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        if ex & WS_EX_NOACTIVATE.0 as isize == 0 {
+            SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | WS_EX_NOACTIVATE.0 as isize);
+        }
         let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
         if style & unwanted != 0 {
             SetWindowLongPtrW(hwnd, GWL_STYLE, style & !unwanted);
@@ -89,6 +95,56 @@ fn strip_caption_hwnd(hwnd: windows::Win32::Foundation::HWND) -> Result<(), Stri
         }
     }
     Ok(())
+}
+
+/// 오브 창 메시지에 끼어드는 서브클래스.
+/// - WM_NCACTIVATE: 창이 활성/비활성될 때 DefWindowProc가 스타일에 WS_CAPTION이 없어도 창 위쪽에
+///   클래식 캡션 바(하늘색 그라데이션)를 GDI로 그려 놓는다. 창이 투명이라 펫 뒤에 띠로 비친다.
+///   lParam=-1로 넘기면 비클라이언트를 다시 그리지 않고, tao는 그대로 받아 포커스 상태를 추적한다.
+/// - WM_STYLECHANGING: 스타일이 바뀌기 직전에 캡션 비트를 지우고 NOACTIVATE를 유지한다.
+///   tao는 포커스·표시 상태가 바뀔 때마다 자기 플래그로 GWL_STYLE을 통째로 다시 쓰는데, 그 시점이 우리가
+///   창 이벤트를 받는 뒤라 strip_caption만으로는 클릭 뒤 캡션 바가 잠깐 그려질 수 있다.
+#[cfg(windows)]
+unsafe extern "system" fn style_guard(
+    hwnd: windows::Win32::Foundation::HWND,
+    msg: u32,
+    wparam: windows::Win32::Foundation::WPARAM,
+    lparam: windows::Win32::Foundation::LPARAM,
+    _id: usize,
+    _data: usize,
+) -> windows::Win32::Foundation::LRESULT {
+    use windows::Win32::Foundation::LPARAM;
+    use windows::Win32::UI::Shell::DefSubclassProc;
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GWL_EXSTYLE, GWL_STYLE, STYLESTRUCT, WM_NCACTIVATE, WM_STYLECHANGING, WS_CAPTION,
+        WS_EX_NOACTIVATE, WS_SYSMENU,
+    };
+    if msg == WM_NCACTIVATE {
+        return DefSubclassProc(hwnd, msg, wparam, LPARAM(-1));
+    }
+    if msg == WM_STYLECHANGING && lparam.0 != 0 {
+        let ss = lparam.0 as *mut STYLESTRUCT;
+        let which = wparam.0 as i32;
+        if which == GWL_STYLE.0 {
+            (*ss).styleNew &= !(WS_CAPTION.0 | WS_SYSMENU.0);
+        } else if which == GWL_EXSTYLE.0 {
+            (*ss).styleNew |= WS_EX_NOACTIVATE.0;
+        }
+    }
+    DefSubclassProc(hwnd, msg, wparam, lparam)
+}
+
+/// 시작 때 한 번 오브 창에 스타일 감시를 건다
+fn install_style_guard(window: &WebviewWindow) {
+    #[cfg(windows)]
+    if let Ok(hwnd) = window.hwnd() {
+        use windows::Win32::UI::Shell::SetWindowSubclass;
+        unsafe {
+            let _ = SetWindowSubclass(hwnd, Some(style_guard), 1, 0);
+        }
+    }
+    #[cfg(not(windows))]
+    let _ = window;
 }
 
 /// 위치와 크기를 한 번에 바꾼다.
@@ -227,6 +283,7 @@ pub fn place_on_start(app: &AppHandle, settings: &Settings) {
     let Some(w) = app.get_webview_window(ORB) else {
         return;
     };
+    install_style_guard(&w);
     place(app, &w, settings.orb_x, pet_box(&settings.pet_size));
     if !settings.orb_visible {
         let _ = w.hide();

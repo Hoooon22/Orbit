@@ -3186,6 +3186,13 @@ body.orb-window {
   cursor: grabbing;
 }
 
+/* SVG를 끌어도 브라우저 드래그(고스트 이미지)가 시작되지 않게 — 끌기는 Pet.tsx/petLoop가 처리 */
+.pet,
+.pet * {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
 /* ── 펫 패널 창 ─────────────────────────── */
 /* 펫을 클릭하면 옆에 뜨는 380×540 창. Orbit 창(.dash)과 같은 1px 선 카드, 탭 한 줄 */
 
@@ -3242,6 +3249,7 @@ body.panel-window {
   border-bottom: 2px solid transparent;
   color: var(--fg-dim);
   font-size: 12.5px;
+  text-align: center;
   white-space: nowrap;
 }
 
