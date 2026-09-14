@@ -79,6 +79,16 @@ fn start(app: &AppHandle, root: &Path, cols: u16, rows: u16) -> Result<Session, 
     let mut cmd = shell();
     cmd.cwd(root);
     cmd.env("TERM", "xterm-256color");
+    cmd.env("COLORTERM", "truecolor"); // claude(ink)가 색 지원을 알아보게 — 없으면 로고·강조가 흑백으로 나온다
+    // Orbit이 Claude Code 터미널(Orca 등)에서 실행됐다면 그 환경 변수가 물려 내려와 안의 claude가
+    // "Claude Code 안에서 중첩 실행"으로 알고 기록 저장을 끄거나, 훅이 Orca에 보고해 알림을 띄운다.
+    // 우리 세션은 독립이므로 지운다.
+    for (k, _) in std::env::vars_os() {
+        let key = k.to_string_lossy().to_uppercase();
+        if key == "CLAUDECODE" || key.starts_with("CLAUDE_CODE") || key.starts_with("ORCA_") {
+            cmd.env_remove(k);
+        }
+    }
     let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
     drop(pair.slave); // 슬레이브를 놓아야 자식이 끝날 때 읽기가 EOF로 끝난다
     let mut reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
