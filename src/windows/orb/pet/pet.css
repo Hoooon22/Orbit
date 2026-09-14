@@ -26,6 +26,11 @@
 .wp-char .arm-right { transform-origin: 162px 170px; }
 .wp-char .leg-left { transform-origin: 102px 234px; }
 .wp-char .leg-right { transform-origin: 138px 234px; }
+/* 피코만 있는 2단 관절: 팔꿈치·무릎. 부모(.arm/.leg)의 회전 좌표계 안에서 돈다 */
+.wp-char .forearm-left { transform-origin: 78px 190px; }
+.wp-char .forearm-right { transform-origin: 162px 190px; }
+.wp-char .shin-left { transform-origin: 102px 255px; }
+.wp-char .shin-right { transform-origin: 138px 255px; }
 .wp-char .antenna { transform-origin: 120px 48px; }
 .wp-char .antenna-bulb { transform-box: fill-box; transform-origin: center; }
 .wp-char .ground-shadow { fill: rgba(0, 0, 0, 0.45); }
@@ -45,6 +50,14 @@
 .wp-char .heart-eye { fill: #f472b6; }
 .wp-char .core-pulse { transform-origin: 120px 194px; transform-box: fill-box; }
 .wp-char .antenna-glow { transform-origin: center; transform-box: fill-box; }
+
+/* 산산조각(피코): 작업 영역 크기로 넓힌 창 위에 조각 SVG를 절대 좌표로 (pet/WreckStage.tsx가 위치·회전을 준다) */
+.pet-wreck {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
 
 .wp-char .arm-left { transform: rotate(-6deg); }
 .wp-char .arm-right { transform: rotate(6deg); }
@@ -85,6 +98,11 @@
 .wp-char[data-action="walking"] .arm-right { animation: pico-arm-swing 0.7s ease-in-out infinite; }
 .wp-char[data-action="walking"] .head { animation: pico-head-bob 0.7s ease-in-out infinite; }
 .wp-char[data-action="walking"] .antenna-bulb { animation: pico-bulb-soft 1.2s ease-in-out infinite; }
+/* 2단 관절: 팔이 앞으로 갈 때 팔꿈치가 굽고, 다리가 뒤로 갈 때 무릎이 굽는다 (위팔·허벅지와 같은 위상) */
+.wp-char[data-action="walking"] .forearm-left { animation: pico-elbow-swing 0.7s ease-in-out infinite reverse; }
+.wp-char[data-action="walking"] .forearm-right { animation: pico-elbow-swing 0.7s ease-in-out infinite; }
+.wp-char[data-action="walking"] .shin-left { animation: pico-knee-swing 0.7s ease-in-out infinite; }
+.wp-char[data-action="walking"] .shin-right { animation: pico-knee-swing 0.7s ease-in-out infinite reverse; }
 
 @keyframes pico-walk-bob {
   0%, 100% { transform: translateY(0); }
@@ -103,6 +121,14 @@
 @keyframes pico-head-bob {
   0%, 100% { transform: rotate(-2deg); }
   50% { transform: rotate(2deg); }
+}
+@keyframes pico-elbow-swing {
+  0%, 100% { transform: rotate(6deg); }
+  50% { transform: rotate(34deg); }
+}
+@keyframes pico-knee-swing {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-30deg); }
 }
 
 /* === sleep === */
@@ -222,10 +248,15 @@
 .wp-char[data-action="wave"] .body-wrap { animation: pico-bob 3.6s ease-in-out infinite; }
 .wp-char[data-action="wave"] .head { animation: pico-head-tilt 3s ease-in-out infinite; }
 .wp-char[data-action="wave"] .antenna-bulb { animation: pico-bulb-soft 1.5s ease-in-out infinite; }
+.wp-char[data-action="wave"] .forearm-right { animation: pico-forearm-wave 0.75s ease-in-out infinite; }
 
 @keyframes pico-arm-wave {
   0%, 100% { transform: rotate(165deg); }
   50% { transform: rotate(195deg); }
+}
+@keyframes pico-forearm-wave {
+  0%, 100% { transform: rotate(-22deg); }
+  50% { transform: rotate(22deg); }
 }
 
 /* === love: hearts float, pink antenna, gentle bob === */
@@ -253,6 +284,8 @@
 .wp-char[data-action="dance"] .leg-right { animation: pico-dance-leg-r 1.2s ease-in-out infinite; }
 .wp-char[data-action="dance"] .antenna-bulb { animation: pico-bulb-rainbow 1.2s linear infinite; }
 .wp-char[data-action="dance"] .antenna-glow { animation: pico-glow-soft 1.2s ease-in-out infinite; }
+.wp-char[data-action="dance"] .forearm-left { animation: pico-dance-elbow-l 1.2s ease-in-out infinite; }
+.wp-char[data-action="dance"] .forearm-right { animation: pico-dance-elbow-r 1.2s ease-in-out infinite; }
 
 @keyframes pico-dance-sway {
   0%, 100% { transform: rotate(-3deg) translateY(0); }
@@ -277,6 +310,14 @@
 @keyframes pico-dance-leg-r {
   0%, 100% { transform: rotate(0); }
   50% { transform: rotate(12deg); }
+}
+@keyframes pico-dance-elbow-l {
+  0%, 100% { transform: rotate(-30deg); }
+  50% { transform: rotate(20deg); }
+}
+@keyframes pico-dance-elbow-r {
+  0%, 100% { transform: rotate(30deg); }
+  50% { transform: rotate(-20deg); }
 }
 @keyframes pico-bulb-rainbow {
   0% { fill: #ef4444; }

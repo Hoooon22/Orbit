@@ -526,6 +526,7 @@ pub fn run() {
             orb::expand_orb,
             orb::collapse_orb,
             orb::resize_orb,
+            orb::set_orb_bounds,
             orb::drag_probe,
             panel::open_panel,
             panel::toggle_panel,

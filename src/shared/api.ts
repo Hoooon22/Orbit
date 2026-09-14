@@ -202,6 +202,9 @@ export const resetOrbPosition = () => invoke<void>("reset_orb_position");
 // 펫 크기 변경: 창을 논리 크기(width, height)로, 아래-가운데 고정, y는 바닥
 export const resizeOrb = (width: number, height: number) =>
   invoke<void>("resize_orb", { width, height });
+// 오브 창 위치·크기(물리)를 한 번에. 산산조각 동안 작업 영역 전체로 넓혔다가 되돌린다
+export const setOrbBounds = (x: number, y: number, width: number, height: number) =>
+  invoke<void>("set_orb_bounds", { x, y, width, height });
 // 드래그 중 폴링: [커서 x, y (물리), 왼쪽 버튼 눌림]
 export const dragProbe = () => invoke<[number, number, boolean]>("drag_probe");
 // 말풍선: 오브 창을 옆으로 넓힌다(어느 쪽에 그릴지 돌려줌) / 원래 폭으로

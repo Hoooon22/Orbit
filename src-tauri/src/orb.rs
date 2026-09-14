@@ -305,6 +305,13 @@ pub fn resize_orb(app: AppHandle, width: f64, height: f64) -> Result<(), String>
     place_on_ground(&w, &m, cx - cw / 2, cw, ch)
 }
 
+/// 오브 창의 위치·크기를 물리 픽셀로 한 번에. 피코가 산산조각 날 때 조각이 화면 전체를 굴러다니도록
+/// 창을 작업 영역 크기로 넓혔다가, 다 붙으면 펫 상자로 되돌리는 데 쓴다.
+#[tauri::command]
+pub fn set_orb_bounds(app: AppHandle, x: i32, y: i32, width: i32, height: i32) -> Result<(), String> {
+    set_bounds(&orb_window(&app)?, x, y, width, height)
+}
+
 /// 드래그 중 16ms 폴링용: (커서 x, y, 왼쪽 버튼 눌림). startDragging()은 놓는 순간을 알려 주지 않으므로
 /// 버튼 상태가 유일한 release 신호다. 커서 좌표는 던지기 속도 계산에 쓴다.
 #[tauri::command]

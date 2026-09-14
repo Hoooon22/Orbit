@@ -11,6 +11,8 @@ import { usePet } from "./petStore";
 import { beginDrag } from "./petLoop";
 import PetSprite from "./pet/PetSprite";
 import type { PetAction } from "./pet/PetSprite";
+import WreckStage from "./pet/WreckStage";
+import { useWreck } from "./wreck";
 import { boxFor, SPRITE_H } from "./pet/catalog";
 
 type Props = {
@@ -40,6 +42,7 @@ export default function Pet({ opacity, onActivate }: Props) {
   const oneShot = usePet((s) => s.oneShot);
   const direction = usePet((s) => s.direction);
   const hover = usePet((s) => s.hover);
+  const wrecked = useWreck((s) => s.stage !== null);
   const down = useRef<{ x: number; y: number } | null>(null);
 
   // 표정: 잠깐 하는 동작 > 잡힘/낙하/비행(놀람) > 걷기 > 자리 비움(잠) > 회의(생각) > 평소
@@ -64,6 +67,17 @@ export default function Pet({ opacity, onActivate }: Props) {
     (away ? "\n자리 비움" : "") +
     (alert ? "\n닫지 않은 알림 있음" : "");
   const box = boxFor(petSize);
+  // 자리 비움이면 흐리게 (설정이 더 흐리면 그대로)
+  const petOpacity = hover ? 1 : Math.min(away ? AWAY_OPACITY : 1, Math.max(MIN_OPACITY, opacity));
+
+  // 피코가 산산조각 난 동안은 창이 작업 영역 전체라 펫 상자 대신 조각들을 그린다 (잡을 수 없다)
+  if (wrecked) {
+    return (
+      <div className="orb-root">
+        <WreckStage face="surprise" opacity={petOpacity} />
+      </div>
+    );
+  }
 
   return (
     <div className={"orb-root" + (bubble ? ` side-${side}` : "")}>
@@ -75,8 +89,7 @@ export default function Pet({ opacity, onActivate }: Props) {
         style={{
           width: box.width,
           height: box.height,
-          // 자리 비움이면 흐리게 (설정이 더 흐리면 그대로)
-          opacity: hover ? 1 : Math.min(away ? AWAY_OPACITY : 1, Math.max(MIN_OPACITY, opacity)),
+          opacity: petOpacity,
         }}
         onMouseEnter={() => {
           usePet.getState().setHover(true);

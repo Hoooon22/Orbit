@@ -12,7 +12,7 @@ import {
 import type { Monitor } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import type { PetSize } from "../../shared/api";
-import { dragProbe, resizeOrb } from "../../shared/api";
+import { dragProbe, resizeOrb, setOrbBounds } from "../../shared/api";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { todayStr } from "../../shared/dates";
@@ -20,12 +20,13 @@ import { pendingNow, useTodos } from "../../modules/todo/store";
 import { useBubble } from "./bubbleStore";
 import { useOrbStatus } from "./status";
 import { usePet } from "./petStore";
-import { boxFor, SHADOW_PAD } from "./pet/catalog";
+import { boxFor, SHADOW_PAD, SPRITE_H } from "./pet/catalog";
 import {
   clampX,
   easeOutCubic,
   randomBetween,
   scaledThrow,
+  shatters,
   stepThrow,
   throwVelocity,
   walkBounds,
@@ -33,6 +34,7 @@ import {
   WANDER_RANGES,
 } from "./motion";
 import type { Bounds, Flight, Sample, ThrowParams, Velocity } from "./motion";
+import { runWreck } from "./wreck";
 
 const WANDER_TICK_MS = 50;
 const WANDER_SPEED = 80; // 논리 px/s
@@ -54,14 +56,15 @@ let bounds: Bounds | null = null;
 let lastUserActionAt = 0;
 let panelOpen = false; // 패널이 펫 옆에 떠 있는 동안은 걷지 않는다 (패널은 연 자리에 그대로 있으므로)
 
+let lastMove: Promise<void> = Promise.resolve(); // 마지막 이동 IPC. 창 크기를 바꾸기 전에 기다린다 (뒤늦게 옛 자리로 옮기지 않게)
+
 async function move(x: number, y: number) {
   pos.x = x;
   pos.y = y;
-  try {
-    await win.setPosition(new PhysicalPosition(x, y));
-  } catch {
+  lastMove = win.setPosition(new PhysicalPosition(x, y)).catch(() => {
     // 창이 사라지는 중 등. 다음 틱에 다시
-  }
+  });
+  await lastMove;
 }
 
 async function monitorHere(): Promise<Monitor | null> {
@@ -270,6 +273,9 @@ async function fly(v: Velocity, b: Bounds, k: ThrowParams) {
   pet.setPhase("throwing");
   pet.setDirection(v.vx >= 0 ? "right" : "left");
   let f: Flight = { x: pos.x, y: pos.y, vx: v.vx, vy: v.vy };
+  // 피코만 조각으로 나뉘어 있다. 세게(SHATTER_SPEED 이상) 부딪히는 순간 날기를 멈추고 산산조각으로 넘어간다
+  const canWreck = useSettings.getState().settings.petKind === "pico";
+  let impact = 0;
   await new Promise<void>((resolve) => {
     let last = performance.now();
     const step = (now: number) => {
@@ -281,16 +287,62 @@ async function fly(v: Velocity, b: Bounds, k: ThrowParams) {
       if (Math.abs(f.vx) > 60 * scale) usePet.getState().setDirection(f.vx >= 0 ? "right" : "left");
       lastUserActionAt = Date.now();
       void move(Math.round(f.x), Math.round(f.y));
-      if (r.landed) resolve();
+      if (canWreck && shatters(r.impact, scale)) {
+        impact = r.impact;
+        resolve();
+      } else if (r.landed) resolve();
       else requestAnimationFrame(step);
     };
     requestAnimationFrame(step);
   });
-  // 날아가는 동안 배율이 다른 모니터로 넘어갔을 수 있다
-  await rebounds();
-  await snapToGround();
+  if (!(impact > 0 && (await wreck(f, impact)))) {
+    // 날아가는 동안 배율이 다른 모니터로 넘어갔을 수 있다
+    await rebounds();
+    await snapToGround();
+  }
   pet.setPhase("idle");
   pet.playAction("tumble", TUMBLE_MS);
+}
+
+// 산산조각: 창을 지금 모니터의 작업 영역 전체로 넓혀 조각들이 화면을 굴러다니게 하고(wreck.ts),
+// 다 붙으면 붙은 자리에 펫 상자 크기로 되돌린다. 넓힌 동안은 클릭이 아래 창으로 통과한다.
+// 모니터를 못 찾으면 false — 보통 착지로 마무리한다
+async function wreck(f: Flight, impact: number): Promise<boolean> {
+  const m = await monitorHere();
+  if (!m) return false;
+  const a = m.workArea;
+  const sc = m.scaleFactor;
+  const petSize = useSettings.getState().settings.petSize;
+  const spriteH = SPRITE_H[petSize] ?? SPRITE_H.medium;
+  const start = { x: (pos.x - a.position.x) / sc + SHADOW_PAD.side, y: (pos.y - a.position.y) / sc };
+  await lastMove;
+  await win.setIgnoreCursorEvents(true).catch(() => undefined);
+  await setOrbBounds(a.position.x, a.position.y, a.size.width, a.size.height);
+  const standX = await runWreck({
+    stage: {
+      w: a.size.width / sc,
+      h: a.size.height / sc,
+      spriteW: Math.round((spriteH * 240) / 340),
+      spriteH,
+      padBottom: SHADOW_PAD.bottom,
+    },
+    start,
+    v: { vx: f.vx / sc, vy: f.vy / sc },
+    impact: impact / sc,
+  });
+  const box = boxFor(petSize);
+  const bw = Math.round(box.width * sc);
+  const bh = Math.round(box.height * sc);
+  await setOrbBounds(
+    a.position.x + Math.round((standX - SHADOW_PAD.side) * sc),
+    a.position.y + a.size.height - bh,
+    bw,
+    bh,
+  );
+  await win.setIgnoreCursorEvents(false).catch(() => undefined);
+  await rebounds();
+  await snapToGround();
+  return true;
 }
 
 async function fall(b: Bounds) {

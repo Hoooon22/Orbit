@@ -99,31 +99,48 @@ export const scaledThrow = (scale: number): ThrowParams => ({
 
 export type Flight = { x: number; y: number; vx: number; vy: number };
 
-// 포물선 한 프레임. 벽·천장·바닥에서 튕기고, 바닥에서 충분히 느려지면 landed
-export function stepThrow(f: Flight, dt: number, b: Bounds, k: ThrowParams = THROW): { next: Flight; landed: boolean } {
+// 포물선 한 프레임. 벽·천장·바닥에서 튕기고, 바닥에서 충분히 느려지면 landed.
+// impact = 이 프레임에 부딪힌 면에 수직인 속도(px/s). 안 부딪혔으면 0
+export function stepThrow(
+  f: Flight,
+  dt: number,
+  b: Bounds,
+  k: ThrowParams = THROW,
+): { next: Flight; landed: boolean; impact: number } {
   let { x, y, vx, vy } = f;
+  let impact = 0;
   vy += k.gravity * dt;
   x += vx * dt;
   y += vy * dt;
   if (x < b.minX) {
     x = b.minX;
+    impact = Math.abs(vx);
     vx = -vx * k.wall;
   } else if (x > b.maxX) {
     x = b.maxX;
+    impact = Math.abs(vx);
     vx = -vx * k.wall;
   }
   if (y < b.ceilingY) {
     // 천장에 닿으면 튕겨 내린다. 안 그러면 OS가 창을 위 끝에 붙잡은 채 vy만 음수라 옆으로 미끄러진다
     y = b.ceilingY;
+    impact = Math.max(impact, Math.abs(vy));
     vy = Math.abs(vy) * k.wall;
   }
   if (y >= b.groundY) {
     y = b.groundY;
+    impact = Math.max(impact, Math.abs(vy));
     if (Math.abs(vy) < k.restVy && Math.abs(vx) < k.restVx) {
-      return { next: { x, y, vx: 0, vy: 0 }, landed: true };
+      return { next: { x, y, vx: 0, vy: 0 }, landed: true, impact };
     }
     vy = -vy * k.ground;
     vx *= k.friction;
   }
-  return { next: { x, y, vx, vy }, landed: false };
+  return { next: { x, y, vx, vy }, landed: false, impact };
 }
+
+// 이보다 약하게 부딪히면 그냥 튕기고, 중간 이상이면 피코가 산산조각 난다 (px/s, 100% 배율 기준).
+// 흩어지는 세기는 문턱이 아니라 실제 충돌 속도에 비례한다 (wreck.ts)
+export const SHATTER_SPEED = 1000;
+
+export const shatters = (impact: number, scale: number) => impact >= SHATTER_SPEED * scale;

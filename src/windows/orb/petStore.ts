@@ -8,7 +8,7 @@ export type PetPhase =
   | "walk" // 배회 중
   | "held" // 사용자가 잡고 있음 (OS 드래그 루프)
   | "falling" // 놓은 뒤 바닥으로 떨어지는 중
-  | "throwing"; // 던져져 날아가는 중
+  | "throwing"; // 던져져 날아가는 중 (피코가 산산조각 나 붙는 동안도 포함)
 
 type PetStore = {
   phase: PetPhase;

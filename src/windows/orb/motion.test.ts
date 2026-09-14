@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { stepThrow, throwVelocity, walkBounds, wanderStep, THROW, scaledThrow, clampX } from "./motion";
+import { stepThrow, throwVelocity, walkBounds, wanderStep, THROW, scaledThrow, clampX, shatters, SHATTER_SPEED } from "./motion";
 import type { Bounds } from "./motion";
 
 const B: Bounds = { minX: -6, maxX: 1000, groundY: 900, ceilingY: 0 };
@@ -84,5 +84,19 @@ describe("stepThrow", () => {
     expect(k.gravity).toBe(THROW.gravity * 2);
     expect(k.minLaunch).toBe(THROW.minLaunch * 2);
     expect(k.wall).toBe(THROW.wall); // 비율은 그대로
+  });
+  it("reports the speed normal to the surface it hit, and 0 in free flight", () => {
+    expect(stepThrow({ x: 500, y: 500, vx: 1000, vy: 0 }, 0.01, B).impact).toBe(0);
+    expect(stepThrow({ x: B.maxX - 1, y: 500, vx: 1500, vy: 0 }, 0.01, B).impact).toBe(1500);
+    const ground = stepThrow({ x: 100, y: 899, vx: 200, vy: 1000 }, 0.01, B);
+    expect(ground.impact).toBeCloseTo(1000 + THROW.gravity * 0.01);
+  });
+});
+
+describe("shatters", () => {
+  it("needs at least the shatter speed, scaled by the monitor scale", () => {
+    expect(shatters(SHATTER_SPEED - 1, 1)).toBe(false);
+    expect(shatters(SHATTER_SPEED, 1)).toBe(true);
+    expect(shatters(SHATTER_SPEED, 2)).toBe(false);
   });
 });
