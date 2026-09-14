@@ -658,16 +658,21 @@ pub fn save_image(root: State<NotesRoot>, data: Vec<u8>, ext: String) -> Result<
     ) {
         return Err(format!("지원하지 않는 이미지 형식입니다: {ext}"));
     }
+    write_asset(&root.0, &data, &ext)
+}
+
+/// 붙여넣기·화면 캡처 공용: .assets에 빈 번호로 저장하고 상대 경로를 돌려준다
+pub fn write_asset(root: &Path, data: &[u8], ext: &str) -> Result<String, String> {
     if data.is_empty() {
         return Err("이미지 데이터가 비어 있습니다".into());
     }
-    let assets = root.0.join(ASSETS_DIR);
+    let assets = root.join(ASSETS_DIR);
     fs::create_dir_all(&assets).map_err(|e| e.to_string())?;
     for i in 1u32..1_000_000 {
         let name = format!("img-{i}.{ext}");
         let p = assets.join(&name);
         if !p.exists() {
-            fs::write(&p, &data).map_err(|e| e.to_string())?;
+            fs::write(&p, data).map_err(|e| e.to_string())?;
             return Ok(format!("{ASSETS_DIR}/{name}"));
         }
     }

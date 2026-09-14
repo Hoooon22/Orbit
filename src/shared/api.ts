@@ -170,6 +170,8 @@ export const captureRegion = (x: number, y: number, w: number, h: number) =>
   invoke<void>("capture_region", { x, y, w, h }); // 오버레이 CSS px
 export const captureColor = (hex: string) => invoke<void>("capture_color", { hex });
 export const captureCancel = () => invoke<void>("capture_cancel");
+// 마지막 캡처를 .assets에 저장하고 상대 경로를 받는다 (한 번 가져가면 비워진다)
+export const captureSaveImage = () => invoke<string>("capture_save_image");
 
 // 로그인 시 자동 시작
 export const autostartEnabled = () => invoke<boolean>("autostart_enabled");

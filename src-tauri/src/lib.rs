@@ -538,6 +538,7 @@ pub fn run() {
             capture::capture_region,
             capture::capture_color,
             capture::capture_cancel,
+            capture::capture_save_image,
             meeting::meeting_status
         ])
         .run(tauri::generate_context!())

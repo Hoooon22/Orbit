@@ -19,6 +19,8 @@ import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import {
   appendQuickMemo,
+  captureSaveImage,
+  captureStart,
   dataRoot,
   listTree,
   noteTimes,
@@ -28,7 +30,7 @@ import {
   saveQuickMemo,
   writeNote,
 } from "../../shared/api";
-import type { NoteTimes, TreeNode } from "../../shared/api";
+import type { CaptureDone, NoteTimes, TreeNode } from "../../shared/api";
 import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { openEditors } from "./openEditors";
@@ -52,6 +54,10 @@ const SAVE_LABEL: Record<SaveState, string> = {
 const FONT_MIN = 10;
 const FONT_MAX = 32;
 const FONT_DEFAULT = 14;
+
+// 헤더의 "캡처"로 시작한 캡처가 끝나면 그림을 넣을 메모. 단축키·런처로 찍은 캡처는 여기 없으므로
+// 클립보드에만 올라가고 메모에는 들어가지 않는다 (편집기가 여럿이라 모듈 전역으로 하나만).
+let captureTarget: string | null = null;
 
 // 본문 글자 크기는 설정 파일에 두어 모든 편집기(분할 창 포함)가 같은 값을 쓴다
 function setFontSize(next: number) {
@@ -382,9 +388,21 @@ export default function Editor({
       rememberView(pathRef.current, editor, bodyRef.current);
       void flushNow();
     }).catch(() => () => {});
+    // 헤더의 "캡처"로 찍은 그림을 커서 자리에 넣는다 (붙여넣기와 같은 경로)
+    const unCapture = listen<CaptureDone>("capture-done", () => {
+      if (captureTarget !== pathRef.current) return;
+      captureTarget = null;
+      captureSaveImage()
+        .then((rel) => {
+          const node = editor.state.schema.nodes.image.create({ src: rel });
+          editor.view.dispatch(editor.state.tr.replaceSelectionWith(node));
+        })
+        .catch(() => setSaveState("error"));
+    }).catch(() => () => {});
     return () => {
       void unChanged.then((f) => f());
       void unQuit.then((f) => f());
+      void unCapture.then((f) => f());
     };
   }, [editor]);
 
@@ -634,6 +652,19 @@ export default function Editor({
               수정 {relativeTime(times.modified)}
             </span>
           )}
+          <button
+            className="save-to-folder-btn"
+            title="화면 일부를 끌어서 캡처해 여기에 넣기 (클립보드에도 복사)"
+            onClick={() => {
+              captureTarget = path;
+              captureStart("region").catch(() => {
+                captureTarget = null;
+                setSaveState("error");
+              });
+            }}
+          >
+            캡처
+          </button>
           {isQuickMemo && (
             <>
               <button

@@ -263,6 +263,17 @@ pub fn capture_cancel(app: AppHandle) {
     finish(&app);
 }
 
+/// 메모 편집기의 "캡처": 마지막으로 자른 그림을 .assets에 저장하고 상대 경로를 돌려준다.
+/// 한 번 가져가면 비운다 — 단축키로 찍은 캡처가 나중에 엉뚱한 메모에 들어가지 않게.
+#[tauri::command]
+pub fn capture_save_image(
+    root: State<crate::notes::NotesRoot>,
+    state: State<CaptureState>,
+) -> Result<String, String> {
+    let png = state.last_png.lock().map_err(|e| e.to_string())?.take().ok_or("저장할 캡처가 없습니다")?;
+    crate::notes::write_asset(&root.0, &png, "png")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
