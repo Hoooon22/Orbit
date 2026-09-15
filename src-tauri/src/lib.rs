@@ -1,3 +1,4 @@
+mod backup;
 mod capture;
 mod clipboard;
 mod google;
@@ -27,8 +28,8 @@ pub struct TrayItems {
     pub pause: CheckMenuItem<tauri::Wry>,
 }
 
-/// 트레이·설정 화면 공용: 설정 한 필드를 바꾸고 저장·방송한다 (오브 표시, 회의 모드 토글)
-fn toggle_setting(app: &tauri::AppHandle, f: impl FnOnce(&mut settings::Settings)) {
+/// 트레이·설정 화면·백업 공용: 설정 한 필드를 바꾸고 저장·방송한다 (오브 표시, 회의 모드 토글, 백업 시각)
+pub(crate) fn toggle_setting(app: &tauri::AppHandle, f: impl FnOnce(&mut settings::Settings)) {
     let Some(s) = app.try_state::<settings::SettingsState>() else { return };
     if let Ok(mut cur) = s.0.lock() {
         let mut next = cur.clone().unwrap_or_default();
@@ -519,6 +520,10 @@ pub fn run() {
             settings::write_settings,
             settings::update_settings,
             open_data_root,
+            backup::backup_dir,
+            backup::pick_backup_dir,
+            backup::backup_notes,
+            backup::open_backup_dir,
             orb::show_dashboard,
             orb::toggle_dashboard,
             orb::set_orb_visible,

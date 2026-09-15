@@ -46,6 +46,8 @@ portable-pty = "0.9"
 xcap = "0.9"
 # 캡처한 그림을 PNG(메모 삽입·오버레이 배경)·BMP(클립보드 CF_BITMAP)로 인코딩
 image = { version = "0.25", default-features = false, features = ["png", "bmp"] }
+# 메모 폴더 전체 백업(.zip). 순수 Rust deflate만 켠다 (암호화·zstd 등은 불필요)
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 # 창 반투명(레이어드 윈도우)·오브 창 크기 조정·포그라운드 앱·마지막 입력 시각 — Tauri에 없는 Win32 호출을 직접 한다
 [target.'cfg(windows)'.dependencies]

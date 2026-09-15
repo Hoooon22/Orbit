@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 import {
   applyShortcuts,
   autostartEnabled,
+  backupDir,
+  backupNotes,
   dataRoot,
+  openBackupDir,
   openDataRoot,
+  pickBackupDir,
   resetOrbPosition,
   setAutostart,
   setOrbVisible,
 } from "../../shared/api";
-import { relativeTime } from "../../shared/dates";
+import { fullTime, relativeTime } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { useGoogle } from "../../modules/calendar/googleStore";
@@ -43,11 +47,19 @@ export default function SettingsView({ onOpenLauncher }: Props) {
   const [hiddenDraft, setHiddenDraft] = useState(settings.googleHiddenTitles.join(", "));
   // 자동 시작은 설정 파일이 아니라 OS(레지스트리 Run 키)가 진실이라 매번 물어본다
   const [autostart, setAutostartState] = useState<boolean | null>(null);
+  // 백업: 폴더는 설정이 비어 있으면 기본 경로라 Rust에 물어본다
+  const [backupPath, setBackupPath] = useState("");
+  const [backingUp, setBackingUp] = useState(false);
+  const [backupMsg, setBackupMsg] = useState("");
+  const lastBackup = settings.lastBackupAt ? new Date(settings.lastBackupAt).getTime() : null;
 
   useEffect(() => {
     dataRoot().then(setRoot).catch(reportError);
     autostartEnabled().then(setAutostartState).catch(reportError);
   }, []);
+  useEffect(() => {
+    backupDir().then(setBackupPath).catch(reportError);
+  }, [settings.backupDir]);
 
   return (
     <section className="settings-view">
@@ -400,6 +412,53 @@ export default function SettingsView({ onOpenLauncher }: Props) {
           </div>
           <p className="settings-note">
             메모는 이 폴더에 마크다운(.md)으로, 할 일은 .todos.json에, 설정은 .settings.json에 저장됩니다.
+          </p>
+          <div className="settings-row">
+            <span>
+              백업 폴더
+              <small>{backupPath}</small>
+            </span>
+            <span className="settings-actions">
+              <button
+                onClick={() =>
+                  pickBackupDir()
+                    .then((dir) => {
+                      if (dir) setBackupMsg("백업 폴더를 바꿨습니다.");
+                    })
+                    .catch((e) => setBackupMsg(String(e)))
+                }
+              >
+                폴더 변경
+              </button>
+              <button onClick={() => openBackupDir().catch(reportError)}>폴더 열기</button>
+            </span>
+          </div>
+          <div className="settings-row">
+            <span>
+              전체 백업
+              <small>
+                {backupMsg ||
+                  (lastBackup
+                    ? `최근 백업 ${fullTime(lastBackup)} (${relativeTime(lastBackup)})`
+                    : "아직 백업한 적이 없습니다.")}
+              </small>
+            </span>
+            <button
+              disabled={backingUp}
+              onClick={() => {
+                setBackingUp(true);
+                setBackupMsg("");
+                backupNotes()
+                  .then((path) => setBackupMsg(`저장했습니다: ${path}`))
+                  .catch((e) => setBackupMsg(`⚠ ${String(e)}`))
+                  .finally(() => setBackingUp(false));
+              }}
+            >
+              {backingUp ? "백업 중…" : "지금 백업"}
+            </button>
+          </div>
+          <p className="settings-note">
+            저장 위치 폴더 전체(메모·이미지·할 일·일정·설정)를 .zip 하나로 묶습니다. 되돌리려면 zip을 풀어 저장 위치에 덮어쓰세요.
           </p>
         </section>
       </div>

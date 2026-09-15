@@ -24,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   shortcutCapture: "ctrl+alt+c",
   shortcutColorPick: "",
   meetingModeEnabled: false,
+  backupDir: null,
+  lastBackupAt: null,
 };
 
 type SettingsStore = {

@@ -250,6 +250,8 @@ export type Settings = {
   shortcutCapture: string; // 영역 캡처 전역 단축키. 비우면 없음
   shortcutColorPick: string; // 색상 추출 전역 단축키. 비우면 없음
   meetingModeEnabled: boolean; // 진행 중인 일정 동안 알림을 미루고 오브에 회의 표시
+  backupDir: string | null; // 전체 백업(.zip) 폴더. null이면 문서\Orbit 백업
+  lastBackupAt: string | null; // 마지막 백업 시각 (RFC 3339). null이면 아직 없음
 };
 // null이면 아직 설정 파일이 없다 (첫 실행)
 export const readSettings = () => invoke<Settings | null>("read_settings");
@@ -258,3 +260,10 @@ export const writeSettings = (settings: Settings) =>
   invoke<void>("write_settings", { settings });
 export const updateSettings = (patch: Partial<Settings>) =>
   invoke<Settings>("update_settings", { patch });
+
+// 메모 폴더 전체 백업(.zip). 설정 화면의 "데이터" 절.
+export const backupDir = () => invoke<string>("backup_dir"); // 지금 쓰이는 백업 폴더
+// 폴더 선택 대화상자. 고르면 Rust가 설정에 저장하고(settings-changed) 경로를, 취소하면 null을 돌려준다
+export const pickBackupDir = () => invoke<string | null>("pick_backup_dir");
+export const backupNotes = () => invoke<string>("backup_notes"); // 만든 .zip 경로
+export const openBackupDir = () => invoke<void>("open_backup_dir");

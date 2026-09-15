@@ -46,6 +46,10 @@ pub struct Settings {
     pub shortcut_color_pick: String,
     /// 회의 모드: 진행 중인 일정(종일 제외) 동안 할 일 알림을 미루고 오브에 회의 표시
     pub meeting_mode_enabled: bool,
+    /// 전체 백업(.zip)을 두는 폴더. None이면 `문서\Orbit 백업` (backup::default_dir)
+    pub backup_dir: Option<String>,
+    /// 마지막으로 백업한 시각 (RFC 3339). None이면 아직 한 번도 안 함
+    pub last_backup_at: Option<String>,
 }
 
 impl Default for Settings {
@@ -70,6 +74,8 @@ impl Default for Settings {
             shortcut_capture: "ctrl+alt+c".into(),
             shortcut_color_pick: String::new(),
             meeting_mode_enabled: false,
+            backup_dir: None,
+            last_backup_at: None,
         }
     }
 }
