@@ -33,6 +33,7 @@ import {
 import type { CaptureDone, NoteTimes, TreeNode } from "../../shared/api";
 import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
+import { indentFirstListItem } from "./listIndent";
 import { openEditors } from "./openEditors";
 import { loadView, saveView } from "./viewState";
 
@@ -94,6 +95,7 @@ const KeepEmptyLineParagraph = Paragraph.extend({
 // 진짜 탭 문자는 줄 앞에 오면 마크다운이 코드 블록으로 읽어 버리므로,
 // 다시 열어도 그대로 남는 줄바꿈 없는 공백(NBSP)을 넣는다.
 // priority를 낮춰 목록 들여쓰기·표 셀 이동 같은 기존 Tab 동작이 먼저 처리되게 한다.
+// 목록 첫 항목은 중첩할 위 항목이 없어 기본 Tab이 실패하므로, 글머리째 공백 들여쓰기로 바꾼다(listIndent.ts).
 const TAB_INDENT = "\u00A0".repeat(4);
 
 const TabIndent = Extension.create({
@@ -110,7 +112,14 @@ const TabIndent = Extension.create({
       });
     return {
       // 코드 블록 안은 마크다운이 펜스로 감싸 그대로 보존하므로 진짜 탭을 넣는다
-      Tab: () => insert(this.editor.isActive("codeBlock") ? "\t" : TAB_INDENT),
+      Tab: () => {
+        if (this.editor.isActive("listItem")) {
+          const tr = indentFirstListItem(this.editor.state, TAB_INDENT);
+          if (tr) this.editor.view.dispatch(tr);
+          return true; // 항목 안에 공백만 끼어드는 일은 막는다
+        }
+        return insert(this.editor.isActive("codeBlock") ? "\t" : TAB_INDENT);
+      },
     };
   },
 });
