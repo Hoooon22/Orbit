@@ -115,7 +115,7 @@ export default function Dashboard() {
   const [view, setView] = useState<View>("home");
   const [calendarDate, setCalendarDate] = useState<string | null>(null);
   const [memoPath, setMemoPath] = useState<{ path: string; seq: number } | null>(null);
-  const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 입력창에 포커스
+  const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 화면의 실행 입력창에 포커스
   const [maximized, setMaximized] = useState(false);
   const error = useError((s) => s.error);
   const clearError = useError((s) => s.clear);
@@ -144,7 +144,7 @@ export default function Dashboard() {
     setView("memo");
   };
 
-  // Rust(오브·트레이·단축키)가 보내는 "이 화면으로" 요청: "calendar@2026-09-08", "home@launcher", "memo@QuickMemo.md"
+  // Rust(오브·트레이·단축키)가 보내는 "이 화면으로" 요청: "calendar@2026-09-08", "launcher", "memo@QuickMemo.md"
   useEffect(() => {
     const un = listen<string>("navigate", (e) => {
       const at = e.payload.indexOf("@");
@@ -157,7 +157,7 @@ export default function Dashboard() {
       }
       setView(v);
       if (v === "calendar" && arg) setCalendarDate(arg);
-      if (v === "home" && arg === "launcher") setLauncherFocus((n) => n + 1);
+      if (v === "launcher") setLauncherFocus((n) => n + 1);
     }).catch(() => () => {});
     const onKey = (e: KeyboardEvent) => {
       // AI 화면의 터미널 안에서는 키를 claude가 받아야 한다 (창 숨김·화면 전환에 뺏기지 않게)
@@ -283,14 +283,12 @@ export default function Dashboard() {
           )}
           {view === "home" && (
             <Home
-              launcherFocus={launcherFocus}
               onOpenCalendar={(date) => {
                 setCalendarDate(date);
                 setView("calendar");
               }}
               onOpenTodos={() => setView("todo")}
-              onLaunched={hide}
-              onCommand={runCommand}
+              onOpenMemo={openMemo}
             />
           )}
           {view === "ai" && <TerminalView />}
@@ -314,7 +312,9 @@ export default function Dashboard() {
             />
           )}
           {view === "clipboard" && <ClipboardPanel layout="full" />}
-          {view === "launcher" && <LauncherSettings />}
+          {view === "launcher" && (
+            <LauncherSettings launcherFocus={launcherFocus} onLaunched={hide} onCommand={runCommand} />
+          )}
           {view === "stats" && <UsageView />}
           {view === "settings" && <SettingsView onOpenLauncher={() => setView("launcher")} />}
         </main>

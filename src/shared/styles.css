@@ -3837,8 +3837,25 @@ body.dashboard-window {
   padding-bottom: 40px;
 }
 
-.home-launcher {
+/* 즐겨찾기한 메모 목록. 클릭하면 메모 화면에서 연다 */
+.home-fav {
   flex: 0 0 46%;
+  padding: 6px 4px;
+  overflow-y: auto;
+}
+
+.home-fav .fav-row {
+  cursor: pointer;
+}
+
+/* 런처 화면 맨 위의 실행 칸 (홈에 있던 것을 옮김) */
+.launcher-run {
+  display: flex;
+  flex-direction: column;
+  max-height: 320px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 
 .home-clip {

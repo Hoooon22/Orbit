@@ -11,7 +11,7 @@ import {
 import type { TreeNode } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 import { useSettings } from "../../shared/stores/settings";
-import { useMemoStore } from "../../modules/memo/store";
+import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
 import Editor from "../../modules/memo/Editor";
@@ -30,14 +30,6 @@ function remapPath(current: string, oldPath: string, newPath: string): string {
   if (current === oldPath) return newPath;
   if (current.startsWith(oldPath + "/")) return newPath + current.slice(oldPath.length);
   return current;
-}
-
-function collectNotePaths(nodes: TreeNode[], out: Set<string>): void {
-  for (const n of nodes) {
-    if (n.isDir) {
-      if (n.children) collectNotePaths(n.children, out);
-    } else out.add(n.path);
-  }
 }
 
 function allFolderPaths(nodes: TreeNode[], out = new Set<string>()): Set<string> {

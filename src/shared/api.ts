@@ -219,7 +219,7 @@ export const hidePanel = () => invoke<void>("hide_panel");
 export type PetKind = "pico" | "mofu" | "sprout" | "nova" | "mochi";
 export type PetSize = "small" | "medium" | "large";
 export type PetWander = "off" | "low" | "normal" | "high";
-// Orbit 창. view: "home" | "memo[@경로]" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings" | "home@launcher"
+// Orbit 창. view: "home" | "memo[@경로]" | "todo" | "calendar[@YYYY-MM-DD]" | "clipboard" | "launcher" | "settings"
 export const showDashboard = (view?: string) =>
   invoke<void>("show_dashboard", { view: view ?? null });
 export const toggleDashboard = () => invoke<void>("toggle_dashboard");

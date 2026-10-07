@@ -1,9 +1,17 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSettings } from "../../shared/stores/settings";
+import Launcher from "./Launcher";
+import type { CommandId } from "./commands";
 import { useLauncher } from "./store";
 
-// 워크스페이스의 런처 관리 화면: 직접 추가한 항목, 시작 메뉴 다시 읽기
-export default function LauncherSettings() {
+type Props = {
+  launcherFocus: number; // 값이 바뀌면 실행 입력창에 포커스 (Alt+Space)
+  onLaunched: () => void;
+  onCommand: (id: CommandId) => void;
+};
+
+// 워크스페이스의 런처 화면: 실행 칸, 직접 추가한 항목, 시작 메뉴 다시 읽기
+export default function LauncherSettings({ launcherFocus, onLaunched, onCommand }: Props) {
   const items = useLauncher((s) => s.items);
   const addCustom = useLauncher((s) => s.addCustom);
   const removeCustom = useLauncher((s) => s.removeCustom);
@@ -15,6 +23,11 @@ export default function LauncherSettings() {
 
   const custom = items.filter((i) => i.custom);
   const scanned = items.length - custom.length;
+
+  useEffect(() => {
+    if (launcherFocus === 0) return;
+    document.querySelector<HTMLInputElement>(".launcher-search input")?.focus();
+  }, [launcherFocus]);
 
   const submit = async () => {
     if (!name.trim() || !target.trim()) return;
@@ -29,8 +42,11 @@ export default function LauncherSettings() {
         <span className="todo-title">런처</span>
       </header>
       <div className="settings-body">
+        <div className="launcher-run">
+          <Launcher onLaunched={onLaunched} onCommand={onCommand} />
+        </div>
         <p className="settings-note">
-          홈 화면의 실행 칸{shortcut ? `(또는 ${shortcut})` : ""}에서 앱 이름을 치고 Enter로 실행합니다. 한글 초성("ㅋㄹ" → 크롬)도 됩니다. 영문 앱을 한글로 찾고 싶으면 아래에 한글 이름으로 항목을 더하세요.
+          위 실행 칸{shortcut ? `(또는 ${shortcut})` : ""}에서 앱 이름을 치고 Enter로 실행합니다. 한글 초성("ㅋㄹ" → 크롬)도 됩니다. 영문 앱을 한글로 찾고 싶으면 아래에 한글 이름으로 항목을 더하세요.
         </p>
 
         <section className="settings-section">

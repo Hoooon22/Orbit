@@ -4,6 +4,15 @@ import { listTree, QUICK_MEMO, readFavorites, writeFavorites } from "../../share
 import type { TreeNode } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 
+// 트리에서 메모(파일) 경로만 모은다. 즐겨찾기 중 실제로 있는 메모만 보여 줄 때 쓴다.
+export function collectNotePaths(nodes: TreeNode[], out: Set<string>): void {
+  for (const n of nodes) {
+    if (n.isDir) {
+      if (n.children) collectNotePaths(n.children, out);
+    } else out.add(n.path);
+  }
+}
+
 function remapPath(current: string, oldPath: string, newPath: string): string {
   if (current === oldPath) return newPath;
   if (current.startsWith(oldPath + "/")) return newPath + current.slice(oldPath.length);
