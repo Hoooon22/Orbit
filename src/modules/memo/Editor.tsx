@@ -18,6 +18,7 @@ import TableCell from "@tiptap/extension-table-cell";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
+import { Plugin } from "@tiptap/pm/state";
 import {
   appendQuickMemo,
   captureSaveImage,
@@ -89,6 +90,26 @@ const KeepEmptyLineParagraph = Paragraph.extend({
         },
       },
     };
+  },
+});
+
+// 복사할 때 일반 텍스트 클립보드에도 마크다운을 올린다. 그래야 제목의 "# " 같은 서식이
+// 클립보드 기록이나 다른 앱을 거쳐 다시 붙여도 살아난다(붙여넣기는 transformPastedText가 마크다운으로 읽음).
+// 빈 줄 보존용 &nbsp; 줄은 다른 앱에서 글자로 보이므로 빈 줄로 바꾼다.
+const CopyAsMarkdown = Extension.create({
+  name: "copyAsMarkdown",
+  addProseMirrorPlugins() {
+    return [
+      new Plugin({
+        props: {
+          clipboardTextSerializer: (slice) =>
+            (this.editor.storage.markdown.serializer.serialize(slice.content) as string).replace(
+              /^&nbsp;$/gm,
+              "",
+            ),
+        },
+      }),
+    ];
   },
 });
 
@@ -237,6 +258,7 @@ export default function Editor({
       TableHeader,
       TableCell,
       Markdown.configure({ html: false, transformPastedText: true }),
+      CopyAsMarkdown,
       TabIndent,
     ],
     editorProps: {
