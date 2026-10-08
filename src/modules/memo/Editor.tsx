@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Extension, mergeAttributes } from "@tiptap/core";
+import { Extension, InputRule, mergeAttributes } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import ListItem from "@tiptap/extension-list-item";
+import OrderedList from "@tiptap/extension-ordered-list";
 import Image from "@tiptap/extension-image";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -122,6 +123,21 @@ const TAB_INDENT = "\u00A0".repeat(4);
 
 // 기본 listItem은 "paragraph block*"라 문단 없이 목록만 든 항목(위 감싸기 결과, 마크다운 "- - 항목")을 담을 수 없다.
 const NestableListItem = ListItem.extend({ content: "block+" });
+
+// 위처럼 항목이 제목도 담을 수 있게 되면서, 제목 안에서 "1. "을 치면 제목째 번호 목록으로 감싸져
+// "1."이 제목 글자에서 빠진다. 제목 안에서는 번호 목록 입력 규칙을 끈다.
+const HeadingSafeOrderedList = OrderedList.extend({
+  addInputRules() {
+    return (this.parent?.() ?? []).map(
+      (rule) =>
+        new InputRule({
+          find: rule.find,
+          handler: (props) =>
+            props.state.selection.$from.parent.type.name === "heading" ? null : rule.handler(props),
+        }),
+    );
+  },
+});
 
 const TabIndent = Extension.create({
   name: "tabIndent",
@@ -246,9 +262,10 @@ export default function Editor({
   // 파일은 계속 마크다운으로 저장한다(getMarkdown 직렬화).
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ paragraph: false, listItem: false }),
+      StarterKit.configure({ paragraph: false, listItem: false, orderedList: false }),
       KeepEmptyLineParagraph,
       NestableListItem,
+      HeadingSafeOrderedList,
       Link.configure({ openOnClick: false }),
       LocalImage,
       Placeholder.configure({ placeholder: "메모를 입력하세요…" }),
