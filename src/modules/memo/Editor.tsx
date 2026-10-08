@@ -7,6 +7,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import type { Editor as TiptapEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
+import ListItem from "@tiptap/extension-list-item";
 import Image from "@tiptap/extension-image";
 import Paragraph from "@tiptap/extension-paragraph";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -33,7 +34,7 @@ import {
 import type { CaptureDone, NoteTimes, TreeNode } from "../../shared/api";
 import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
-import { indentFirstListItem } from "./listIndent";
+import { nestFirstListItem } from "./listIndent";
 import { openEditors } from "./openEditors";
 import { loadView, saveView } from "./viewState";
 
@@ -95,8 +96,11 @@ const KeepEmptyLineParagraph = Paragraph.extend({
 // 진짜 탭 문자는 줄 앞에 오면 마크다운이 코드 블록으로 읽어 버리므로,
 // 다시 열어도 그대로 남는 줄바꿈 없는 공백(NBSP)을 넣는다.
 // priority를 낮춰 목록 들여쓰기·표 셀 이동 같은 기존 Tab 동작이 먼저 처리되게 한다.
-// 목록 첫 항목은 중첩할 위 항목이 없어 기본 Tab이 실패하므로, 글머리째 공백 들여쓰기로 바꾼다(listIndent.ts).
+// 목록 첫 항목은 중첩할 위 항목이 없어 기본 Tab이 실패하므로, 새 상위 항목으로 감싸 한 단계 안으로 넣는다(listIndent.ts).
 const TAB_INDENT = "\u00A0".repeat(4);
+
+// 기본 listItem은 "paragraph block*"라 문단 없이 목록만 든 항목(위 감싸기 결과, 마크다운 "- - 항목")을 담을 수 없다.
+const NestableListItem = ListItem.extend({ content: "block+" });
 
 const TabIndent = Extension.create({
   name: "tabIndent",
@@ -114,7 +118,7 @@ const TabIndent = Extension.create({
       // 코드 블록 안은 마크다운이 펜스로 감싸 그대로 보존하므로 진짜 탭을 넣는다
       Tab: () => {
         if (this.editor.isActive("listItem")) {
-          const tr = indentFirstListItem(this.editor.state, TAB_INDENT);
+          const tr = nestFirstListItem(this.editor.state);
           if (tr) this.editor.view.dispatch(tr);
           return true; // 항목 안에 공백만 끼어드는 일은 막는다
         }
@@ -221,8 +225,9 @@ export default function Editor({
   // 파일은 계속 마크다운으로 저장한다(getMarkdown 직렬화).
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ paragraph: false }),
+      StarterKit.configure({ paragraph: false, listItem: false }),
       KeepEmptyLineParagraph,
+      NestableListItem,
       Link.configure({ openOnClick: false }),
       LocalImage,
       Placeholder.configure({ placeholder: "메모를 입력하세요…" }),

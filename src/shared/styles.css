@@ -717,6 +717,15 @@ button {
   margin: 0;
 }
 
+/* 첫 항목을 Tab으로 들여쓰면 생기는 빈 상위 항목(마크다운 "- - 항목"): 글머리를 숨기고 안쪽 목록만 보인다 */
+.editor-body .ProseMirror li:has(> :is(ul, ol):first-child) {
+  list-style: none;
+}
+
+.editor-body .ProseMirror li > :is(ul, ol):first-child {
+  margin-top: 0;
+}
+
 .editor-body .ProseMirror a {
   color: var(--accent);
 }
