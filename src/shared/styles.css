@@ -726,6 +726,82 @@ button {
   margin-top: 0;
 }
 
+/* 할 일 목록("- [ ] 항목"): 체크 상자 + 본문. 체크하면 흐리게·취소선.
+   편집기 안의 항목(li)은 노드 뷰라 data-type이 없고 data-checked만 있어 목록(ul) 기준으로 고른다 */
+.editor-body .ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.25em;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li > label {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 1.75em; /* 본문 줄 높이에 맞춰 세로 가운데 */
+  user-select: none;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li > label input {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li > div > p {
+  margin: 0;
+}
+
+.editor-body .ProseMirror ul[data-type="taskList"] > li[data-checked="true"] > div > p {
+  color: var(--fg-dim);
+  text-decoration: line-through;
+}
+
+/* 첫 항목을 Tab으로 들여쓰면 생기는 빈 상위 항목: 체크 상자를 숨기고 안쪽 목록만 보인다 */
+.editor-body .ProseMirror ul[data-type="taskList"] > li:has(> div > ul:first-child) > label {
+  visibility: hidden;
+}
+
+/* 하위 페이지 블록: 누르면 그 메모가 열린다 (Ctrl·가운데 버튼은 새 탭) */
+.editor-body .ProseMirror .subpage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0.3em -8px; /* 아이콘이 본문 글자와 같은 선에서 시작하게 */
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  user-select: none;
+}
+
+.editor-body .ProseMirror .subpage:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+}
+
+.editor-body .ProseMirror .subpage.ProseMirror-selectednode {
+  outline: 1px solid var(--accent);
+}
+
+.editor-body .ProseMirror .subpage-title {
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--border-strong);
+  text-underline-offset: 3px;
+}
+
 .editor-body .ProseMirror a {
   color: var(--accent);
 }
@@ -1638,6 +1714,75 @@ button {
 .tab-close:hover {
   background: var(--bg-active);
   color: var(--fg);
+}
+
+/* 탭 줄 끝의 "+" (새 메모를 새 탭으로) */
+.tab-add {
+  flex-shrink: 0;
+  width: 30px;
+  color: var(--fg-dim);
+  font-size: 16px;
+}
+
+.tab-add:hover {
+  background: var(--bg-hover);
+  color: var(--fg);
+}
+
+/* 하위 페이지의 헤더 경로 표시: 위 페이지 › 위 페이지 › (제목) */
+.crumbs {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 40%;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.crumb {
+  color: var(--fg-dim);
+  font-size: 13px;
+  padding: 2px 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crumb:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
+.crumb::after {
+  content: "›";
+  margin-left: 6px;
+  color: var(--fg-mute);
+}
+
+/* "/" 메뉴: 커서 아래에 뜨는 블록 목록 (위치는 인라인 스타일) */
+.slash-menu {
+  position: fixed;
+  z-index: 31;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.slash-menu .palette-list {
+  padding: 4px;
+}
+
+.slash-menu .palette-item {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.slash-icon {
+  width: 26px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-dim);
 }
 
 /* 항상 위에 고정 토글 (탭이 넘쳐도 오른쪽 끝에 붙어 있음) */

@@ -499,6 +499,7 @@ pub fn run() {
             notes::note_times,
             notes::write_note,
             notes::create_note,
+            notes::create_subpage,
             notes::create_folder,
             notes::rename_entry,
             notes::move_entry,

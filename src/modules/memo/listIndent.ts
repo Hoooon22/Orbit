@@ -7,12 +7,13 @@ import type { EditorState, Transaction } from "@tiptap/pm/state";
 //                  - 항목
 // 상위 항목은 CSS로 글머리를 숨겨 안쪽 글머리만 보이고, 마크다운에는 "- - 항목"으로 남는다.
 // Shift+Tab(liftListItem)은 빈 상위 항목을 지우며 그대로 되돌린다.
-// 커서가 목록 항목 안이 아니면 null.
+// 할 일 목록(taskItem)도 같다 (상위 항목의 체크 상자는 CSS로 숨김). 커서가 목록 항목 안이 아니면 null.
 export function nestFirstListItem(state: EditorState): Transaction | null {
   const { $from } = state.selection;
   let itemDepth = -1;
   for (let d = $from.depth; d > 0; d--) {
-    if ($from.node(d).type.name === "listItem") {
+    const name = $from.node(d).type.name;
+    if (name === "listItem" || name === "taskItem") {
       itemDepth = d;
       break;
     }

@@ -2,13 +2,20 @@ import { describe, expect, it } from "vitest";
 import { getSchema } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import ListItem from "@tiptap/extension-list-item";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import { EditorState, TextSelection } from "@tiptap/pm/state";
 import { liftListItem } from "@tiptap/pm/schema-list";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { nestFirstListItem } from "./listIndent";
 
 // Editor.tsx와 같은 스키마: 목록 항목이 문단 없이 목록으로 시작할 수 있다
-const schema = getSchema([StarterKit.configure({ listItem: false }), ListItem.extend({ content: "block+" })]);
+const schema = getSchema([
+  StarterKit.configure({ listItem: false }),
+  ListItem.extend({ content: "block+" }),
+  TaskList,
+  TaskItem.extend({ content: "block+" }),
+]);
 
 const item = (text: string) =>
   schema.nodes.listItem.create(null, schema.nodes.paragraph.create(null, schema.text(text)));
@@ -51,6 +58,18 @@ describe("nestFirstListItem", () => {
     const lifted = liftListItem(schema.nodes.listItem)(state, (tr) => (state = state.apply(tr)));
     expect(lifted).toBe(true);
     expect(state.doc.toJSON()).toEqual(doc.toJSON());
+  });
+
+  it("할 일 목록도 할 일 항목으로 감싼다", () => {
+    const task = schema.nodes.taskItem.create(
+      { checked: false },
+      schema.nodes.paragraph.create(null, schema.text("일")),
+    );
+    const doc = docOf(schema.nodes.taskList.create(null, [task]));
+    const out = nestFirstListItem(stateAt(doc, 3))!.doc;
+    expect(out.check()).toBeUndefined();
+    expect(out.firstChild!.firstChild!.type.name).toBe("taskItem");
+    expect(out.firstChild!.firstChild!.firstChild!.type.name).toBe("taskList");
   });
 
   it("목록 밖에서는 아무것도 하지 않는다", () => {

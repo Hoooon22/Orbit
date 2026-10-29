@@ -163,7 +163,8 @@ export default function Dashboard() {
       // AI 화면의 터미널 안에서는 키를 claude가 받아야 한다 (창 숨김·화면 전환에 뺏기지 않게)
       const inTerm = !!(e.target as HTMLElement | null)?.closest(".term");
       if (inTerm) return;
-      if (e.key === "Escape") {
+      // 편집기가 이미 처리한 키(예: "/" 메뉴를 닫는 Esc)는 창을 숨기지 않는다
+      if (e.key === "Escape" && !e.defaultPrevented) {
         void getCurrentWindow().hide();
         return;
       }

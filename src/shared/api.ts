@@ -22,6 +22,8 @@ export const noteTimes = (path: string) => invoke<NoteTimes>("note_times", { pat
 export const writeNote = (path: string, content: string) =>
   invoke<void>("write_note", { path, content });
 export const createNote = (dir: string) => invoke<string>("create_note", { dir });
+// 메모 안의 하위 페이지: 부모와 같은 이름의 형제 폴더에 "새 페이지.md"를 만들고 상대 경로를 돌려준다
+export const createSubpage = (parent: string) => invoke<string>("create_subpage", { parent });
 export const createFolder = (dir: string) => invoke<string>("create_folder", { dir });
 export const renameEntry = (path: string, newName: string) =>
   invoke<string>("rename_entry", { path, newName });

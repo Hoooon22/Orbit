@@ -246,6 +246,51 @@ fn unique_name(
     Err("사용 가능한 이름을 찾지 못했습니다".into())
 }
 
+/// "폴더/메모.md" → "폴더/메모". 하위 페이지 링크([[경로]])와 하위 페이지 폴더는 확장자 없는 이 경로를 쓴다.
+fn strip_md(rel: &str) -> &str {
+    if rel.to_lowercase().ends_with(".md") {
+        &rel[..rel.len() - 3]
+    } else {
+        rel
+    }
+}
+
+/// 모든 메모(숨김 폴더 제외)에서 from을 to로 바꾼다. 하위 페이지 링크를 새 경로로 따라가게 할 때 쓴다.
+fn replace_in_notes(dir: &Path, from: &str, to: &str) {
+    let Ok(entries) = fs::read_dir(dir) else { return };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().into_owned();
+        if name.starts_with('.') {
+            continue;
+        }
+        let p = entry.path();
+        if p.is_dir() {
+            replace_in_notes(&p, from, to);
+        } else if name.to_lowercase().ends_with(".md") {
+            if let Ok(text) = fs::read_to_string(&p) {
+                if text.contains(from) {
+                    let _ = fs::write(&p, text.replace(from, to));
+                }
+            }
+        }
+    }
+}
+
+/// 메모·폴더의 경로가 바뀐 뒤(이름 변경·이동) 뒤처리. 다른 메모 안의 하위 페이지 링크 [[옛 경로]]를
+/// 새 경로로 고치고, 메모라면 그 하위 페이지 폴더(같은 이름의 형제 폴더)도 함께 옮겨 자식 페이지가 따라오게 한다.
+fn after_relocate(root: &Path, old_rel: &str, new_rel: &str, is_dir: bool) {
+    if is_dir {
+        replace_in_notes(root, &format!("[[{old_rel}/"), &format!("[[{new_rel}/"));
+        return;
+    }
+    let (old_key, new_key) = (strip_md(old_rel), strip_md(new_rel));
+    replace_in_notes(root, &format!("[[{old_key}]]"), &format!("[[{new_key}]]"));
+    let (old_dir, new_dir) = (root.join(old_key), root.join(new_key));
+    if old_dir.is_dir() && !new_dir.exists() && fs::rename(&old_dir, &new_dir).is_ok() {
+        replace_in_notes(root, &format!("[[{old_key}/"), &format!("[[{new_key}/"));
+    }
+}
+
 /// 대소문자 무시 부분 문자열 검색. 문자 단위 인덱스를 돌려준다.
 fn find_ci(hay: &[char], needle_lower: &[char]) -> Option<usize> {
     if needle_lower.is_empty() || hay.len() < needle_lower.len() {
@@ -430,6 +475,21 @@ pub fn create_note(root: State<NotesRoot>, dir: String) -> Result<String, String
     Ok(rel)
 }
 
+/// 메모 안에 하위 페이지를 만든다 (노션의 "페이지 안에 페이지"). 자식은 부모와 같은 이름의 형제 폴더에
+/// 들어간다: "폴더/회의.md"의 하위 페이지는 "폴더/회의/새 페이지.md". 부모 본문에는 프런트가 [[폴더/회의/새 페이지]]를 넣는다.
+#[tauri::command]
+pub fn create_subpage(root: State<NotesRoot>, parent: String) -> Result<String, String> {
+    if !resolve(&root.0, &parent)?.is_file() {
+        return Err(format!("메모가 존재하지 않습니다: {parent}"));
+    }
+    let dir_rel = strip_md(&parent).to_string();
+    let dir_abs = resolve(&root.0, &dir_rel)?;
+    fs::create_dir_all(&dir_abs).map_err(|e| e.to_string())?;
+    let (path, rel) = unique_name(&dir_abs, &dir_rel, "새 페이지", Some("md"))?;
+    fs::write(&path, "").map_err(|e| e.to_string())?;
+    Ok(rel)
+}
+
 #[tauri::command]
 pub fn create_folder(root: State<NotesRoot>, dir: String) -> Result<String, String> {
     let parent = resolve(&root.0, &dir)?;
@@ -476,7 +536,9 @@ pub fn rename_entry(root: State<NotesRoot>, path: String, new_name: String) -> R
     if dest.exists() && rel.to_lowercase() != path.to_lowercase() {
         return Err("이미 같은 이름이 있습니다".into());
     }
+    let is_dir = src.is_dir();
     fs::rename(&src, &dest).map_err(|e| e.to_string())?;
+    after_relocate(&root.0, &path, &rel, is_dir);
     // 수동 순서 목록에 있던 항목이면 새 이름으로 교체해 위치를 유지한다
     if let Ok(parent_abs) = resolve(&root.0, parent_rel) {
         let old_name = path.rsplit('/').next().unwrap_or(&path);
@@ -529,7 +591,9 @@ pub fn move_entry(root: State<NotesRoot>, path: String, dir: String) -> Result<S
             .unwrap_or_else(|| "md".into());
         unique_name(&parent, &dir, &stem, Some(&ext))?
     };
+    let is_dir = src.is_dir();
     fs::rename(&src, &dest).map_err(|e| e.to_string())?;
+    after_relocate(&root.0, &path, &rel, is_dir);
     // 원래 폴더의 수동 순서 목록에서 제거 (옮겨간 폴더에서는 기본 정렬 위치에 놓인다)
     if let Ok(old_parent_abs) = resolve(&root.0, src_parent) {
         let old_name = path.rsplit('/').next().unwrap_or(&path);
@@ -592,7 +656,9 @@ pub fn reorder_entry(
                 .unwrap_or_else(|| "md".into());
             unique_name(&parent, &dir, &stem, Some(&ext))?
         };
+        let is_dir = src.is_dir();
         fs::rename(&src, &dest).map_err(|e| e.to_string())?;
+        after_relocate(&root.0, &path, &rel, is_dir);
         // 원래 폴더의 순서 목록에서 제거
         if let Ok(old_parent) = resolve(&root.0, src_parent) {
             let old_name = path.rsplit('/').next().unwrap_or(&path);
@@ -787,6 +853,47 @@ mod tests {
         assert!(validate_note_name("   ").is_err());
         assert!(validate_note_name("a/b").is_err());
         assert!(validate_note_name(".hidden").is_err());
+    }
+
+    #[test]
+    fn relocate_follows_subpage_links_and_folder() {
+        let root = std::env::temp_dir().join("orbit-test-relocate");
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join("회의")).unwrap();
+        fs::write(root.join("회의.md"), "[[회의/안건]]\n").unwrap();
+        fs::write(root.join("회의/안건.md"), "[[회의/안건/세부]]\n").unwrap();
+        fs::write(root.join("홈.md"), "[[회의]] [[회의/안건]]\n").unwrap();
+
+        // 메모 이름 변경: 링크가 따라오고 하위 페이지 폴더도 같이 옮겨진다
+        fs::rename(root.join("회의.md"), root.join("주간회의.md")).unwrap();
+        after_relocate(&root, "회의.md", "주간회의.md", false);
+        assert!(root.join("주간회의").is_dir());
+        assert!(!root.join("회의").exists());
+        assert_eq!(
+            fs::read_to_string(root.join("홈.md")).unwrap(),
+            "[[주간회의]] [[주간회의/안건]]\n"
+        );
+        assert_eq!(
+            fs::read_to_string(root.join("주간회의/안건.md")).unwrap(),
+            "[[주간회의/안건/세부]]\n"
+        );
+
+        // 폴더 이름 변경: 그 안을 가리키는 링크만 바뀐다
+        fs::rename(root.join("주간회의"), root.join("기록")).unwrap();
+        after_relocate(&root, "주간회의", "기록", true);
+        assert_eq!(
+            fs::read_to_string(root.join("홈.md")).unwrap(),
+            "[[주간회의]] [[기록/안건]]\n"
+        );
+
+        let _ = fs::remove_dir_all(&root);
+    }
+
+    #[test]
+    fn strip_md_drops_extension_only() {
+        assert_eq!(strip_md("폴더/메모.md"), "폴더/메모");
+        assert_eq!(strip_md("memo.MD"), "memo");
+        assert_eq!(strip_md("폴더"), "폴더");
     }
 
     #[test]

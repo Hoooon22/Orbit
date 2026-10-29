@@ -16,6 +16,8 @@ import Table from "@tiptap/extension-table";
 import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
@@ -24,6 +26,7 @@ import {
   appendQuickMemo,
   captureSaveImage,
   captureStart,
+  createSubpage,
   dataRoot,
   listTree,
   noteTimes,
@@ -38,6 +41,13 @@ import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { nestFirstListItem } from "./listIndent";
 import { openEditors } from "./openEditors";
+import { SlashKeys, slashQuery } from "./slash";
+import type { SlashKey, SlashRange } from "./slash";
+import { filterSlashItems } from "./slashItems";
+import type { SlashId } from "./slashItems";
+import SlashMenu from "./SlashMenu";
+import { useMemoStore } from "./store";
+import { Subpage } from "./subpage";
 import { loadView, saveView } from "./viewState";
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -123,6 +133,28 @@ const TAB_INDENT = "\u00A0".repeat(4);
 
 // 기본 listItem은 "paragraph block*"라 문단 없이 목록만 든 항목(위 감싸기 결과, 마크다운 "- - 항목")을 담을 수 없다.
 const NestableListItem = ListItem.extend({ content: "block+" });
+// 할 일 목록("- [ ] 항목")도 같은 이유로. 체크 상자만 있고 목록으로 시작하는 상위 항목은 CSS가 상자를 숨긴다.
+const NestableTaskItem = TaskItem.extend({ content: "block+" }).configure({ nested: true });
+
+// tiptap-markdown은 bulletList·orderedList에만 "tight"(항목 사이 빈 줄 없음) 속성을 붙여, 할 일 목록은
+// 저장할 때 항목마다 빈 줄이 끼었다. 같은 속성을 taskList에도 붙인다 (마크다운에 <p>가 없으면 tight).
+const TightTaskList = Extension.create({
+  name: "tightTaskList",
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["taskList"],
+        attributes: {
+          tight: {
+            default: true,
+            parseHTML: (el) => el.getAttribute("data-tight") === "true" || !el.querySelector("p"),
+            renderHTML: (attrs) => ({ "data-tight": attrs.tight ? "true" : null }),
+          },
+        },
+      },
+    ];
+  },
+});
 
 // 위처럼 항목이 제목도 담을 수 있게 되면서, 제목 안에서 "1. "을 치면 제목째 번호 목록으로 감싸져
 // "1."이 제목 글자에서 빠진다. 제목 안에서는 번호 목록 입력 규칙을 끈다.
@@ -154,7 +186,7 @@ const TabIndent = Extension.create({
     return {
       // 코드 블록 안은 마크다운이 펜스로 감싸 그대로 보존하므로 진짜 탭을 넣는다
       Tab: () => {
-        if (this.editor.isActive("listItem")) {
+        if (this.editor.isActive("listItem") || this.editor.isActive("taskItem")) {
           const tr = nestFirstListItem(this.editor.state);
           if (tr) this.editor.view.dispatch(tr);
           return true; // 항목 안에 공백만 끼어드는 일은 막는다
@@ -207,6 +239,9 @@ type Props = {
   onToggleFavorite: () => void;
   onClose?: () => void; // 분할 창일 때만 전달됨 (헤더에 닫기 버튼 표시)
   compact?: boolean; // 오브 패널용: 헤더 없이 본문만 (저장 표시는 본문 위 작은 라벨)
+  // 다른 메모를 열 수 있는 화면(메모 화면)에서만 전달됨. 하위 페이지 블록 클릭과 "/페이지"가 쓴다
+  onOpenNote?: (path: string, newTab: boolean) => void;
+  ancestors?: { path: string; name: string }[]; // 이 메모가 하위 페이지일 때 위 페이지들 (헤더 경로 표시)
 };
 
 type TreeOpt = { path: string; name: string; depth: number; isDir: boolean };
@@ -227,6 +262,8 @@ export default function Editor({
   onToggleFavorite,
   onClose,
   compact,
+  onOpenNote,
+  ancestors,
 }: Props) {
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [times, setTimes] = useState<NoteTimes | null>(null); // 만든 시각·수정 시각 (헤더 표시)
@@ -248,6 +285,75 @@ export default function Editor({
   const bodyRef = useRef<HTMLDivElement>(null);
   const pathRef = useRef(path);
   const contentRef = useRef("");
+  const onOpenNoteRef = useRef(onOpenNote);
+  onOpenNoteRef.current = onOpenNote;
+
+  // "/" 메뉴. 편집기 확장(키 처리)은 한 번만 만들어지므로 최신 상태는 ref로 본다
+  const [slash, setSlash] = useState<SlashRange | null>(null);
+  const [slashIndex, setSlashIndex] = useState(0);
+  const slashItems = slash ? filterSlashItems(slash.query) : [];
+  const slashRef = useRef({ range: slash, items: slashItems, index: slashIndex });
+  slashRef.current = { range: slash, items: slashItems, index: slashIndex };
+  const slashDismissed = useRef<number | null>(null); // Esc로 닫은 "/" 자리. 거기서 다시 열지 않는다
+  const editorRef = useRef<TiptapEditor | null>(null);
+
+  const syncSlash = (state: TiptapEditor["state"]) => {
+    const r = slashQuery(state);
+    if (!r || slashDismissed.current === r.from || (r.query && filterSlashItems(r.query).length === 0)) {
+      if (!r) slashDismissed.current = null;
+      if (slashRef.current.range) setSlash(null);
+      return;
+    }
+    if (slashRef.current.range?.from !== r.from) setSlashIndex(0);
+    setSlash(r);
+  };
+
+  const runSlash = (id: SlashId) => {
+    const ed = editorRef.current;
+    const r = slashRef.current.range;
+    if (!ed || !r) return;
+    setSlash(null);
+    const chain = ed.chain().focus().deleteRange({ from: r.from, to: r.to });
+    if (id === "text") chain.setParagraph().run();
+    else if (id === "h1") chain.setHeading({ level: 1 }).run();
+    else if (id === "h2") chain.setHeading({ level: 2 }).run();
+    else if (id === "h3") chain.setHeading({ level: 3 }).run();
+    else if (id === "bullet") chain.toggleBulletList().run();
+    else if (id === "number") chain.toggleOrderedList().run();
+    else if (id === "todo") chain.toggleTaskList().run();
+    else if (id === "quote") chain.toggleBlockquote().run();
+    else if (id === "divider") chain.setHorizontalRule().run();
+    else if (id === "code") chain.toggleCodeBlock().run();
+    else if (id === "table") chain.insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+    else if (id === "page") {
+      // 하위 페이지: 파일을 만들고 본문에 📄 블록을 넣은 뒤 그 페이지로 들어간다 (노션처럼)
+      chain.run();
+      createSubpage(pathRef.current)
+        .then((rel) => {
+          ed.chain()
+            .focus()
+            .insertContent({ type: "subpage", attrs: { path: rel.replace(/\.md$/i, "") } })
+            .run();
+          void useMemoStore.getState().refreshTree(); // 파일 워처보다 먼저 트리에 새 페이지를 보인다
+          onOpenNoteRef.current?.(rel, false);
+        })
+        .catch(() => setSaveState("error"));
+    }
+  };
+
+  const onSlashKey = (key: SlashKey): boolean => {
+    const { range, items, index } = slashRef.current;
+    if (!range || items.length === 0) return false;
+    if (key === "escape") {
+      slashDismissed.current = range.from;
+      setSlash(null);
+    } else if (key === "up") setSlashIndex((i) => (i - 1 + items.length) % items.length);
+    else if (key === "down") setSlashIndex((i) => (i + 1) % items.length);
+    else if (items[index]) runSlash(items[index].id);
+    return true;
+  };
+  const onSlashKeyRef = useRef(onSlashKey);
+  onSlashKeyRef.current = onSlashKey;
 
   // 저장이 끝나면 헤더의 수정 시각도 바로 따라가게 한다
   const markSaved = () => {
@@ -274,15 +380,26 @@ export default function Editor({
       TableRow,
       TableHeader,
       TableCell,
+      TaskList,
+      NestableTaskItem,
+      TightTaskList,
+      Subpage,
+      SlashKeys.configure({ handler: (key) => onSlashKeyRef.current(key) }),
       Markdown.configure({ html: false, transformPastedText: true }),
       CopyAsMarkdown,
       TabIndent,
     ],
     editorProps: {
       attributes: { spellcheck: "false" }, // 오타 빨간 밑줄 비활성화
-      // Ctrl(맥은 Cmd) + 클릭으로 링크를 기본 브라우저에서 연다
       handleDOMEvents: {
+        // 하위 페이지 블록은 클릭으로 열고(Ctrl·가운데 버튼은 새 탭), 링크는 Ctrl(맥은 Cmd)+클릭으로 기본 브라우저에서 연다
         click: (_view, event) => {
+          const sub = subpageAt(event);
+          if (sub) {
+            event.preventDefault();
+            onOpenNoteRef.current?.(sub, event.ctrlKey || event.metaKey);
+            return true;
+          }
           if (!event.ctrlKey && !event.metaKey) return false;
           const href = (event.target as HTMLElement | null)
             ?.closest("a")
@@ -290,6 +407,13 @@ export default function Editor({
           if (!href) return false;
           event.preventDefault();
           void openUrl(href).catch(() => {});
+          return true;
+        },
+        auxclick: (_view, event) => {
+          const sub = event.button === 1 ? subpageAt(event) : null;
+          if (!sub) return false;
+          event.preventDefault();
+          onOpenNoteRef.current?.(sub, true);
           return true;
         },
       },
@@ -328,7 +452,12 @@ export default function Editor({
         return true;
       },
     },
+    onSelectionUpdate: ({ editor }) => {
+      // 커서가 "/질의" 밖으로 나가면 메뉴를 닫는다 (열기는 입력할 때만)
+      if (slashRef.current.range && !slashQuery(editor.state)) setSlash(null);
+    },
     onUpdate: ({ editor }) => {
+      syncSlash(editor.state);
       const md: string = editor.storage.markdown.getMarkdown();
       contentRef.current = md;
       pending.current = { path: pathRef.current, content: md };
@@ -346,6 +475,8 @@ export default function Editor({
     },
   });
 
+  editorRef.current = editor;
+
   // 검색 모달이 이 메모 본문을 바로 찾을 수 있게 편집기를 등록해 둔다
   useEffect(() => {
     if (!editor) return;
@@ -362,6 +493,7 @@ export default function Editor({
     const body = bodyRef.current; // 본문 스크롤 칸. 메모가 바뀌어도 같은 div라 여기서 잡아 둔다
     setSaveState("idle");
     setTimes(null);
+    setSlash(null);
     noteTimes(path)
       .then((t) => {
         if (!stale) setTimes(t);
@@ -666,6 +798,20 @@ export default function Editor({
         <span className="save-state floating">{SAVE_LABEL[saveState]}</span>
       ) : (
         <header className="editor-header">
+          {ancestors && ancestors.length > 0 && (
+            <nav className="crumbs" aria-label="상위 페이지">
+              {ancestors.map((a) => (
+                <button
+                  key={a.path}
+                  className="crumb"
+                  title={`${a.path} 열기 (Ctrl+클릭: 새 탭)`}
+                  onClick={(e) => onOpenNote?.(a.path, e.ctrlKey || e.metaKey)}
+                >
+                  {a.name}
+                </button>
+              ))}
+            </nav>
+          )}
           <input
             className="title-input"
             value={titleDraft}
@@ -829,6 +975,22 @@ export default function Editor({
       <div className="editor-body" ref={bodyRef} style={{ fontSize: `${fontSize}px` }}>
         <EditorContent className="editor-content" editor={editor} />
       </div>
+      {editor && slash && slashItems.length > 0 && (
+        <SlashMenu
+          editor={editor}
+          range={slash}
+          items={slashItems}
+          index={Math.min(slashIndex, slashItems.length - 1)}
+          onHover={setSlashIndex}
+          onPick={runSlash}
+        />
+      )}
     </section>
   );
+}
+
+// 클릭된 곳이 하위 페이지 블록이면 그 메모 경로(.md 포함)
+function subpageAt(event: MouseEvent): string | null {
+  const path = (event.target as HTMLElement | null)?.closest("[data-subpage]")?.getAttribute("data-subpage");
+  return path ? `${path}.md` : null;
 }

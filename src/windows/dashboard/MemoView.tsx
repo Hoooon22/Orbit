@@ -12,10 +12,13 @@ import type { TreeNode } from "../../shared/api";
 import { reportError } from "../../shared/stores/error";
 import { useSettings } from "../../shared/stores/settings";
 import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
+import { noteName } from "../../modules/memo/flatten";
+import { closeTab, cycleTab, openTab, pruneTabs, remapTabs, reorderTabs, useTabs } from "../../modules/memo/tabs";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
 import Editor from "../../modules/memo/Editor";
 import SearchModal from "../../modules/memo/SearchModal";
+import TabBar from "../../modules/memo/TabBar";
 
 type Props = {
   requested: { path: string; seq: number } | null; // 캘린더·단축키 등에서 "이 메모 열어 줘"
@@ -42,7 +45,8 @@ function allFolderPaths(nodes: TreeNode[], out = new Set<string>()): Set<string>
   return out;
 }
 
-// 메모 화면: 왼쪽 트리(빠른 메모·즐겨찾기·폴더), 오른쪽 편집기. Ctrl+F로 제목·본문 검색.
+// 메모 화면: 왼쪽 트리(빠른 메모·즐겨찾기·폴더), 오른쪽은 크롬처럼 탭 줄과 편집기. Ctrl+F로 제목·본문 검색.
+// 클릭하면 보던 탭이 그 메모로 바뀌고, Ctrl+클릭·가운데 버튼은 새 탭. 열린 탭은 다시 켜도 그대로다(tabs.ts).
 export default function MemoView({ requested }: Props) {
   const tree = useMemoStore((s) => s.tree);
   const favorites = useMemoStore((s) => s.favorites);
@@ -50,9 +54,11 @@ export default function MemoView({ requested }: Props) {
   const toggleFavorite = useMemoStore((s) => s.toggleFavorite);
   const remapFavorites = useMemoStore((s) => s.remapFavorites);
   const reorderFavorite = useMemoStore((s) => s.reorderFavorite);
+  const tabs = useTabs((s) => s.tabs);
+  const selected = useTabs((s) => s.active);
+  const applyTabs = useTabs((s) => s.apply);
 
-  const [selected, setSelected] = useState(QUICK_MEMO);
-  const [targetDir, setTargetDir] = useState("");
+  const [targetDir, setTargetDir] = useState(() => (selected === QUICK_MEMO ? "" : parentDir(selected)));
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [dragging, setDragging] = useState<string | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
@@ -78,32 +84,52 @@ export default function MemoView({ requested }: Props) {
     window.addEventListener("mouseup", onUp);
   };
 
+  // 메모를 연다 (탭 규칙은 tabs.ts). 하위 페이지·탭으로 연 메모도 트리에서 보이게 그 폴더를 펼친다
+  const selectNote = (path: string, newTab = false) => {
+    applyTabs((t) => openTab(t, path, newTab));
+    setTargetDir(path === QUICK_MEMO ? "" : parentDir(path));
+    expandTo(parentDir(path));
+  };
+
   // 밖에서 열어 달라는 메모 (같은 경로를 다시 요청해도 seq가 바뀌어 반응한다)
   useEffect(() => {
     if (!requested) return;
-    setSelected(requested.path);
-    setTargetDir(requested.path === QUICK_MEMO ? "" : parentDir(requested.path));
-    expandTo(parentDir(requested.path));
+    selectNote(requested.path);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requested]);
 
-  // Ctrl+F 검색 (검색창이 열려 있을 때 Esc는 검색창만 닫는다)
+  // Ctrl+F 검색 (검색창이 열려 있을 때 Esc는 검색창만 닫는다), Ctrl+W 탭 닫기, Ctrl+Tab 옆 탭, Ctrl+T 새 탭
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "f") {
+      if (!e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      if (!e.shiftKey && k === "f") {
         e.preventDefault();
         setSearchOpen((v) => !v);
+      } else if (!e.shiftKey && k === "w") {
+        e.preventDefault();
+        applyTabs((t) => closeTab(t, t.active));
+      } else if (k === "tab") {
+        e.preventDefault();
+        applyTabs((t) => cycleTab(t, e.shiftKey ? -1 : 1));
+      } else if (!e.shiftKey && k === "t") {
+        e.preventDefault();
+        void newNote(undefined, true);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetDir]);
 
-  // 처음 트리를 받으면 폴더를 모두 접어 둔다
+  // 처음 트리를 받으면 폴더를 모두 접어 둔다 (보던 메모의 폴더만 펼침)
   useEffect(() => {
     if (tree.length === 0 || collapsedOnce) return;
     setCollapsedOnce(true);
-    setCollapsed(allFolderPaths(tree));
-  }, [tree, collapsedOnce]);
+    const all = allFolderPaths(tree);
+    for (let p = parentDir(selected); p; p = parentDir(p)) all.delete(p);
+    setCollapsed(all);
+  }, [tree, collapsedOnce, selected]);
 
   const notePaths = useMemo(() => {
     const s = new Set<string>();
@@ -115,16 +141,20 @@ export default function MemoView({ requested }: Props) {
     [notePaths, favorites],
   );
 
-  // 보고 있던 메모가 사라지면(삭제·외부 변경) 빠른 메모로
+  // 보고 있던 메모가 사라지면(삭제·외부 변경) 그 탭을 닫는다
   useEffect(() => {
-    if (tree.length > 0 && selected !== QUICK_MEMO && !notePaths.has(selected))
-      setSelected(QUICK_MEMO);
-  }, [tree, notePaths, selected]);
+    if (tree.length > 0) applyTabs((t) => pruneTabs(t, (p) => notePaths.has(p)));
+  }, [tree, notePaths, applyTabs]);
 
-  const selectNote = (path: string) => {
-    setSelected(path);
-    setTargetDir(path === QUICK_MEMO ? "" : parentDir(path));
-  };
+  // 하위 페이지면 위 페이지들(헤더의 경로 표시). "폴더/회의/안건.md"의 부모는 "폴더/회의.md"
+  const ancestors = useMemo(() => {
+    const out: { path: string; name: string }[] = [];
+    for (let dir = parentDir(selected); dir; dir = parentDir(dir)) {
+      const p = `${dir}.md`;
+      if (notePaths.has(p)) out.unshift({ path: p, name: noteName(p) });
+    }
+    return out;
+  }, [selected, notePaths]);
 
   const expandTo = (dir: string) => {
     if (!dir) return;
@@ -136,7 +166,7 @@ export default function MemoView({ requested }: Props) {
   };
 
   const follow = (oldPath: string, newPath: string) => {
-    setSelected((s) => remapPath(s, oldPath, newPath));
+    applyTabs((t) => remapTabs(t, oldPath, newPath));
     setTargetDir((d) => remapPath(d, oldPath, newPath));
     remapFavorites(oldPath, newPath);
   };
@@ -150,11 +180,11 @@ export default function MemoView({ requested }: Props) {
     }
   };
 
-  const newNote = (dir = targetDir) =>
+  const newNote = (dir = targetDir, newTab = false) =>
     run(async () => {
       const path = await createNote(dir);
       expandTo(dir);
-      selectNote(path);
+      selectNote(path, newTab);
       setRenamingPath(path);
     });
 
@@ -203,7 +233,7 @@ export default function MemoView({ requested }: Props) {
     if (!path) return;
     void run(async () => {
       await deleteEntry(path); // Windows 휴지통으로 간다
-      if (selected === path || selected.startsWith(path + "/")) setSelected(QUICK_MEMO);
+      applyTabs((t) => pruneTabs(t, (p) => p !== path && !p.startsWith(path + "/")));
     });
   };
 
@@ -231,7 +261,10 @@ export default function MemoView({ requested }: Props) {
         <div className="pinned">
           <button
             className={"quick-memo" + (selected === QUICK_MEMO ? " selected" : "")}
-            onClick={() => selectNote(QUICK_MEMO)}
+            onClick={(e) => selectNote(QUICK_MEMO, e.ctrlKey || e.metaKey)}
+            onAuxClick={(e) => {
+              if (e.button === 1) selectNote(QUICK_MEMO, true);
+            }}
           >
             <span className="pinned-icon">⚡</span>빠른 메모
           </button>
@@ -290,19 +323,29 @@ export default function MemoView({ requested }: Props) {
       </aside>
       <div className="memo-resizer" onMouseDown={startResize} title="드래그하여 목록 너비 조절" />
       <div className="memo-main">
+        <TabBar
+          tabs={tabs}
+          active={selected}
+          onActivate={(p) => selectNote(p)}
+          onClose={(p) => applyTabs((t) => closeTab(t, p))}
+          onReorder={(d, target, pos) => applyTabs((t) => reorderTabs(t, d, target, pos))}
+          onNew={() => void newNote(undefined, true)}
+        />
         <Editor
           key={selected}
           path={selected}
           onRename={(name) => rename(selected, name)}
           isFavorite={favorites.includes(selected)}
           onToggleFavorite={() => toggleFavorite(selected)}
+          onOpenNote={selectNote}
+          ancestors={ancestors}
         />
       </div>
       {searchOpen && (
         <SearchModal
           currentPath={selected}
           onClose={() => setSearchOpen(false)}
-          onSelectNote={selectNote}
+          onSelectNote={(p) => selectNote(p)}
           onError={reportError}
         />
       )}
