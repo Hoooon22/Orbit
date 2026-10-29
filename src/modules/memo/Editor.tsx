@@ -240,7 +240,7 @@ type Props = {
   onClose?: () => void; // 분할 창일 때만 전달됨 (헤더에 닫기 버튼 표시)
   compact?: boolean; // 오브 패널용: 헤더 없이 본문만 (저장 표시는 본문 위 작은 라벨)
   // 다른 메모를 열 수 있는 화면(메모 화면)에서만 전달됨. 하위 페이지 블록 클릭과 "/페이지"가 쓴다
-  onOpenNote?: (path: string, newTab: boolean) => void;
+  onOpenNote?: (path: string) => void;
   ancestors?: { path: string; name: string }[]; // 이 메모가 하위 페이지일 때 위 페이지들 (헤더 경로 표시)
 };
 
@@ -335,7 +335,7 @@ export default function Editor({
             .insertContent({ type: "subpage", attrs: { path: rel.replace(/\.md$/i, "") } })
             .run();
           void useMemoStore.getState().refreshTree(); // 파일 워처보다 먼저 트리에 새 페이지를 보인다
-          onOpenNoteRef.current?.(rel, false);
+          onOpenNoteRef.current?.(rel);
         })
         .catch(() => setSaveState("error"));
     }
@@ -392,12 +392,12 @@ export default function Editor({
     editorProps: {
       attributes: { spellcheck: "false" }, // 오타 빨간 밑줄 비활성화
       handleDOMEvents: {
-        // 하위 페이지 블록은 클릭으로 열고(Ctrl·가운데 버튼은 새 탭), 링크는 Ctrl(맥은 Cmd)+클릭으로 기본 브라우저에서 연다
+        // 하위 페이지 블록은 클릭으로 열고(새 탭), 링크는 Ctrl(맥은 Cmd)+클릭으로 기본 브라우저에서 연다
         click: (_view, event) => {
           const sub = subpageAt(event);
           if (sub) {
             event.preventDefault();
-            onOpenNoteRef.current?.(sub, event.ctrlKey || event.metaKey);
+            onOpenNoteRef.current?.(sub);
             return true;
           }
           if (!event.ctrlKey && !event.metaKey) return false;
@@ -407,13 +407,6 @@ export default function Editor({
           if (!href) return false;
           event.preventDefault();
           void openUrl(href).catch(() => {});
-          return true;
-        },
-        auxclick: (_view, event) => {
-          const sub = event.button === 1 ? subpageAt(event) : null;
-          if (!sub) return false;
-          event.preventDefault();
-          onOpenNoteRef.current?.(sub, true);
           return true;
         },
       },
@@ -804,8 +797,8 @@ export default function Editor({
                 <button
                   key={a.path}
                   className="crumb"
-                  title={`${a.path} 열기 (Ctrl+클릭: 새 탭)`}
-                  onClick={(e) => onOpenNote?.(a.path, e.ctrlKey || e.metaKey)}
+                  title={`${a.path} 열기`}
+                  onClick={() => onOpenNote?.(a.path)}
                 >
                   {a.name}
                 </button>

@@ -1,15 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { closeTab, cycleTab, EMPTY, openTab, pruneTabs, remapTabs, reorderTabs } from "./tabs";
+import { closeTab, cycleTab, EMPTY, openTab, placeTab, pruneTabs, remapTabs, reorderTabs } from "./tabs";
 
 describe("탭", () => {
-  it("열기: 활성 탭이 바뀌고, 새 탭은 활성 탭 오른쪽에, 이미 열린 메모는 그 탭으로", () => {
+  it("열기: 늘 활성 탭 오른쪽에 새 탭, 이미 열린 메모는 그 탭으로", () => {
     let t = openTab(EMPTY, "a.md");
-    expect(t).toEqual({ tabs: ["a.md"], active: "a.md" }); // 빠른 메모 탭이 a로 바뀜
-    t = openTab(t, "b.md", true);
-    expect(t).toEqual({ tabs: ["a.md", "b.md"], active: "b.md" });
-    t = openTab({ ...t, active: "a.md" }, "c.md", true);
-    expect(t.tabs).toEqual(["a.md", "c.md", "b.md"]);
-    expect(openTab(t, "b.md", true)).toEqual({ tabs: ["a.md", "c.md", "b.md"], active: "b.md" });
+    expect(t).toEqual({ tabs: ["QuickMemo.md", "a.md"], active: "a.md" });
+    t = openTab(t, "b.md");
+    expect(t).toEqual({ tabs: ["QuickMemo.md", "a.md", "b.md"], active: "b.md" });
+    t = openTab({ ...t, active: "a.md" }, "c.md");
+    expect(t.tabs).toEqual(["QuickMemo.md", "a.md", "c.md", "b.md"]);
+    expect(openTab(t, "b.md")).toEqual({ tabs: ["QuickMemo.md", "a.md", "c.md", "b.md"], active: "b.md" });
+  });
+
+  it("끌어다 놓기: 그 자리에 탭이 생기고, 이미 열린 탭은 그 자리로 옮겨진다", () => {
+    const t = { tabs: ["a.md", "b.md"], active: "a.md" };
+    expect(placeTab(t, "c.md", 1)).toEqual({ tabs: ["a.md", "c.md", "b.md"], active: "c.md" });
+    expect(placeTab(t, "c.md", 99)).toEqual({ tabs: ["a.md", "b.md", "c.md"], active: "c.md" });
+    expect(placeTab(t, "b.md", 0)).toEqual({ tabs: ["b.md", "a.md"], active: "b.md" });
   });
 
   it("닫기: 활성 탭을 닫으면 오른쪽, 끝이면 왼쪽, 마지막이면 빠른 메모", () => {

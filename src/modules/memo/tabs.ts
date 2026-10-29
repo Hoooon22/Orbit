@@ -9,13 +9,18 @@ export type Tabs = { tabs: string[]; active: string };
 const KEY = "memoTabs";
 export const EMPTY: Tabs = { tabs: [QUICK_MEMO], active: QUICK_MEMO };
 
-// 메모를 연다. 이미 열려 있으면 그 탭으로, newTab이면 활성 탭 오른쪽에 새 탭으로, 아니면 활성 탭이 그 메모로 바뀐다.
-export function openTab(t: Tabs, path: string, newTab = false): Tabs {
+// 메모를 연다. 이미 열려 있으면 그 탭으로, 아니면 활성 탭 오른쪽에 새 탭으로 (새 메모든 기존 메모든 같다).
+export function openTab(t: Tabs, path: string): Tabs {
   if (t.tabs.includes(path)) return { tabs: t.tabs, active: path };
-  const i = t.tabs.indexOf(t.active);
   const tabs = [...t.tabs];
-  if (newTab || i === -1) tabs.splice(i + 1, 0, path);
-  else tabs[i] = path;
+  tabs.splice(t.tabs.indexOf(t.active) + 1, 0, path);
+  return { tabs, active: path };
+}
+
+// 메모를 탭 줄의 index 자리에 놓는다 (트리·즐겨찾기에서 끌어다 놓기). 이미 열려 있던 탭은 그 자리로 옮긴다.
+export function placeTab(t: Tabs, path: string, index: number): Tabs {
+  const tabs = t.tabs.filter((p) => p !== path);
+  tabs.splice(Math.max(0, Math.min(index, tabs.length)), 0, path);
   return { tabs, active: path };
 }
 

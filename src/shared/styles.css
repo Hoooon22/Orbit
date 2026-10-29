@@ -1716,12 +1716,18 @@ button {
   color: var(--fg);
 }
 
-/* 탭 줄 끝의 "+" (새 메모를 새 탭으로) */
+/* 탭 줄 끝의 "+" (새 메모를 새 탭으로). 마지막 탭과 살짝 띄운다 */
 .tab-add {
   flex-shrink: 0;
   width: 30px;
+  margin-left: 8px;
   color: var(--fg-dim);
   font-size: 16px;
+}
+
+/* 목록의 메모를 탭 줄 빈 자리에 끌어다 놓는 중 (맨 뒤에 탭이 생긴다) */
+.tab-bar.drop-over {
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .tab-add:hover {

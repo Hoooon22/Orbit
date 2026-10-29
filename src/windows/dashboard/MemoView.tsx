@@ -13,7 +13,16 @@ import { reportError } from "../../shared/stores/error";
 import { useSettings } from "../../shared/stores/settings";
 import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
 import { noteName } from "../../modules/memo/flatten";
-import { closeTab, cycleTab, openTab, pruneTabs, remapTabs, reorderTabs, useTabs } from "../../modules/memo/tabs";
+import {
+  closeTab,
+  cycleTab,
+  openTab,
+  placeTab,
+  pruneTabs,
+  remapTabs,
+  reorderTabs,
+  useTabs,
+} from "../../modules/memo/tabs";
 import Tree from "../../modules/memo/Tree";
 import Favorites from "../../modules/memo/Favorites";
 import Editor from "../../modules/memo/Editor";
@@ -46,7 +55,8 @@ function allFolderPaths(nodes: TreeNode[], out = new Set<string>()): Set<string>
 }
 
 // 메모 화면: 왼쪽 트리(빠른 메모·즐겨찾기·폴더), 오른쪽은 크롬처럼 탭 줄과 편집기. Ctrl+F로 제목·본문 검색.
-// 클릭하면 보던 탭이 그 메모로 바뀌고, Ctrl+클릭·가운데 버튼은 새 탭. 열린 탭은 다시 켜도 그대로다(tabs.ts).
+// 메모를 열면 늘 새 탭이 생기고(이미 열려 있으면 그 탭으로), 목록의 메모를 탭 줄에 끌어다 놓아도 된다.
+// 열린 탭은 다시 켜도 그대로다(tabs.ts).
 export default function MemoView({ requested }: Props) {
   const tree = useMemoStore((s) => s.tree);
   const favorites = useMemoStore((s) => s.favorites);
@@ -85,8 +95,8 @@ export default function MemoView({ requested }: Props) {
   };
 
   // 메모를 연다 (탭 규칙은 tabs.ts). 하위 페이지·탭으로 연 메모도 트리에서 보이게 그 폴더를 펼친다
-  const selectNote = (path: string, newTab = false) => {
-    applyTabs((t) => openTab(t, path, newTab));
+  const selectNote = (path: string) => {
+    applyTabs((t) => openTab(t, path));
     setTargetDir(path === QUICK_MEMO ? "" : parentDir(path));
     expandTo(parentDir(path));
   };
@@ -114,7 +124,7 @@ export default function MemoView({ requested }: Props) {
         applyTabs((t) => cycleTab(t, e.shiftKey ? -1 : 1));
       } else if (!e.shiftKey && k === "t") {
         e.preventDefault();
-        void newNote(undefined, true);
+        void newNote();
       }
     };
     window.addEventListener("keydown", onKey);
@@ -180,11 +190,11 @@ export default function MemoView({ requested }: Props) {
     }
   };
 
-  const newNote = (dir = targetDir, newTab = false) =>
+  const newNote = (dir = targetDir) =>
     run(async () => {
       const path = await createNote(dir);
       expandTo(dir);
-      selectNote(path, newTab);
+      selectNote(path);
       setRenamingPath(path);
     });
 
@@ -261,10 +271,7 @@ export default function MemoView({ requested }: Props) {
         <div className="pinned">
           <button
             className={"quick-memo" + (selected === QUICK_MEMO ? " selected" : "")}
-            onClick={(e) => selectNote(QUICK_MEMO, e.ctrlKey || e.metaKey)}
-            onAuxClick={(e) => {
-              if (e.button === 1) selectNote(QUICK_MEMO, true);
-            }}
+            onClick={() => selectNote(QUICK_MEMO)}
           >
             <span className="pinned-icon">⚡</span>빠른 메모
           </button>
@@ -326,10 +333,14 @@ export default function MemoView({ requested }: Props) {
         <TabBar
           tabs={tabs}
           active={selected}
-          onActivate={(p) => selectNote(p)}
+          onActivate={selectNote}
           onClose={(p) => applyTabs((t) => closeTab(t, p))}
           onReorder={(d, target, pos) => applyTabs((t) => reorderTabs(t, d, target, pos))}
-          onNew={() => void newNote(undefined, true)}
+          onPlace={(p, i) => {
+            applyTabs((t) => placeTab(t, p, i));
+            setTargetDir(parentDir(p));
+          }}
+          onNew={() => void newNote()}
         />
         <Editor
           key={selected}
@@ -345,7 +356,7 @@ export default function MemoView({ requested }: Props) {
         <SearchModal
           currentPath={selected}
           onClose={() => setSearchOpen(false)}
-          onSelectNote={(p) => selectNote(p)}
+          onSelectNote={selectNote}
           onError={reportError}
         />
       )}

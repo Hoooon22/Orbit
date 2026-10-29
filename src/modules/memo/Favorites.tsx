@@ -5,7 +5,7 @@ type DropAt = { path: string; pos: "before" | "after" };
 type Props = {
   favorites: string[]; // 순서대로, 실제로 존재하는 메모 경로만
   selected: string;
-  onSelect: (path: string, newTab: boolean) => void; // Ctrl+클릭·가운데 버튼이면 새 탭
+  onSelect: (path: string) => void;
   onUnfavorite: (path: string) => void;
   onReorder: (dragged: string, target: string, pos: "before" | "after") => void;
 };
@@ -69,10 +69,7 @@ export default function Favorites({
             >
               <button
                 className={"fav-row" + (selected === path ? " selected" : "")}
-                onClick={(e) => onSelect(path, e.ctrlKey || e.metaKey)}
-                onAuxClick={(e) => {
-                  if (e.button === 1) onSelect(path, true);
-                }}
+                onClick={() => onSelect(path)}
                 title={path}
               >
                 <span className="pinned-icon">⭐</span>

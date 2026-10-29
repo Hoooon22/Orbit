@@ -10,7 +10,7 @@ type TreeProps = {
   targetDir: string;
   collapsed: Set<string>;
   renamingPath: string | null;
-  onSelectNote: (path: string, newTab: boolean) => void; // Ctrl+클릭·가운데 버튼이면 새 탭
+  onSelectNote: (path: string) => void;
   onSelectFolder: (dir: string) => void;
   onToggle: (path: string) => void;
   onRename: (path: string, newName: string) => Promise<boolean>;
@@ -283,10 +283,7 @@ function TreeItem({
         ) : (
           <button
             className={"tree-row note" + (selected === node.path ? " selected" : "")}
-            onClick={(e) => onSelectNote(node.path, e.ctrlKey || e.metaKey)}
-            onAuxClick={(e) => {
-              if (e.button === 1) onSelectNote(node.path, true);
-            }}
+            onClick={() => onSelectNote(node.path)}
             {...dragProps}
           >
             <span className="chevron" />

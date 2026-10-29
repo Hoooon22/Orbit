@@ -67,7 +67,7 @@ export const Subpage = Node.create({
     const path = node.attrs.path as string;
     return [
       "div",
-      { "data-subpage": path, class: "subpage", title: `${path} 열기 (Ctrl+클릭: 새 탭)` },
+      { "data-subpage": path, class: "subpage", title: `${path} 열기` },
       ["span", { class: "subpage-icon" }, "📄"],
       ["span", { class: "subpage-title" }, subpageTitle(path)],
     ];
