@@ -106,13 +106,13 @@ export default function PanelApp() {
         {tab === "todo" && (
           <>
             <TodoAdd kind="now" />
-            <TodoPanel only="now" onOpenView={() => openDashboard("todo")} />
+            <TodoPanel only="now" />
           </>
         )}
         {tab === "later" && (
           <>
             <TodoAdd kind="later" />
-            <TodoPanel only="later" onOpenView={() => openDashboard("todo")} />
+            <TodoPanel only="later" />
           </>
         )}
         {tab === "ai" && <TerminalView />}

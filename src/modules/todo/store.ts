@@ -29,6 +29,23 @@ export function dueMs(t: Todo): number | undefined {
   return new Date(y, m - 1, day, h, mi).getTime();
 }
 
+// 알림 선택지: 마감 몇 분 전
+export const REMIND_OPTIONS: [number, string][] = [
+  [0, "정각"],
+  [10, "10분 전"],
+  [60, "1시간 전"],
+  [1440, "하루 전"],
+];
+
+// 현재 알림이 마감 몇 분 전인지. 알림이 없으면 undefined, 스누즈 등으로 선택지 밖이면 "custom".
+export function reminderOffset(t: Todo): number | "custom" | undefined {
+  if (t.remindAt === undefined) return undefined;
+  const due = dueMs(t);
+  if (due === undefined) return undefined;
+  const offset = Math.round((due - t.remindAt) / 60_000);
+  return REMIND_OPTIONS.some(([o]) => o === offset) ? offset : "custom";
+}
+
 // 표시 순서: 배열 순서(드래그로 수동 변경) 그대로, 완료 항목만 뒤로.
 // stable sort라 같은 그룹 안에서는 수동 순서가 유지된다.
 export function sortDoneLast(todos: Todo[]): Todo[] {

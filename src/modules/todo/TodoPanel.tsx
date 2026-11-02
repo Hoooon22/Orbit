@@ -1,17 +1,10 @@
 import { useState } from "react";
-import { todayStr } from "../../shared/dates";
-import { deadline, isNow, useTodos } from "./store";
-import type { Todo } from "../../shared/api";
+import { isNow, useTodos } from "./store";
+import TodoRows from "./TodoRows";
 
 type Props = {
-  onOpenView: () => void; // 항목 이름을 누르면 전체 할 일 화면으로
   only?: "now" | "later"; // 펫 패널: 당장 할 일 탭 / 기억해야 할 일 탭에 한 묶음만. 없으면 둘 다(장기는 접힘)
 };
-
-// "2026-08-03" → "8/3"
-function dateLabel(d: string): string {
-  return `${Number(d.slice(5, 7))}/${Number(d.slice(8, 10))}`;
-}
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const timeLabel = (ms: number) => {
@@ -26,80 +19,17 @@ function tomorrowMorning(): number {
 }
 
 // 남은 할 일 목록 + 울린 알림 스트립. 체크하면 목록에서 사라지고,
-// 완료 항목은 전체 할 일 화면에서 확인·되돌린다. 순서는 전체 화면에서 드래그로 정한 수동 순서.
-export default function TodoPanel({ onOpenView, only }: Props) {
+// 완료 항목은 전체 할 일 화면에서 확인·되돌린다. 순서는 드래그로 정한 수동 순서.
+export default function TodoPanel({ only }: Props) {
   const todos = useTodos((s) => s.todos);
   const fired = useTodos((s) => s.fired);
   const patch = useTodos((s) => s.patch);
-  const reorder = useTodos((s) => s.reorder);
   const snooze = useTodos((s) => s.snooze);
   const dismissFired = useTodos((s) => s.dismissFired);
-  const [dragId, setDragId] = useState<string | null>(null);
-  const [dropAt, setDropAt] = useState<{ id: string; before: boolean } | null>(null);
   const [laterOpen, setLaterOpen] = useState(false);
 
-  const today = todayStr();
   const pending = todos.filter((t) => !t.done && isNow(t));
   const later = todos.filter((t) => !t.done && !isNow(t));
-
-  const renderItem = (t: Todo) => {
-    const d = deadline(t);
-    const urgency = !d ? "" : d < today ? " overdue" : d === today ? " today" : "";
-    return (
-      <li
-        key={t.id}
-        className={
-          "todo-panel-item" +
-          urgency +
-          (dropAt?.id === t.id ? (dropAt.before ? " drop-before" : " drop-after") : "")
-        }
-        draggable
-        onDragStart={(e) => {
-          e.dataTransfer.setData("application/x-todo", t.id);
-          e.dataTransfer.effectAllowed = "move";
-          setDragId(t.id);
-        }}
-        onDragOver={(e) => {
-          if (!dragId || dragId === t.id) return;
-          e.preventDefault();
-          e.dataTransfer.dropEffect = "move";
-          const r = e.currentTarget.getBoundingClientRect();
-          setDropAt({ id: t.id, before: e.clientY < r.top + r.height / 2 });
-        }}
-        onDragLeave={() => setDropAt((d) => (d?.id === t.id ? null : d))}
-        onDrop={(e) => {
-          e.preventDefault();
-          if (dragId && dragId !== t.id && dropAt?.id === t.id) reorder(dragId, t.id, dropAt.before);
-          setDragId(null);
-          setDropAt(null);
-        }}
-        onDragEnd={() => {
-          setDragId(null);
-          setDropAt(null);
-        }}
-      >
-        <input
-          type="checkbox"
-          checked={false}
-          onChange={() => patch(t.id, { done: true })}
-          aria-label={`완료 처리: ${t.text || "(내용 없음)"}`}
-        />
-        <button className="todo-panel-label" onClick={onOpenView} title={t.text}>
-          {t.text || "(내용 없음)"}
-        </button>
-        {d && (
-          <span
-            className="todo-panel-date"
-            title={t.remindAt !== undefined ? `알림 ${timeLabel(t.remindAt)}` : undefined}
-          >
-            {dateLabel(d)}
-            {t.time ? ` ${t.time}` : ""}
-            {t.remindAt !== undefined ? " 🔔" : ""}
-          </span>
-        )}
-      </li>
-    );
-  };
 
   return (
     <div className="todo-panel compact">
@@ -136,22 +66,16 @@ export default function TodoPanel({ onOpenView, only }: Props) {
         </ul>
       )}
       {only === "later" ? (
-        <ul className="todo-panel-list later">
-          {later.map(renderItem)}
-          {later.length === 0 && <li className="todo-panel-empty">기억해야 할 일 없음</li>}
-        </ul>
+        <TodoRows items={later} empty="기억해야 할 일 없음" className="later" />
       ) : (
-        <ul className="todo-panel-list">
-          {pending.map(renderItem)}
-          {pending.length === 0 && <li className="todo-panel-empty">당장 할 일 없음</li>}
-        </ul>
+        <TodoRows items={pending} empty="당장 할 일 없음" />
       )}
       {only === undefined && later.length > 0 && (
         <>
           <button className="todo-later-head" onClick={() => setLaterOpen((v) => !v)}>
             {laterOpen ? "▾" : "▸"} 🗂 기억해야 할 일 {later.length}
           </button>
-          {laterOpen && <ul className="todo-panel-list later">{later.map(renderItem)}</ul>}
+          {laterOpen && <TodoRows items={later} className="later" />}
         </>
       )}
     </div>

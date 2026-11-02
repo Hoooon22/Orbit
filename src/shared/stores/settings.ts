@@ -19,7 +19,6 @@ export const DEFAULT_SETTINGS: Settings = {
   shortcutQuickMemo: "ctrl+alt+m",
   shortcutLauncher: "alt+space",
   googleHiddenTitles: [],
-  homeQuickMemoOpen: false,
   usageEnabled: true,
   shortcutCapture: "ctrl+alt+c",
   shortcutColorPick: "",

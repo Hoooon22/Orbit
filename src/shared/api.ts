@@ -247,7 +247,6 @@ export type Settings = {
   shortcutQuickMemo: string; // 전역 단축키 (예: "ctrl+alt+m"). 비우면 없음
   shortcutLauncher: string;
   googleHiddenTitles: string[]; // 제목에 이 단어가 들어간 구글 일정은 Orbit에서 숨김
-  homeQuickMemoOpen: boolean; // 홈 아래쪽 빠른 메모 칸이 펼쳐져 있는지
   usageEnabled: boolean; // 앱 사용 시간 기록
   shortcutCapture: string; // 영역 캡처 전역 단축키. 비우면 없음
   shortcutColorPick: string; // 색상 추출 전역 단축키. 비우면 없음

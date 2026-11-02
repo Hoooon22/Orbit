@@ -120,14 +120,6 @@ export default function Dashboard() {
   const error = useError((s) => s.error);
   const clearError = useError((s) => s.clear);
 
-  const todos = useTodos((s) => s.todos);
-  const addTodo = useTodos((s) => s.add);
-  const patchTodo = useTodos((s) => s.patch);
-  const removeTodo = useTodos((s) => s.remove);
-  const reorderTodo = useTodos((s) => s.reorder);
-  const setTodoDue = useTodos((s) => s.setDue);
-  const setTodoReminder = useTodos((s) => s.setReminder);
-
   useEffect(() => {
     void useSettings.getState().init();
     useMemoStore.getState().init();
@@ -294,17 +286,7 @@ export default function Dashboard() {
           )}
           {view === "ai" && <TerminalView />}
           {view === "memo" && <MemoView requested={memoPath} />}
-          {view === "todo" && (
-            <TodoList
-              todos={todos}
-              onAdd={addTodo}
-              onPatch={patchTodo}
-              onRemove={removeTodo}
-              onReorder={reorderTodo}
-              onSetDue={setTodoDue}
-              onSetReminder={setTodoReminder}
-            />
-          )}
+          {view === "todo" && <TodoList />}
           {view === "calendar" && (
             <CalendarView
               initialDate={calendarDate}
