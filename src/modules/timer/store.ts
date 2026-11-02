@@ -21,7 +21,7 @@ type TimerStore = {
   init: () => void;
   addTimer: (name: string) => void;
   patchTimer: (id: string, p: Partial<WorkTimer>) => void;
-  // 시작/멈춤. 순수 작업 시간을 재는 것이라 하나를 시작하면 돌던 다른 타이머는 멈춘다
+  // 시작/일시정지. 타이머는 서로 독립이라 여러 개가 동시에 돌 수 있다 (작업을 같이 하는 경우)
   toggle: (id: string) => void;
   reset: (id: string) => void;
   removeTimer: (id: string) => void;
@@ -79,13 +79,8 @@ export const useTimers = create<TimerStore>((set, get) => {
       const now = Date.now();
       const target = get().timers.find((t) => t.id === id);
       if (!target) return;
-      if (target.startedAt) {
-        patchTimer(id, { elapsed: elapsedOf(target, now), startedAt: undefined });
-        return;
-      }
-      for (const t of get().timers)
-        if (t.startedAt) patchTimer(t.id, { elapsed: elapsedOf(t, now), startedAt: undefined });
-      patchTimer(id, { startedAt: now });
+      if (target.startedAt) patchTimer(id, { elapsed: elapsedOf(target, now), startedAt: undefined });
+      else patchTimer(id, { startedAt: now });
     },
 
     reset: (id) => patchTimer(id, { elapsed: 0, startedAt: undefined }),
