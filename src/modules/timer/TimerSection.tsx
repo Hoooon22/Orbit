@@ -1,6 +1,73 @@
-import { useEffect, useRef, useState } from "react";
-import type { WorkTimer } from "../../shared/api";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import type { WorkLogItem, WorkTimer } from "../../shared/api";
 import { elapsedOf, formatElapsed, useTimers } from "./store";
+
+const NOTE_WIDTH = 300;
+
+// 기록 한 줄의 메모 창: 메모 버튼 아래(자리가 없으면 위)에 뜨는 작은 글상자.
+// 바깥을 누르거나 Esc로 닫히고, 닫힐 때와 포커스를 잃을 때 바뀐 글을 저장한다.
+function NotePopover({ item, anchor, onClose }: { item: WorkLogItem; anchor: HTMLElement; onClose: () => void }) {
+  const patchLog = useTimers((s) => s.patchLog);
+  const ref = useRef<HTMLDivElement>(null);
+  const draft = useRef(item.note ?? "");
+  const [pos, setPos] = useState({ left: 0, top: 0 });
+
+  const commit = () => {
+    const v = draft.current.trim();
+    if (v !== (item.note ?? "")) patchLog(item.id, { note: v || undefined });
+  };
+  const commitRef = useRef(commit);
+  commitRef.current = commit; // 닫기 이벤트 핸들러가 늘 최신 item을 보도록
+
+  useLayoutEffect(() => {
+    const r = anchor.getBoundingClientRect();
+    const h = ref.current?.offsetHeight ?? 0;
+    const left = Math.min(Math.max(8, r.left), window.innerWidth - NOTE_WIDTH - 8);
+    let top = r.bottom + 4;
+    if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 4);
+    setPos({ left, top });
+    ref.current?.querySelector("textarea")?.focus();
+  }, [anchor]);
+
+  useEffect(() => {
+    const close = () => {
+      commitRef.current();
+      onClose();
+    };
+    const onDown = (e: MouseEvent) => {
+      const el = e.target as Node;
+      if (ref.current?.contains(el) || anchor.contains(el)) return;
+      close();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault(); // 창을 숨기는 Esc 처리보다 먼저 받아 이 창만 닫는다
+      e.stopPropagation();
+      close();
+    };
+    document.addEventListener("mousedown", onDown, true);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDown, true);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [anchor, onClose]);
+
+  return createPortal(
+    <div className="note-pop" ref={ref} style={pos}>
+      <div className="note-pop-title">{item.title || "(제목 없음)"}</div>
+      <textarea
+        defaultValue={item.note ?? ""}
+        placeholder="무슨 일을 했는지 적어 두세요"
+        spellCheck={false}
+        onChange={(e) => (draft.current = e.target.value)}
+        onBlur={commit}
+      />
+    </div>,
+    document.body,
+  );
+}
 
 // 글자처럼 보이다가 누르면 그 자리에서 고치는 칸. Enter·포커스 아웃으로 확정, Esc로 되돌림.
 function Field({
@@ -87,6 +154,8 @@ export default function TimerSection() {
   const patchLog = useTimers((s) => s.patchLog);
   const removeLog = useTimers((s) => s.removeLog);
   const [draft, setDraft] = useState("");
+  const [note, setNote] = useState<{ id: string; anchor: HTMLElement } | null>(null);
+  const noteItem = note && log.find((x) => x.id === note.id);
 
   const submit = () => {
     if (!draft.trim()) return;
@@ -119,12 +188,20 @@ export default function TimerSection() {
                 }}
               />
               <span className="worklog-sep">h</span>
+              <button
+                className={"worklog-note" + (item.note ? " has" : "") + (note?.id === item.id ? " open" : "")}
+                title={item.note || "무슨 일을 했는지 메모"}
+                onClick={(e) => setNote(note?.id === item.id ? null : { id: item.id, anchor: e.currentTarget })}
+              >
+                메모
+              </button>
               <button className="timer-x" onClick={() => removeLog(item.id)} title="삭제" aria-label="삭제">
                 ×
               </button>
             </li>
           ))}
         </ul>
+        {noteItem && <NotePopover item={noteItem} anchor={note.anchor} onClose={() => setNote(null)} />}
       </div>
       <div className="timer-board">
         <div className="orb-todo-add">

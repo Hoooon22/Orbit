@@ -4044,6 +4044,64 @@ body.dashboard-window {
   font-size: 12px;
 }
 
+/* 기록 줄의 메모 버튼: 평소엔 흐리게, 메모가 있으면 강조색, 창이 열려 있으면 테두리 */
+.worklog-note {
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  color: var(--fg-mute);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.worklog-note.has {
+  color: var(--accent);
+}
+
+.worklog-note:hover,
+.worklog-note.open {
+  border-color: var(--border);
+  background: var(--bg-panel);
+  color: var(--fg);
+}
+
+/* 메모 창 */
+.note-pop {
+  position: fixed;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.note-pop-title {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-pop textarea {
+  height: 140px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+}
+
 /* 오른쪽: 타이머 보드 */
 .timer-board {
   display: flex;
