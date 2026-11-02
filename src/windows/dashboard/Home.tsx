@@ -1,19 +1,16 @@
 import { useMemo, useState } from "react";
 import { QUICK_MEMO } from "../../shared/api";
-import { todayStr } from "../../shared/dates";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 import Editor from "../../modules/memo/Editor";
 import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
 import { pendingNow, useTodos } from "../../modules/todo/store";
-import { useAllEvents } from "../../modules/calendar/googleStore";
-import { monthOf } from "../../modules/calendar/calendar";
-import MiniCalendar from "../../modules/calendar/MiniCalendar";
 import TodoPanel from "../../modules/todo/TodoPanel";
+import HomeTimers from "../../modules/timer/HomeTimers";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 
 type Props = {
-  onOpenCalendar: (date: string) => void;
   onOpenTodos: () => void;
+  onOpenTimer: () => void;
   onOpenMemo: (path: string) => void;
 };
 
@@ -21,12 +18,10 @@ function noteName(path: string): string {
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 
-// 대시보드 홈: 한 화면에 할 일·달력 / 빠른 메모 / 즐겨찾기·클립보드
-export default function Home({ onOpenCalendar, onOpenTodos, onOpenMemo }: Props) {
+// 대시보드 홈: 한 화면에 할 일·타이머 / 빠른 메모 / 즐겨찾기·클립보드
+export default function Home({ onOpenTodos, onOpenTimer, onOpenMemo }: Props) {
   const todos = useTodos((s) => s.todos);
   const addTodo = useTodos((s) => s.add);
-  const events = useAllEvents();
-  const [month, setMonth] = useState(() => monthOf(todayStr()));
   const [draft, setDraft] = useState("");
   const preview = describeParsed(parseTodoInput(draft));
   const pending = pendingNow(todos);
@@ -75,15 +70,14 @@ export default function Home({ onOpenCalendar, onOpenTodos, onOpenMemo }: Props)
           </div>
           <TodoPanel />
         </div>
-        <div className="home-card home-cal">
-          <MiniCalendar
-            month={month}
-            onMonthChange={setMonth}
-            selected={null}
-            onSelect={onOpenCalendar}
-            events={events}
-            todos={todos}
-          />
+        <h2 className="home-title">
+          타이머
+          <button className="home-link" onClick={onOpenTimer}>
+            전체 보기 ›
+          </button>
+        </h2>
+        <div className="home-card home-timers">
+          <HomeTimers />
         </div>
       </section>
 

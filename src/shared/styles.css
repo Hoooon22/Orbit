@@ -3935,13 +3935,58 @@ body.dashboard-window {
   overflow: hidden;
 }
 
-/* 왼쪽 칸: 할 일이 남는 높이를 다 쓰고, 달력은 제 높이만큼 아래에 */
+/* 왼쪽 칸: 할 일이 남는 높이를 다 쓰고, 타이머 목록은 제 높이만큼(최대 칸의 40%) 아래에 */
 .home-todo {
   flex: 1;
 }
 
-.home-cal {
+.home-timers {
   flex-shrink: 0;
+  max-height: 40%;
+  overflow-y: auto;
+}
+
+.home-timer-rows {
+  margin: 0;
+  padding: 4px 6px;
+  list-style: none;
+}
+
+.home-timer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 6px;
+}
+
+.home-timer-row:hover {
+  background: var(--bg-hover);
+}
+
+.home-timer-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-timer-time {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-dim);
+}
+
+.home-timer-row.running .home-timer-time {
+  color: var(--accent);
+}
+
+.home-timer-row .timer-btn {
+  width: 34px;
+  text-align: center;
 }
 
 /* 가운데 칸: 빠른 메모가 칸 전체 */

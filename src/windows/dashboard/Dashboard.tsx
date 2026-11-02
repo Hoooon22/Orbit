@@ -287,11 +287,8 @@ export default function Dashboard() {
           )}
           {view === "home" && (
             <Home
-              onOpenCalendar={(date) => {
-                setCalendarDate(date);
-                setView("calendar");
-              }}
               onOpenTodos={() => setView("todo")}
+              onOpenTimer={() => setView("timer")}
               onOpenMemo={openMemo}
             />
           )}

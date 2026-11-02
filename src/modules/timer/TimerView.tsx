@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { WorkLogItem, WorkTimer } from "../../shared/api";
-import { elapsedOf, formatElapsed, useTimers } from "./store";
+import TimerClock from "./TimerClock";
+import { useTimers } from "./store";
 
 const NOTE_WIDTH = 300;
 
@@ -110,26 +111,18 @@ function Field({
   );
 }
 
-// 타이머 한 장. 돌고 있는 동안만 1초 간격으로 다시 그리고, 멈추면 간격을 없앤다.
-// 시간은 시작 시각에서 계산하므로 간격이 밀려도 어긋나지 않는다.
+// 타이머 한 장: 이름(눌러서 고침) · 시간 · 시작/일시정지 · 초기화 · 삭제
 function TimerTile({ timer }: { timer: WorkTimer }) {
   const toggle = useTimers((s) => s.toggle);
   const reset = useTimers((s) => s.reset);
   const remove = useTimers((s) => s.removeTimer);
   const patch = useTimers((s) => s.patchTimer);
   const running = !!timer.startedAt;
-  const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    if (!running) return;
-    setNow(Date.now());
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [running]);
 
   return (
     <div className={"timer-tile" + (running ? " running" : "")}>
       <Field value={timer.name} placeholder="이름" className="timer-name" onCommit={(v) => v && patch(timer.id, { name: v })} />
-      <div className="timer-time">{formatElapsed(elapsedOf(timer, running ? now : 0))}</div>
+      <TimerClock timer={timer} className="timer-time" />
       <div className="timer-btns">
         <button className={"timer-btn" + (running ? "" : " go")} onClick={() => toggle(timer.id)}>
           {running ? "❚❚ 일시정지" : "▶ 시작"}
