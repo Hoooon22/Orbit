@@ -3873,11 +3873,11 @@ body.dashboard-window {
   min-height: 0;
 }
 
-/* 홈: 세 칸 + 아래 한 줄(작업 타이머) */
+/* 홈: 세 칸 */
 .home {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  grid-template-rows: minmax(0, 1fr) auto; /* 칸 내용이 길어도 행이 화면을 넘지 않게. 아래 줄은 제 높이 */
+  grid-template-rows: minmax(0, 1fr); /* 칸 내용이 길어도 행이 화면을 넘지 않게 */
   gap: 14px;
   flex: 1;
   min-height: 0;
@@ -3978,25 +3978,22 @@ body.dashboard-window {
   flex: 1;
 }
 
-/* 홈 아래 줄: 작업 타이머 (modules/timer/TimerSection.tsx). 세 칸 너비를 다 쓴다 */
-.home-timer {
-  grid-column: 1 / -1;
+/* 타이머 화면 (modules/timer/TimerView.tsx): 왼쪽 기록 목록 | 오른쪽 타이머 보드 */
+.timer-view {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-
-.timer-card {
-  flex-direction: row;
-  height: 190px;
+  flex: 1;
+  min-height: 0;
+  margin: 14px 16px 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  overflow: hidden;
 }
 
 /* 왼쪽: "제목 : 총시간(h)" 목록 */
 .worklog {
   display: flex;
   flex-direction: column;
-  width: 300px;
+  width: 340px;
   flex-shrink: 0;
   min-height: 0;
   border-right: 1px solid var(--border);
@@ -4113,9 +4110,9 @@ body.dashboard-window {
 
 .timer-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   align-content: start;
-  gap: 8px;
+  gap: 10px;
   flex: 1;
   padding: 4px 10px 10px;
   overflow-y: auto;
@@ -4148,9 +4145,9 @@ body.dashboard-window {
 }
 
 .timer-time {
-  padding: 0 4px;
+  padding: 2px 4px;
   font-family: var(--font-mono);
-  font-size: 22px;
+  font-size: 28px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }

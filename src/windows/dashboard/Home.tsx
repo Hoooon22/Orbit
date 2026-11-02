@@ -10,7 +10,6 @@ import { monthOf } from "../../modules/calendar/calendar";
 import MiniCalendar from "../../modules/calendar/MiniCalendar";
 import TodoPanel from "../../modules/todo/TodoPanel";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
-import TimerSection from "../../modules/timer/TimerSection";
 
 type Props = {
   onOpenCalendar: (date: string) => void;
@@ -22,7 +21,7 @@ function noteName(path: string): string {
   return (path.split("/").pop() ?? path).replace(/\.md$/i, "");
 }
 
-// 대시보드 홈: 한 화면에 할 일·달력 / 빠른 메모 / 즐겨찾기·클립보드, 그 아래 작업 타이머
+// 대시보드 홈: 한 화면에 할 일·달력 / 빠른 메모 / 즐겨찾기·클립보드
 export default function Home({ onOpenCalendar, onOpenTodos, onOpenMemo }: Props) {
   const todos = useTodos((s) => s.todos);
   const addTodo = useTodos((s) => s.add);
@@ -123,11 +122,6 @@ export default function Home({ onOpenCalendar, onOpenTodos, onOpenMemo }: Props)
         <div className="home-card home-clip">
           <ClipboardPanel layout="compact" />
         </div>
-      </section>
-
-      <section className="home-timer">
-        <h2 className="home-title">작업 타이머</h2>
-        <TimerSection />
       </section>
     </div>
   );

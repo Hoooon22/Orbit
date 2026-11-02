@@ -132,9 +132,9 @@ function TimerTile({ timer }: { timer: WorkTimer }) {
       <div className="timer-time">{formatElapsed(elapsedOf(timer, running ? now : 0))}</div>
       <div className="timer-btns">
         <button className={"timer-btn" + (running ? "" : " go")} onClick={() => toggle(timer.id)}>
-          {running ? "멈춤" : "시작"}
+          {running ? "❚❚ 일시정지" : "▶ 시작"}
         </button>
-        <button className="timer-btn" onClick={() => reset(timer.id)} title="0으로">
+        <button className="timer-btn" onClick={() => reset(timer.id)} title="0으로 초기화">
           ↺
         </button>
         <button className="timer-x" onClick={() => remove(timer.id)} title="타이머 삭제" aria-label="타이머 삭제">
@@ -145,8 +145,9 @@ function TimerTile({ timer }: { timer: WorkTimer }) {
   );
 }
 
-// 홈 아래 칸: 왼쪽은 "제목 : 총시간(h)"을 직접 적는 작업 기록, 오른쪽은 작업 타이머 보드.
-export default function TimerSection() {
+// 타이머 화면: 왼쪽은 "제목 : 총시간(h)"을 직접 적는 작업 기록, 오른쪽은 작업 타이머 보드.
+// 시간은 스토어(시작 시각)에 있으므로 다른 화면으로 가서 이 컴포넌트가 사라져도 계속 센다.
+export default function TimerView() {
   const timers = useTimers((s) => s.timers);
   const log = useTimers((s) => s.log);
   const addTimer = useTimers((s) => s.addTimer);
@@ -164,7 +165,7 @@ export default function TimerSection() {
   };
 
   return (
-    <div className="home-card timer-card">
+    <div className="timer-view">
       <div className="worklog">
         <div className="worklog-head">
           <span>제목 : 총시간(h)</span>

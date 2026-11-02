@@ -18,6 +18,7 @@ import CalendarView from "../../modules/calendar/CalendarView";
 import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 import LauncherSettings from "../../modules/launcher/LauncherSettings";
 import TodoList from "../../modules/todo/TodoList";
+import TimerView from "../../modules/timer/TimerView";
 import TerminalView from "../../modules/terminal/TerminalView";
 import SettingsView from "./SettingsView";
 import MemoView from "./MemoView";
@@ -29,6 +30,7 @@ export type View =
   | "ai"
   | "memo"
   | "todo"
+  | "timer"
   | "calendar"
   | "clipboard"
   | "launcher"
@@ -40,6 +42,7 @@ const NAV: [View, string][] = [
   ["ai", "AI"],
   ["memo", "메모"],
   ["todo", "할 일"],
+  ["timer", "타이머"],
   ["calendar", "캘린더"],
   ["clipboard", "클립보드"],
   ["launcher", "런처"],
@@ -71,6 +74,12 @@ const ICON: Record<View, JSX.Element> = {
     <>
       <rect x="2.5" y="2.5" width="11" height="11" />
       <path d="m5 8 2 2 4-4" />
+    </>
+  ),
+  timer: (
+    <>
+      <circle cx="8" cy="9" r="5.5" />
+      <path d="M8 6v3l2 1.5M6.5 2h3" />
     </>
   ),
   calendar: (
@@ -252,7 +261,7 @@ export default function Dashboard() {
               key={v}
               className={"dash-rail-btn" + (view === v ? " on" : "")}
               onClick={() => setView(v)}
-              title={`${label} (Ctrl+${i + 1})`}
+              title={i < 9 ? `${label} (Ctrl+${i + 1})` : label}
             >
               <svg
                 className="dash-rail-icon"
@@ -289,6 +298,7 @@ export default function Dashboard() {
           {view === "ai" && <TerminalView />}
           {view === "memo" && <MemoView requested={memoPath} />}
           {view === "todo" && <TodoList />}
+          {view === "timer" && <TimerView />}
           {view === "calendar" && (
             <CalendarView
               initialDate={calendarDate}

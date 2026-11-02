@@ -8,6 +8,7 @@ export type CommandId =
   | "ai"
   | "memo"
   | "todo"
+  | "timer"
   | "calendar"
   | "clipboard"
   | "launcher"
@@ -25,6 +26,7 @@ export const COMMANDS: Command[] = [
   { id: "ai", icon: "▮", label: "AI 터미널", aliases: ["ai", "터미널", "claude", "terminal"] },
   { id: "memo", icon: "📝", label: "메모", aliases: ["메모", "memo", "note"] },
   { id: "todo", icon: "☑️", label: "할 일", aliases: ["할일", "할 일", "todo"] },
+  { id: "timer", icon: "⏱", label: "작업 타이머", aliases: ["타이머", "timer", "작업시간"] },
   { id: "calendar", icon: "📅", label: "캘린더", aliases: ["캘린더", "달력", "일정", "calendar", "cal"] },
   { id: "clipboard", icon: "📋", label: "클립보드", aliases: ["클립보드", "클립", "clipboard", "clip"] },
   { id: "launcher", icon: "🚀", label: "런처 설정", aliases: ["런처", "launcher"] },
