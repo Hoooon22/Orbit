@@ -19,6 +19,7 @@ import ClipboardPanel from "../../modules/clipboard/ClipboardPanel";
 import LauncherSettings from "../../modules/launcher/LauncherSettings";
 import TodoList from "../../modules/todo/TodoList";
 import TimerView from "../../modules/timer/TimerView";
+import TimerHeadButton from "../../modules/timer/TimerHeadButton";
 import TerminalView from "../../modules/terminal/TerminalView";
 import SettingsView from "./SettingsView";
 import MemoView from "./MemoView";
@@ -234,6 +235,7 @@ export default function Dashboard() {
           Orbit
         </span>
         <Clock />
+        <TimerHeadButton onOpenTimer={() => setView("timer")} />
         <button
           className="dash-head-btn"
           onClick={() => void getCurrentWindow().minimize()}

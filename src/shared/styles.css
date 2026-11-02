@@ -3738,6 +3738,56 @@ body.dashboard-window {
   color: var(--fg);
 }
 
+/* 머리줄의 타이머 버튼: 시계 오른쪽. 돌고 있는 타이머가 있으면 오른쪽 위에 강조색 점 */
+.dash-timer-btn {
+  position: relative;
+  margin-left: 0;
+  margin-right: 4px;
+}
+
+.dash-timer-btn svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+}
+
+.dash-timer-btn.running {
+  color: var(--accent);
+}
+
+.dash-timer-btn.running::after {
+  content: "";
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  background: var(--accent);
+  box-shadow: 0 0 0 2px var(--bg-panel);
+}
+
+/* 타이머 버튼 아래 팝업: 홈의 타이머 목록을 그대로 담는다 */
+.timer-pop {
+  position: fixed;
+  z-index: 31;
+  width: 300px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+}
+
+.timer-pop-head {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
 .dash-body {
   display: flex;
   flex: 1;
