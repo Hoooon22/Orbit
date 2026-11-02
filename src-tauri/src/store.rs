@@ -22,6 +22,8 @@ fn file_of(name: &str) -> Result<&'static str, String> {
     match name {
         "todos" => Ok(".todos.json"),
         "events" => Ok(".events.json"),
+        "timers" => Ok(".timers.json"),
+        "worklog" => Ok(".worklog.json"),
         _ => Err(format!("알 수 없는 목록입니다: {name}")),
     }
 }

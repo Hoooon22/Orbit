@@ -75,6 +75,12 @@ export type CalEvent = {
   google?: { account: string; calendar: string }; // 구글에서 온 읽기 전용 일정
 };
 
+// 홈의 작업 타이머 (.timers.json). 돌고 있으면 startedAt이 있고, 보이는 시간은 elapsed + (지금 - startedAt).
+// 시작 시각만 저장하므로 화면을 떠나거나 앱을 껐다 켜도 이어서 센다.
+export type WorkTimer = { id: string; name: string; elapsed: number; startedAt?: number };
+// 홈의 작업 기록 (.worklog.json). "제목 : 총시간(h)"을 직접 적는 목록
+export type WorkLogItem = { id: string; title: string; hours: number };
+
 // 구글 캘린더 연동 (Rust google.rs). 토큰은 Rust만 다루고 프런트는 상태·일정만 본다
 export type GCalendar = { id: string; summary: string; color: string | null; enabled: boolean };
 export type GoogleStatus = {
@@ -181,7 +187,7 @@ export const setAutostart = (enabled: boolean) => invoke<void>("set_autostart", 
 
 // 노트 루트의 JSON 목록 파일(.todos.json 등)을 항목 단위로 고친다.
 // 변경이 끝나면 Rust가 "<name>-changed"를 모든 창에 보낸다.
-export type ListName = "todos" | "events";
+export type ListName = "todos" | "events" | "timers" | "worklog";
 export const listItems = <T>(name: ListName) => invoke<T[]>("list_items", { name });
 export const listAdd = (name: ListName, item: object) => invoke<void>("list_add", { name, item });
 // patch에서 null인 필드는 지워진다 (undefined는 직렬화되지 않으므로 null로 보낼 것)

@@ -11,6 +11,7 @@ import { useGoogle } from "../../modules/calendar/googleStore";
 import { useClipboard } from "../../modules/clipboard/store";
 import { useLauncher } from "../../modules/launcher/store";
 import { useUsage } from "../../modules/usage/store";
+import { useTimers } from "../../modules/timer/store";
 import UsageView from "../../modules/usage/UsageView";
 import Clock from "../../modules/calendar/Clock";
 import CalendarView from "../../modules/calendar/CalendarView";
@@ -129,6 +130,7 @@ export default function Dashboard() {
     useClipboard.getState().init();
     useLauncher.getState().init();
     useUsage.getState().init();
+    useTimers.getState().init();
   }, []);
 
   const openMemo = (path: string) => {
