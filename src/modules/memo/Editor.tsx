@@ -376,7 +376,8 @@ export default function Editor({
       LocalImage,
       Placeholder.configure({ placeholder: "메모를 입력하세요…" }),
       // 마크다운 표(| a | b |)를 실제 표로 그린다. 저장할 때는 tiptap-markdown이 다시 표 문법으로 직렬화.
-      Table.configure({ resizable: false }),
+      // 열 경계를 끌어 너비를 바꿀 수 있다(마크다운 표 문법에는 너비가 없어 파일에는 남지 않음).
+      Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
       TableCell,

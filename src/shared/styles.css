@@ -864,6 +864,21 @@ button {
   pointer-events: none;
 }
 
+/* 열 경계에 마우스를 올리면 나타나는 너비 조절 손잡이 (columnResizing 플러그인) */
+.editor-body .ProseMirror .column-resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  right: -2px;
+  width: 3px;
+  background: var(--accent);
+  pointer-events: none;
+}
+
+.editor-body .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
 /* ── 도움말 ───────────────────────────── */
 
 .help-modal {
