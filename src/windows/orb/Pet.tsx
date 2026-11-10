@@ -132,7 +132,8 @@ export default function Pet({ opacity, onActivate }: Props) {
           // 기본 동작을 막지 않으면 Chromium이 SVG 그림의 네이티브 드래그를 시작해 반투명 고스트가 펫 뒤에 남고
           // mouseup을 삼킨다 (클릭이 씹히고 흰 배경이 보이던 원인)
           e.preventDefault();
-          down.current = { x: e.clientX, y: e.clientY };
+          // 화면 좌표로 잰다: 펫이 걷는 중이면 커서가 가만히 있어도 창 안 좌표(clientX)는 변한다
+          down.current = { x: e.screenX, y: e.screenY };
           // 말풍선은 끌기 전에 접는다 (접을 때 창 x가 바뀌므로 OS 드래그 중엔 못 접는다)
           if (useBubble.getState().current) useBubble.getState().dismiss();
           closeTimerBubble();
@@ -140,7 +141,7 @@ export default function Pet({ opacity, onActivate }: Props) {
         onMouseMove={(e) => {
           const d = down.current;
           if (!d) return;
-          if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) < DRAG_THRESHOLD) return;
+          if (Math.abs(e.screenX - d.x) + Math.abs(e.screenY - d.y) < DRAG_THRESHOLD) return;
           if (beginDrag()) down.current = null; // 아직 말풍선이 접히는 중이면 다음 mousemove에 다시
         }}
         onMouseUp={(e) => {

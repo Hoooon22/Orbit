@@ -42,6 +42,14 @@ const petBusy = () => {
   return p !== "idle" && p !== "walk";
 };
 
+// 창을 넓히고 줄이는 앞뒤로 petLoop가 끼어든다 (말풍선이 떠 있는 동안에도 펫이 걷기 때문).
+// before = 가던 창 이동이 끝나길 기다림, after = 바뀐 창 자리를 다시 읽음(side: 넓힌 쪽, 줄였으면 null).
+// petLoop가 이 스토어를 가져다 쓰므로 반대 방향 import 대신 여기에 꽂게 둔다
+export const resizeHooks: { before: () => Promise<void>; after: (side: BubbleSide | null) => Promise<void> } = {
+  before: async () => {},
+  after: async () => {},
+};
+
 const MAX_QUEUE = 5;
 const CHAT_MS = 4500; // 혼잣말은 짧게 머문다
 // 글이 길면 조금 더 머문다: 6초 + 8글자마다 1초, 최대 15초
@@ -70,9 +78,19 @@ export const useBubble = create<BubbleStore>((set, get) => {
     timer = window.setTimeout(() => get().dismiss(), dwell(b));
   };
 
+  const expand = async (): Promise<BubbleSide> => {
+    await resizeHooks.before();
+    const side = await expandOrb();
+    await resizeHooks.after(side);
+    return side;
+  };
+
   const collapse = () => {
-    collapseOrb(get().side)
+    resizeHooks
+      .before()
+      .then(() => collapseOrb(get().side))
       .catch(reportError)
+      .then(() => resizeHooks.after(null))
       .finally(() => {
         set({ expanded: false });
         if (!petBusy()) next();
@@ -82,7 +100,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
   const show = async (b: Bubble) => {
     set({ expanded: true });
     try {
-      const side = await expandOrb();
+      const side = await expand();
       set({ side });
       present(b);
     } catch (e) {
@@ -182,7 +200,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
       timersWanted = true;
       if (get().expanded || petBusy()) return;
       set({ expanded: true });
-      expandOrb()
+      expand()
         .then((side) => {
           set({ side });
           // 넓히는 사이 알림이 왔으면 그쪽을 먼저 보여 준다

@@ -19,7 +19,7 @@ import { pendingNow, useTodos } from "../../modules/todo/store";
 import { runningTimers, useTimers } from "../../modules/timer/store";
 import { ACT_MS, CHAT_FIRST_MS, CHAT_GAP_MS, GAIT_SPEED, IDLE_ACT_CHANCE, pickChat, pickIdleAct, pickMove } from "./behavior";
 import type { Act, Gait } from "./behavior";
-import { useBubble } from "./bubbleStore";
+import { resizeHooks, useBubble } from "./bubbleStore";
 import { useOrbStatus } from "./status";
 import { usePet } from "./petStore";
 import { boxFor, SHADOW_PAD, SPRITE_H } from "./pet/catalog";
@@ -58,6 +58,9 @@ let scale = 1;
 let bounds: Bounds | null = null;
 let lastUserActionAt = 0;
 let panelOpen = false; // 패널이 펫 옆에 떠 있는 동안은 걷지 않는다 (패널은 연 자리에 그대로 있으므로)
+// 말풍선으로 창이 넓어진 동안 펫 상자 바깥에 붙은 폭(물리). 펫은 말풍선을 단 채로 계속 걷는다 —
+// left = 펫 왼쪽에 붙은 말풍선 폭(창 x가 그만큼 펫보다 왼쪽), right = 오른쪽. 접히면 둘 다 0
+const bubbleExtra = { left: 0, right: 0 };
 
 let lastMove: Promise<void> = Promise.resolve(); // 마지막 이동 IPC. 창 크기를 바꾸기 전에 기다린다 (뒤늦게 옛 자리로 옮기지 않게)
 
@@ -185,7 +188,9 @@ function startWander(): () => void {
       return;
     }
     dir = Math.random() < 0.5 ? -1 : 1;
-    const m = pickMove(Math.random());
+    const picked = pickMove(Math.random());
+    // 말풍선이 떠 있는 동안은 뛰지 않고 걷는다 (뛰는 동안은 창을 넓히거나 줄일 수 없다)
+    const m = picked === "jump" && useBubble.getState().expanded ? "walk" : picked;
     if (m === "jump") {
       // 걷는 대신 폴짝 뛰고 다시 잠깐 서 있는다 (다 뛸 때까지 틱은 phase에 막힌다)
       phaseEnd = now + randomBetween(1500, 3000);
@@ -206,16 +211,18 @@ function startWander(): () => void {
     const b = bounds;
     const pet = usePet.getState();
     const st = useOrbStatus.getState();
+    const bub = useBubble.getState();
+    // 창을 넓히거나 줄이는 중(말풍선이 아직/이미 없음)에는 한 박자 쉰다 — 그 사이 옮기면 Rust의 창 조정과 어긋난다
+    if (bub.expanded && !bub.current && !bub.timers) return;
+    // 마우스를 올리거나 말풍선이 떠 있어도 멈추지 않는다 (말풍선은 창에 붙어 따라온다). 눌러서 패널을 열면 멈춘다
     const blocked =
       freq() === "off" ||
       !b ||
       panelOpen ||
-      pet.hover ||
       pet.oneShot !== null ||
       (pet.phase !== "idle" && pet.phase !== "walk") ||
       st.away ||
       st.meeting !== null ||
-      useBubble.getState().expanded ||
       Date.now() - lastUserActionAt < USER_COOLDOWN_MS;
     if (blocked) {
       if (walking) stopWalking();
@@ -224,19 +231,24 @@ function startWander(): () => void {
     const now = Date.now();
     if (now >= phaseEnd) {
       if (walking) enterIdle(now);
-      else await enterWalk(now);
+      else {
+        await enterWalk(now);
+        return; // 기다리는 사이 상태가 바뀌었을 수 있다. 첫걸음은 다음 틱에
+      }
     }
     if (!walking) return;
     const step = Math.max(1, Math.round(((GAIT_SPEED[gait] * WANDER_TICK_MS) / 1000) * scale));
-    const r = wanderStep(pos.x, dir, step, b);
+    // 걷는 건 펫 상자 기준. 말풍선이 붙은 쪽은 그 폭만큼 일찍 돌아서서 말풍선이 화면 밖으로 나가지 않게 한다
+    const petX = pos.x + bubbleExtra.left;
+    const r = wanderStep(petX, dir, step, { ...b, minX: b.minX + bubbleExtra.left, maxX: b.maxX - bubbleExtra.right });
     if (r.dir !== dir) {
       dir = r.dir;
       usePet.getState().setDirection(dir === 1 ? "right" : "left");
     }
-    if (r.x === pos.x && pos.y === b.groundY) return;
+    if (r.x === petX && pos.y === b.groundY) return;
     inFlight = true;
     try {
-      await move(r.x, b.groundY);
+      await move(r.x - bubbleExtra.left, b.groundY);
     } finally {
       inFlight = false;
     }
@@ -505,6 +517,16 @@ export function startPetLoops(): () => void {
   const unPanel = listen<boolean>("panel-changed", (e) => {
     panelOpen = e.payload;
   });
+  // 말풍선 창 조정 앞뒤: 가던 이동이 끝나길 기다리고, 끝나면 창 자리·붙은 폭을 다시 읽는다
+  resizeHooks.before = () => lastMove;
+  resizeHooks.after = async (side) => {
+    const [p, s] = await Promise.all([win.outerPosition(), win.outerSize()]);
+    pos.x = p.x;
+    pos.y = p.y;
+    const extra = side ? Math.max(0, s.width - size.w) : 0;
+    bubbleExtra.left = side === "left" ? extra : 0;
+    bubbleExtra.right = side === "right" ? extra : 0;
+  };
   rebounds()
     .then(() => (cancelled ? undefined : snapToGround()))
     .catch(reportError);
