@@ -14,6 +14,7 @@ export type Bubble = {
   title: string;
   body: string;
   view: string; // 클릭하면 열 Orbit 화면 ("todo", "calendar@2026-09-14" …)
+  chat?: boolean; // 펫의 혼잣말: title만 작게 그리고, 누르면 그냥 닫힌다
 };
 
 type BubbleStore = {
@@ -25,6 +26,8 @@ type BubbleStore = {
   timers: boolean;
   init: () => void;
   push: (b: Bubble) => void;
+  // 펫의 혼잣말. 알림과 달리 기다리지 않는다 — 다른 말풍선이 떠 있거나 펫이 바쁘면 그냥 버린다
+  say: (text: string) => void;
   dismiss: () => void;
   // 미뤄 둔 말풍선이 있으면 띄운다 (펫을 잡았다 놓은 뒤)
   flush: () => void;
@@ -33,15 +36,16 @@ type BubbleStore = {
   hideTimers: () => void;
 };
 
-// 펫이 잡혀 있거나 날아가는 동안은 창을 넓히지 않는다 (OS 드래그·물리 루프와 창 x가 어긋난다)
+// 펫이 잡혀 있거나 날아가는(혼자 뛰는) 동안은 창을 넓히지 않는다 (OS 드래그·물리 루프와 창 x가 어긋난다)
 const petBusy = () => {
   const p = usePet.getState().phase;
-  return p === "held" || p === "falling" || p === "throwing";
+  return p !== "idle" && p !== "walk";
 };
 
 const MAX_QUEUE = 5;
+const CHAT_MS = 4500; // 혼잣말은 짧게 머문다
 // 글이 길면 조금 더 머문다: 6초 + 8글자마다 1초, 최대 15초
-const dwell = (b: Bubble) => Math.min(15_000, 6_000 + Math.floor((b.title + b.body).length / 8) * 1_000);
+const dwell = (b: Bubble) => (b.chat ? CHAT_MS : Math.min(15_000, 6_000 + Math.floor((b.title + b.body).length / 8) * 1_000));
 const pad = (n: number) => String(n).padStart(2, "0");
 const timeLabel = (ms: number) => {
   const d = new Date(ms);
@@ -61,6 +65,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
 
   // 이미 넓어진 창에 알림 말풍선을 올린다
   const present = (b: Bubble) => {
+    window.clearTimeout(timer);
     set({ current: b, timers: false });
     timer = window.setTimeout(() => get().dismiss(), dwell(b));
   };
@@ -134,7 +139,11 @@ export const useBubble = create<BubbleStore>((set, get) => {
           if (!visible) return;
           const { current, expanded, timers } = get();
           if (current?.key === b.key) return;
-          // 알림이 타이머 말풍선보다 먼저다: 넓어진 창 그대로 내용만 바꾼다
+          // 알림이 혼잣말·타이머 말풍선보다 먼저다: 넓어진 창 그대로 내용만 바꾼다
+          if (current?.chat) {
+            present(b);
+            return;
+          }
           if (timers) {
             timersWanted = false;
             present(b);
@@ -147,6 +156,17 @@ export const useBubble = create<BubbleStore>((set, get) => {
             return;
           }
           void show(b);
+        });
+    },
+
+    say: (text) => {
+      const free = () => !get().expanded && !petBusy() && queue.length === 0;
+      if (!free()) return;
+      void getCurrentWindow()
+        .isVisible()
+        .catch(() => false)
+        .then((visible) => {
+          if (visible && free()) void show({ key: "chat", title: text, body: "", view: "", chat: true });
         });
     },
 

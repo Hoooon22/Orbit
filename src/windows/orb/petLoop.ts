@@ -16,6 +16,9 @@ import { useSettings } from "../../shared/stores/settings";
 import { reportError } from "../../shared/stores/error";
 import { todayStr } from "../../shared/dates";
 import { pendingNow, useTodos } from "../../modules/todo/store";
+import { runningTimers, useTimers } from "../../modules/timer/store";
+import { ACT_MS, CHAT_FIRST_MS, CHAT_GAP_MS, GAIT_SPEED, IDLE_ACT_CHANCE, pickChat, pickIdleAct, pickMove } from "./behavior";
+import type { Act, Gait } from "./behavior";
 import { useBubble } from "./bubbleStore";
 import { useOrbStatus } from "./status";
 import { usePet } from "./petStore";
@@ -36,12 +39,15 @@ import type { Bounds, Flight, Sample, ThrowParams, Velocity } from "./motion";
 import { runWreck } from "./wreck";
 
 const WANDER_TICK_MS = 50;
-const WANDER_SPEED = 80; // 논리 px/s
 const DRAG_POLL_MS = 16;
 const USER_COOLDOWN_MS = 1500; // 잡았다 놓은 뒤 이만큼은 배회를 쉰다
 const FALL_MS = 500;
 const TUMBLE_MS = 1500;
-const IDLE_STRETCH_CHANCE = 0.15; // 서 있기 시작할 때 이 확률로 기지개
+const HOP_MS = 700; // 폴짝 한 번. pet.css jump 한 주기와 같다
+const HOP_HEIGHT = 70; // 논리 px
+const RUN_TIME = 0.5; // 달릴 때는 걷는 시간의 이만큼만 (빨라서 금방 화면 끝이다)
+const ANGRY_THROWS = 3; // 이 시간 안에 이만큼 던지면 화낸다
+const ANGRY_WINDOW_MS = 20_000;
 const GREETING_KEY = "orbMorningGreetedOn"; // localStorage. 아침 인사는 하루 한 번
 
 const win = getCurrentWindow();
@@ -99,11 +105,56 @@ async function snapToGround() {
   if (x !== pos.x || pos.y !== b.groundY) await move(x, b.groundY);
 }
 
+const play = (a: Act) => usePet.getState().playAction(a, ACT_MS[a]);
+
+// 혼잣말: 상황에 맞는 한마디를 말풍선으로 띄우고 어울리는 동작을 한다
+function chat() {
+  const line = pickChat(
+    {
+      hour: new Date().getHours(),
+      pending: pendingNow(useTodos.getState().todos),
+      timers: runningTimers(useTimers.getState().timers).length,
+    },
+    Math.random(),
+  );
+  useBubble.getState().say(line.text);
+  if (line.act) play(line.act);
+}
+
+// 폴짝: 창을 포물선으로 옮겨 한두 번 뛴다. 뛰는 동안은 phase가 jumping이라 배회·잡기·말풍선이 기다린다
+async function hop(dir: 1 | -1) {
+  const b = bounds;
+  if (!b) return;
+  const pet = usePet.getState();
+  pet.setPhase("jumping");
+  pet.setDirection(dir === 1 ? "right" : "left");
+  const hops = Math.random() < 0.4 ? 2 : 1;
+  for (let i = 0; i < hops; i++) {
+    const from = pos.x;
+    const to = clampX(Math.round(from + dir * randomBetween(30, 90) * scale), b);
+    const height = HOP_HEIGHT * scale;
+    await new Promise<void>((resolve) => {
+      const start = performance.now();
+      const step = () => {
+        const t = Math.min(1, (performance.now() - start) / HOP_MS);
+        void move(Math.round(from + (to - from) * t), Math.round(b.groundY - height * 4 * t * (1 - t)));
+        if (t < 1) requestAnimationFrame(step);
+        else resolve();
+      };
+      requestAnimationFrame(step);
+    });
+  }
+  pet.setPhase("idle");
+  useBubble.getState().flush(); // 뛰는 동안 미뤄 둔 말풍선
+}
+
 // ── 배회 ──
 function startWander(): () => void {
   let dir: 1 | -1 = -1;
   let walking = false;
+  let gait: Gait = "walk";
   let phaseEnd = Date.now() + randomBetween(2000, 4000);
+  let nextChatAt = Date.now() + randomBetween(...CHAT_FIRST_MS);
   let inFlight = false;
   const freq = () => useSettings.getState().settings.petWander;
 
@@ -117,7 +168,13 @@ function startWander(): () => void {
     const f = freq();
     const [lo, hi] = f === "off" ? [0, 0] : WANDER_RANGES[f].idle;
     phaseEnd = now + randomBetween(lo, hi);
-    if (Math.random() < IDLE_STRETCH_CHANCE) usePet.getState().playAction("stretch", 2100);
+    // 멈춰 선 김에: 가끔 한마디, 아니면 절반쯤은 동작 하나
+    if (now >= nextChatAt) {
+      nextChatAt = now + randomBetween(...CHAT_GAP_MS);
+      chat();
+    } else if (Math.random() < IDLE_ACT_CHANCE) {
+      play(pickIdleAct(new Date().getHours(), Math.random()));
+    }
   };
   const enterWalk = async (now: number) => {
     const f = freq();
@@ -127,10 +184,19 @@ function startWander(): () => void {
       phaseEnd = now + 5000;
       return;
     }
-    walking = true;
     dir = Math.random() < 0.5 ? -1 : 1;
+    const m = pickMove(Math.random());
+    if (m === "jump") {
+      // 걷는 대신 폴짝 뛰고 다시 잠깐 서 있는다 (다 뛸 때까지 틱은 phase에 막힌다)
+      phaseEnd = now + randomBetween(1500, 3000);
+      void hop(dir);
+      return;
+    }
+    walking = true;
+    gait = m;
     const [lo, hi] = WANDER_RANGES[f].walk;
-    phaseEnd = now + randomBetween(lo, hi);
+    phaseEnd = now + randomBetween(lo, hi) * (gait === "run" ? RUN_TIME : 1);
+    usePet.getState().setGait(gait);
     usePet.getState().setPhase("walk");
     usePet.getState().setDirection(dir === 1 ? "right" : "left");
   };
@@ -161,7 +227,7 @@ function startWander(): () => void {
       else await enterWalk(now);
     }
     if (!walking) return;
-    const step = Math.max(1, Math.round(((WANDER_SPEED * WANDER_TICK_MS) / 1000) * scale));
+    const step = Math.max(1, Math.round(((GAIT_SPEED[gait] * WANDER_TICK_MS) / 1000) * scale));
     const r = wanderStep(pos.x, dir, step, b);
     if (r.dir !== dir) {
       dir = r.dir;
@@ -182,6 +248,7 @@ function startWander(): () => void {
 // ── 잡기 · 놓기 · 던지기 ──
 let dragPoll: number | undefined;
 let samples: Sample[] = [];
+let throwTimes: number[] = []; // 최근에 던져진 시각들 (화낼지 판단)
 
 // Pet.tsx가 마우스가 4px 넘게 움직였을 때 부른다. 시작했으면 true.
 // OS 드래그(startDragging)를 쓰지 않는다 — OS 이동 루프가 도는 동안은 IPC가 멈춰 놓는 순간을 늦게 알고,
@@ -189,7 +256,7 @@ let samples: Sample[] = [];
 // 버튼이 떨어지면 놓은 것으로 본다. 커서 표본은 던진 속도 계산에도 쓴다.
 export function beginDrag(): boolean {
   const pet = usePet.getState();
-  if (useBubble.getState().expanded || pet.phase === "held" || pet.phase === "throwing" || pet.phase === "falling") return false;
+  if (useBubble.getState().expanded || (pet.phase !== "idle" && pet.phase !== "walk")) return false;
   lastUserActionAt = Date.now();
   pet.clearAction();
   pet.setPhase("held");
@@ -273,7 +340,17 @@ async function fly(v: Velocity, b: Bounds, k: ThrowParams) {
     await snapToGround();
   }
   pet.setPhase("idle");
-  pet.playAction("tumble", TUMBLE_MS);
+  // 자꾸 던지면 어지러워하는 대신 화낸다
+  const now = Date.now();
+  throwTimes = throwTimes.filter((t) => now - t < ANGRY_WINDOW_MS);
+  throwTimes.push(now);
+  if (throwTimes.length >= ANGRY_THROWS) {
+    throwTimes = [];
+    play("angry");
+    useBubble.getState().say("그만 던져요! 💢");
+  } else {
+    pet.playAction("tumble", TUMBLE_MS);
+  }
 }
 
 // 산산조각: 창을 지금 모니터의 작업 영역 전체로 넓혀 조각들이 화면을 굴러다니게 하고(wreck.ts),
@@ -380,7 +457,7 @@ function greet(): () => void {
         // 저장 못 해도 동작에는 지장 없음
       }
       const pending = pendingNow(useTodos.getState().todos);
-      usePet.getState().playAction("stretch", 2100);
+      play("stretch");
       useBubble.getState().push({
         key: "morning",
         title: "좋은 아침이에요 ☀️",

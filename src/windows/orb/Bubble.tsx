@@ -6,6 +6,7 @@ import { useBubble } from "./bubbleStore";
 
 // 오브 옆 말풍선 한 장. 클릭하면 관련 화면을 열고 닫힌다.
 // 알림 말풍선(current)이 없고 펫에 마우스를 올려 둔 동안은 돌고 있는 타이머 목록을 보여 준다.
+// 펫의 혼잣말(chat)은 한 줄짜리 작은 말풍선으로, 누르면 닫히기만 한다.
 export default function Bubble() {
   const b = useBubble((s) => s.current);
   const dismiss = useBubble((s) => s.dismiss);
@@ -28,6 +29,13 @@ export default function Bubble() {
             <TimerClock timer={t} className="orb-bubble-timer-time" />
           </span>
         ))}
+      </button>
+    );
+  }
+  if (b.chat) {
+    return (
+      <button className="orb-bubble orb-bubble-chat" onClick={dismiss}>
+        {b.title}
       </button>
     );
   }

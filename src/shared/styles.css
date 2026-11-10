@@ -3563,6 +3563,19 @@ body.panel-window {
   color: var(--fg-dim);
 }
 
+/* 혼잣말 말풍선: 펫이 가끔 하는 한마디. 글 길이만큼만 차지하고 펫 머리 높이에 붙는다 */
+.orb-bubble.orb-bubble-chat {
+  display: block;
+  flex: 0 1 auto;
+  align-self: flex-start;
+  height: auto;
+  margin-top: 10%;
+  padding: 6px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
 /* 타이머 말풍선: 펫에 마우스를 올리면 뜨는 돌고 있는 타이머 목록. 이름은 자르지 않고 줄을 바꾸며,
    펫 창 높이를 넘는 만큼만 아래가 잘린다 */
 .orb-bubble.orb-bubble-timers {

@@ -43,6 +43,7 @@ export default function Pet({ opacity, onActivate }: Props) {
   const away = useOrbStatus((s) => s.away);
   const meeting = useOrbStatus((s) => s.meeting);
   const phase = usePet((s) => s.phase);
+  const gait = usePet((s) => s.gait);
   const oneShot = usePet((s) => s.oneShot);
   const direction = usePet((s) => s.direction);
   const hover = usePet((s) => s.hover);
@@ -64,18 +65,20 @@ export default function Pet({ opacity, onActivate }: Props) {
     }, HOVER_BUBBLE_MS);
   };
 
-  // 표정: 잠깐 하는 동작 > 잡힘/낙하/비행(놀람) > 걷기 > 자리 비움(잠) > 회의(생각) > 평소
+  // 표정: 잠깐 하는 동작 > 잡힘/낙하/비행(놀람) > 폴짝 > 걷기(걸음에 따라) > 자리 비움(잠) > 회의(생각) > 평소
   const action: PetAction =
     oneShot ??
     (phase === "held" || phase === "falling" || phase === "throwing"
       ? "surprise"
-      : phase === "walk"
-        ? "walk"
-        : away
-          ? "sleep"
-          : meeting
-            ? "think"
-            : "idle");
+      : phase === "jumping"
+        ? "jump"
+        : phase === "walk"
+          ? gait
+          : away
+            ? "sleep"
+            : meeting
+              ? "think"
+              : "idle");
 
   // 상태 요약. 화면에는 그리지 않고 data-tip으로만 둔다 (툴팁·aria-label은 위 주석의 이유로 안 쓴다)
   const tip =
@@ -144,7 +147,7 @@ export default function Pet({ opacity, onActivate }: Props) {
           if (e.button !== 0 || !down.current) return;
           down.current = null;
           useOrbStatus.getState().wake();
-          usePet.getState().playAction("smile", 1500); // 눌러 주면 좋아한다
+          usePet.getState().playAction(Math.random() < 0.25 ? "love" : "smile", 1500); // 눌러 주면 좋아한다 (가끔 하트 눈)
           onActivate();
         }}
       >

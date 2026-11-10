@@ -46,6 +46,7 @@
 .wp-char .blush { fill: #f472b6; opacity: 0.85; }
 .wp-char .tear { fill: #93c5fd; }
 .wp-char .zzz { fill: #cbd5e1; font-family: inherit; font-weight: 800; font-size: 14px; }
+.wp-char .note { fill: #7dd3fc; font-family: inherit; font-weight: 800; font-size: 18px; opacity: 0; }
 .wp-char .brow { fill: #ef4444; }
 .wp-char .heart-eye { fill: #f472b6; }
 .wp-char .core-pulse { transform-origin: 120px 194px; transform-box: fill-box; }
@@ -391,4 +392,303 @@
 @keyframes pico-brow-throb {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-1px); }
+}
+
+/* ───── 아래는 Orbit에서 더한 동작 ─────
+ * 회전 부호: 양수 = 시계 방향 = 아래로 늘어진 팔다리가 화면 왼쪽으로 올라간다.
+ * 그래서 바깥으로 드는 건 왼팔·왼다리가 양수, 오른팔·오른다리가 음수.
+ * "한 번" 재생하는 동작의 길이는 behavior.ts의 ACT_MS와 같아야 한다. */
+
+/* === run: 걷기의 빠른 판. 몸을 앞으로 숙이고 팔다리를 크게 === */
+.wp-char[data-action="run"] .body-wrap { animation: pico-run-bob 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .leg-left { animation: pico-run-leg 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .leg-right { animation: pico-run-leg 0.36s ease-in-out infinite reverse; }
+.wp-char[data-action="run"] .arm-left { animation: pico-run-arm 0.36s ease-in-out infinite reverse; }
+.wp-char[data-action="run"] .arm-right { animation: pico-run-arm 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .head { animation: pico-head-bob 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .antenna { animation: pico-antenna-droop 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .antenna-bulb { animation: pico-bulb-soft 0.6s ease-in-out infinite; }
+.wp-char[data-action="run"] .forearm-left { animation: pico-elbow-swing 0.36s ease-in-out infinite reverse; }
+.wp-char[data-action="run"] .forearm-right { animation: pico-elbow-swing 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .shin-left { animation: pico-knee-swing 0.36s ease-in-out infinite; }
+.wp-char[data-action="run"] .shin-right { animation: pico-knee-swing 0.36s ease-in-out infinite reverse; }
+
+@keyframes pico-run-bob {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-7px) rotate(-5deg); }
+}
+@keyframes pico-run-leg {
+  0%, 100% { transform: rotate(32deg); }
+  50% { transform: rotate(-32deg); }
+}
+@keyframes pico-run-arm {
+  0%, 100% { transform: rotate(48deg); }
+  50% { transform: rotate(-48deg); }
+}
+
+/* === tiptoe: 살금살금. 팔을 벌려 균형을 잡고 작게 딛는다 === */
+.wp-char[data-action="tiptoe"] .body-wrap { animation: pico-tiptoe-bob 1s ease-in-out infinite; }
+.wp-char[data-action="tiptoe"] .leg-left { animation: pico-tiptoe-leg 1s ease-in-out infinite; }
+.wp-char[data-action="tiptoe"] .leg-right { animation: pico-tiptoe-leg 1s ease-in-out infinite reverse; }
+.wp-char[data-action="tiptoe"] .arm-left { animation: pico-tiptoe-arm-l 1s ease-in-out infinite; }
+.wp-char[data-action="tiptoe"] .arm-right { animation: pico-tiptoe-arm-r 1s ease-in-out infinite; }
+.wp-char[data-action="tiptoe"] .head { animation: pico-head-tilt 2s ease-in-out infinite; }
+.wp-char[data-action="tiptoe"] .antenna-bulb { animation: pico-bulb-soft 2s ease-in-out infinite; }
+
+@keyframes pico-tiptoe-bob {
+  0%, 50%, 100% { transform: translateY(-2px); }
+  25%, 75% { transform: translateY(-7px); }
+}
+@keyframes pico-tiptoe-leg {
+  0%, 100% { transform: rotate(9deg); }
+  50% { transform: rotate(-9deg); }
+}
+@keyframes pico-tiptoe-arm-l {
+  0%, 100% { transform: rotate(42deg); }
+  50% { transform: rotate(58deg); }
+}
+@keyframes pico-tiptoe-arm-r {
+  0%, 100% { transform: rotate(-58deg); }
+  50% { transform: rotate(-42deg); }
+}
+
+/* === jump: 폴짝. 창이 포물선으로 움직이고(petLoop hop, 한 번 = 0.7s) 여기서는 자세만 === */
+.wp-char[data-action="jump"] .body-wrap { animation: pico-jump-squash 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .arm-left { animation: pico-jump-arm-l 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .arm-right { animation: pico-jump-arm-r 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .leg-left { animation: pico-jump-leg-l 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .leg-right { animation: pico-jump-leg-r 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .shin-left,
+.wp-char[data-action="jump"] .shin-right { animation: pico-jump-knee 0.7s ease-in-out infinite; }
+.wp-char[data-action="jump"] .antenna-bulb { animation: pico-bulb-soft 0.7s ease-in-out infinite; }
+
+@keyframes pico-jump-squash {
+  0%, 100% { transform: scaleY(0.9); }
+  20%, 80% { transform: scaleY(1.04); }
+  50% { transform: scaleY(1); }
+}
+@keyframes pico-jump-arm-l {
+  0%, 100% { transform: rotate(10deg); }
+  30%, 70% { transform: rotate(150deg); }
+}
+@keyframes pico-jump-arm-r {
+  0%, 100% { transform: rotate(-10deg); }
+  30%, 70% { transform: rotate(-150deg); }
+}
+@keyframes pico-jump-leg-l {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(24deg); }
+}
+@keyframes pico-jump-leg-r {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-24deg); }
+}
+@keyframes pico-jump-knee {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-28deg); }
+}
+
+/* === yawn: 두 팔을 쭉 뻗으며 하품 (한 번, 2.8s) === */
+.wp-char[data-action="yawn"] .body-wrap { animation: pico-yawn-body 2.8s ease-in-out both; }
+.wp-char[data-action="yawn"] .head { animation: pico-yawn-head 2.8s ease-in-out both; }
+.wp-char[data-action="yawn"] .arm-left { animation: pico-yawn-arm-l 2.8s ease-in-out both; }
+.wp-char[data-action="yawn"] .arm-right { animation: pico-yawn-arm-r 2.8s ease-in-out both; }
+.wp-char[data-action="yawn"] .yawn-mouth { animation: pico-yawn-mouth 2.8s ease-in-out both; transform-origin: center; transform-box: fill-box; }
+.wp-char[data-action="yawn"] .antenna-glow { opacity: 0.1; }
+
+@keyframes pico-yawn-body {
+  0%, 100% { transform: scaleY(1); }
+  35%, 65% { transform: scaleY(1.04); }
+}
+@keyframes pico-yawn-head {
+  0%, 100% { transform: rotate(0); }
+  35%, 65% { transform: rotate(-7deg); }
+}
+@keyframes pico-yawn-arm-l {
+  0%, 100% { transform: rotate(-6deg); }
+  35%, 65% { transform: rotate(130deg); }
+}
+@keyframes pico-yawn-arm-r {
+  0%, 100% { transform: rotate(6deg); }
+  35%, 65% { transform: rotate(-130deg); }
+}
+@keyframes pico-yawn-mouth {
+  0%, 100% { transform: scale(0.3); }
+  35%, 65% { transform: scale(1.25); }
+}
+
+/* === look: 두리번두리번 (한 번, 3.2s) === */
+.wp-char[data-action="look"] .head { animation: pico-look-head 3.2s ease-in-out both; }
+.wp-char[data-action="look"] .face-eyes { animation: pico-look-eyes 3.2s ease-in-out both; }
+.wp-char[data-action="look"] .body-wrap { animation: pico-bob 3.2s ease-in-out infinite; }
+.wp-char[data-action="look"] .antenna-bulb { animation: pico-bulb-soft 1.6s ease-in-out infinite; }
+
+@keyframes pico-look-head {
+  0%, 100% { transform: rotate(0); }
+  15%, 40% { transform: rotate(-7deg); }
+  55%, 80% { transform: rotate(7deg); }
+}
+@keyframes pico-look-eyes {
+  0%, 100% { transform: translateX(0); }
+  15%, 40% { transform: translateX(-6px); }
+  55%, 80% { transform: translateX(6px); }
+}
+
+/* === sit: 다리를 벌리고 털썩 앉아 쉰다 (한 번, 7s) === */
+.wp-char[data-action="sit"] .body-wrap { animation: pico-sit-body 7s ease-in-out both; }
+.wp-char[data-action="sit"] .leg-left { animation: pico-sit-leg-l 7s ease-in-out both; }
+.wp-char[data-action="sit"] .leg-right { animation: pico-sit-leg-r 7s ease-in-out both; }
+.wp-char[data-action="sit"] .arm-left { animation: pico-sit-arm-l 7s ease-in-out both; }
+.wp-char[data-action="sit"] .arm-right { animation: pico-sit-arm-r 7s ease-in-out both; }
+.wp-char[data-action="sit"] .head { animation: pico-head-tilt 3.5s ease-in-out infinite; }
+.wp-char[data-action="sit"] .antenna-bulb { animation: pico-bulb-soft 3.5s ease-in-out infinite; }
+
+@keyframes pico-sit-body {
+  0%, 100% { transform: translateY(0); }
+  8%, 92% { transform: translateY(34px); }
+  11% { transform: translateY(31px); }
+}
+@keyframes pico-sit-leg-l {
+  0%, 100% { transform: rotate(0); }
+  8%, 92% { transform: rotate(66deg); }
+}
+@keyframes pico-sit-leg-r {
+  0%, 100% { transform: rotate(0); }
+  8%, 92% { transform: rotate(-66deg); }
+}
+@keyframes pico-sit-arm-l {
+  0%, 100% { transform: rotate(-6deg); }
+  8%, 92% { transform: rotate(22deg); }
+}
+@keyframes pico-sit-arm-r {
+  0%, 100% { transform: rotate(6deg); }
+  8%, 92% { transform: rotate(-22deg); }
+}
+
+/* === cheer: 만세! 두 팔을 들고 폴짝폴짝 === */
+.wp-char[data-action="cheer"] .body-wrap { animation: pico-hop 1.1s ease-in-out infinite; }
+.wp-char[data-action="cheer"] .arm-left { animation: pico-cheer-arm-l 0.55s ease-in-out infinite; }
+.wp-char[data-action="cheer"] .arm-right { animation: pico-cheer-arm-r 0.55s ease-in-out infinite; }
+.wp-char[data-action="cheer"] .head { animation: pico-head-tilt 1.1s ease-in-out infinite; }
+.wp-char[data-action="cheer"] .antenna-bulb { animation: pico-bulb-rainbow 1.1s linear infinite; }
+.wp-char[data-action="cheer"] .antenna-glow { animation: pico-glow-soft 1.1s ease-in-out infinite; }
+.wp-char[data-action="cheer"] .blush { animation: pico-blush-flicker 1.1s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+
+@keyframes pico-cheer-arm-l {
+  0%, 100% { transform: rotate(120deg); }
+  50% { transform: rotate(148deg); }
+}
+@keyframes pico-cheer-arm-r {
+  0%, 100% { transform: rotate(-120deg); }
+  50% { transform: rotate(-148deg); }
+}
+
+/* === jacks: 팔 벌려 뛰기 === */
+.wp-char[data-action="jacks"] .body-wrap { animation: pico-jacks-body 0.9s ease-in-out infinite; }
+.wp-char[data-action="jacks"] .arm-left { animation: pico-jacks-arm-l 0.9s ease-in-out infinite; }
+.wp-char[data-action="jacks"] .arm-right { animation: pico-jacks-arm-r 0.9s ease-in-out infinite; }
+.wp-char[data-action="jacks"] .leg-left { animation: pico-jacks-leg-l 0.9s ease-in-out infinite; }
+.wp-char[data-action="jacks"] .leg-right { animation: pico-jacks-leg-r 0.9s ease-in-out infinite; }
+.wp-char[data-action="jacks"] .antenna-bulb { animation: pico-bulb-soft 0.9s ease-in-out infinite; }
+
+@keyframes pico-jacks-body {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes pico-jacks-arm-l {
+  0%, 100% { transform: rotate(8deg); }
+  50% { transform: rotate(150deg); }
+}
+@keyframes pico-jacks-arm-r {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(-150deg); }
+}
+@keyframes pico-jacks-leg-l {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(20deg); }
+}
+@keyframes pico-jacks-leg-r {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-20deg); }
+}
+
+/* === spin: 제자리에서 빙글빙글 두 바퀴 (한 번, 1.6s). 납작해졌다 뒤집히는 걸로 도는 척 === */
+.wp-char[data-action="spin"] .body-wrap { animation: pico-spin 1.6s ease-in-out both; }
+.wp-char[data-action="spin"] .arm-left { transform: rotate(70deg); }
+.wp-char[data-action="spin"] .arm-right { transform: rotate(-70deg); }
+.wp-char[data-action="spin"] .antenna-bulb { animation: pico-bulb-rainbow 0.8s linear infinite; }
+
+@keyframes pico-spin {
+  0%, 50%, 100% { transform: scaleX(1) translateY(0); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: scaleX(0.08) translateY(-6px); }
+  25%, 75% { transform: scaleX(-1) translateY(0); }
+}
+
+/* === sneeze: 고개를 젖혔다가 에취! (한 번, 1.5s) === */
+.wp-char[data-action="sneeze"] .body-wrap { animation: pico-sneeze-body 1.5s ease-in both; }
+.wp-char[data-action="sneeze"] .head { animation: pico-sneeze-head 1.5s ease-in both; }
+.wp-char[data-action="sneeze"] .arm-left { animation: pico-sneeze-arm-l 1.5s ease-in both; }
+.wp-char[data-action="sneeze"] .arm-right { animation: pico-sneeze-arm-r 1.5s ease-in both; }
+.wp-char[data-action="sneeze"] .antenna { animation: pico-sneeze-antenna 1.5s ease-in both; }
+
+@keyframes pico-sneeze-body {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(0) scaleY(1.04); }
+  60% { transform: translateY(0) scaleY(0.92); }
+  78% { transform: translateY(0) scaleY(1); }
+}
+@keyframes pico-sneeze-head {
+  0%, 100% { transform: rotate(0) translateY(0); }
+  50% { transform: rotate(-9deg) translateY(-2px); }
+  60% { transform: rotate(9deg) translateY(5px); }
+  78% { transform: rotate(0) translateY(0); }
+}
+@keyframes pico-sneeze-arm-l {
+  0%, 50%, 100% { transform: rotate(-6deg); }
+  60% { transform: rotate(48deg); }
+}
+@keyframes pico-sneeze-arm-r {
+  0%, 50%, 100% { transform: rotate(6deg); }
+  60% { transform: rotate(-48deg); }
+}
+@keyframes pico-sneeze-antenna {
+  0%, 50%, 100% { transform: rotate(0); }
+  60% { transform: rotate(22deg); }
+  75% { transform: rotate(-12deg); }
+}
+
+/* === sing: 몸을 흔들며 흥얼흥얼, 음표가 떠오른다 === */
+.wp-char[data-action="sing"] .body-wrap { animation: pico-dance-sway 1.6s ease-in-out infinite; }
+.wp-char[data-action="sing"] .head { animation: pico-head-tilt 1.6s ease-in-out infinite; }
+.wp-char[data-action="sing"] .arm-right { animation: pico-sing-arm 0.8s ease-in-out infinite; }
+.wp-char[data-action="sing"] .antenna-bulb { animation: pico-bulb-pink 1.6s ease-in-out infinite; }
+.wp-char[data-action="sing"] .antenna-glow { animation: pico-glow-soft 1.6s ease-in-out infinite; }
+.wp-char[data-action="sing"] .note-1 { animation: pico-zzz-float 2.4s ease-in infinite; transform-origin: center; transform-box: fill-box; }
+.wp-char[data-action="sing"] .note-2 { animation: pico-zzz-float 2.4s ease-in infinite 1.2s; transform-origin: center; transform-box: fill-box; }
+
+@keyframes pico-sing-arm {
+  0%, 100% { transform: rotate(-95deg); }
+  50% { transform: rotate(-125deg); }
+}
+
+/* === doze: 꾸벅꾸벅 졸다가 화들짝 (한 번, 4.2s) === */
+.wp-char[data-action="doze"] .head { animation: pico-doze-head 4.2s ease-in both; }
+.wp-char[data-action="doze"] .body-wrap { animation: pico-sleep-breathe 4.2s ease-in-out infinite; }
+.wp-char[data-action="doze"] .antenna { animation: pico-doze-antenna 4.2s ease-in both; }
+.wp-char[data-action="doze"] .antenna-bulb { fill: #94a3b8; }
+.wp-char[data-action="doze"] .antenna-glow { opacity: 0.1; }
+
+@keyframes pico-doze-head {
+  0% { transform: rotate(0) translateY(0); }
+  32% { transform: rotate(9deg) translateY(4px); }
+  38% { transform: rotate(2deg) translateY(1px); }
+  74% { transform: rotate(14deg) translateY(7px); }
+  80% { transform: rotate(-4deg) translateY(-2px); }
+  100% { transform: rotate(0) translateY(0); }
+}
+@keyframes pico-doze-antenna {
+  0%, 100% { transform: rotate(0); }
+  32% { transform: rotate(14deg); }
+  74% { transform: rotate(22deg); }
+  80% { transform: rotate(-10deg); }
 }

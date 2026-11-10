@@ -14,9 +14,123 @@ export type PetCharacterAction =
   | "alert"
   | "think"
   | "surprise"
-  | "angry";
+  | "angry"
+  // 아래는 Orbit에서 더한 동작 (pet.css의 같은 이름 블록)
+  | "run"
+  | "tiptoe"
+  | "jump"
+  | "yawn"
+  | "look"
+  | "sit"
+  | "cheer"
+  | "jacks"
+  | "spin"
+  | "sneeze"
+  | "sing"
+  | "doze";
+
+const OPEN_EYES = (
+  <>
+    <circle cx="100" cy="98" r="6" className="eye" />
+    <circle cx="140" cy="98" r="6" className="eye" />
+  </>
+);
+const HAPPY_EYES = (
+  <>
+    <path d="M94 100 Q100 92 106 100" className="eye-arc" />
+    <path d="M134 100 Q140 92 146 100" className="eye-arc" />
+  </>
+);
+const SHUT_EYES = (
+  <>
+    <rect x="92" y="98" width="16" height="3" rx="1.5" className="eye-line" />
+    <rect x="132" y="98" width="16" height="3" rx="1.5" className="eye-line" />
+  </>
+);
 
 export const FACES: Record<PetCharacterAction, ReactElement> = {
+  run: (
+    <g className="face-eyes">
+      {OPEN_EYES}
+      <ellipse cx="120" cy="115" rx="6" ry="4" className="mouth-open" />
+    </g>
+  ),
+  tiptoe: (
+    <g className="face-eyes">
+      {OPEN_EYES}
+      <circle cx="120" cy="115" r="3" className="mouth-o" />
+    </g>
+  ),
+  jump: (
+    <g className="face-eyes">
+      {HAPPY_EYES}
+      <ellipse cx="120" cy="116" rx="9" ry="5" className="mouth-open" />
+    </g>
+  ),
+  yawn: (
+    <g className="face-eyes">
+      {SHUT_EYES}
+      <ellipse cx="120" cy="116" rx="7" ry="7" className="mouth-open yawn-mouth" />
+    </g>
+  ),
+  look: (
+    <g className="face-eyes">
+      {OPEN_EYES}
+      <rect x="112" y="112" width="16" height="3" rx="1.5" className="mouth" />
+    </g>
+  ),
+  sit: (
+    <g className="face-eyes">
+      {HAPPY_EYES}
+      <path d="M108 113 Q120 120 132 113" className="mouth-arc" />
+    </g>
+  ),
+  cheer: (
+    <g className="face-eyes">
+      {HAPPY_EYES}
+      <ellipse cx="120" cy="116" rx="9" ry="5" className="mouth-open" />
+      <circle cx="86" cy="110" r="4" className="blush" />
+      <circle cx="154" cy="110" r="4" className="blush" />
+    </g>
+  ),
+  jacks: (
+    <g className="face-eyes">
+      {OPEN_EYES}
+      <path d="M104 112 Q120 120 136 112" className="mouth-arc" />
+    </g>
+  ),
+  spin: (
+    <g className="face-eyes">
+      {HAPPY_EYES}
+      <ellipse cx="120" cy="116" rx="9" ry="5" className="mouth-open" />
+    </g>
+  ),
+  sneeze: (
+    <g className="face-eyes">
+      <path d="M94 93 L105 98 L94 103" className="eye-arc" />
+      <path d="M146 93 L135 98 L146 103" className="eye-arc" />
+      <circle cx="120" cy="116" r="4" className="mouth-o" />
+    </g>
+  ),
+  sing: (
+    <g className="face-eyes">
+      {HAPPY_EYES}
+      <ellipse cx="120" cy="116" rx="7" ry="5" className="mouth-open" />
+      <text className="note note-1" x="158" y="76">
+        ♪
+      </text>
+      <text className="note note-2" x="172" y="60">
+        ♫
+      </text>
+    </g>
+  ),
+  doze: (
+    <g className="face-eyes">
+      {SHUT_EYES}
+      <rect x="114" y="113" width="12" height="3" rx="1.5" className="mouth" />
+    </g>
+  ),
+
   idle: (
     <g className="face-eyes">
       <circle cx="100" cy="98" r="6" className="eye eye-left" />

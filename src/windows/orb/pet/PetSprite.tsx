@@ -20,9 +20,37 @@ export type PetAction =
   | "tumble"
   | "think"
   | "surprise"
-  | "smile";
+  | "smile"
+  | "love"
+  | "angry"
+  | "run"
+  | "tiptoe"
+  | "jump"
+  | "yawn"
+  | "look"
+  | "sit"
+  | "cheer"
+  | "jacks"
+  | "spin"
+  | "sneeze"
+  | "sing"
+  | "doze";
 
 const FACE: Record<PetAction, PetCharacterAction> = {
+  love: "love",
+  angry: "angry",
+  run: "run",
+  tiptoe: "tiptoe",
+  jump: "jump",
+  yawn: "yawn",
+  look: "look",
+  sit: "sit",
+  cheer: "cheer",
+  jacks: "jacks",
+  spin: "spin",
+  sneeze: "sneeze",
+  sing: "sing",
+  doze: "doze",
   idle: "idle",
   smile: "smile",
   walk: "walking",
