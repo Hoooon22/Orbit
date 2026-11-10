@@ -45,6 +45,21 @@ export const useTimers = create<TimerStore>((set, get) => {
       .then((items) => set(name === "timers" ? { timers: items } : { log: items }))
       .catch(reportError);
 
+  // 처음 읽기. 앱이 막 뜰 때는 오브 창의 첫 IPC가 Rust 상태 등록보다 먼저 가서 실패할 수 있다
+  // (설정 스토어와 같은 이유). 그대로 두면 다음 "<이름>-changed"까지 목록이 비어 있으므로 잠시 뒤 다시 읽는다.
+  const firstLoad = async (name: ListName) => {
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        const items = await listItems<WorkTimer & WorkLogItem>(name);
+        set(name === "timers" ? { timers: items } : { log: items });
+        return;
+      } catch (e) {
+        if (attempt === 9) reportError(e);
+        await new Promise((r) => window.setTimeout(r, 300));
+      }
+    }
+  };
+
   // undefined는 직렬화되지 않으므로 "값 없앰"은 null로 보낸다
   const send = (name: ListName, id: string, p: object) => {
     const wire = Object.fromEntries(Object.entries(p).map(([k, v]) => [k, v ?? null]));
@@ -63,8 +78,8 @@ export const useTimers = create<TimerStore>((set, get) => {
     init: () => {
       if (inited) return;
       inited = true;
-      void refresh("timers");
-      void refresh("worklog");
+      void firstLoad("timers");
+      void firstLoad("worklog");
       void listen("timers-changed", () => void refresh("timers"));
       void listen("worklog-changed", () => void refresh("worklog"));
     },
