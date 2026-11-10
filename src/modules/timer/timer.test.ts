@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { elapsedOf, formatElapsed } from "./store";
+import { elapsedOf, formatElapsed, runningTimers } from "./store";
+
+describe("runningTimers", () => {
+  const t = (id: string, startedAt?: number) => ({ id, name: id, elapsed: 0, startedAt });
+  it("돌고 있는 것만, 가장 최근에 시작한 것부터", () => {
+    expect(runningTimers([t("a"), t("b")])).toEqual([]);
+    expect(runningTimers([t("a", 300), t("b"), t("c", 500), t("d", 100)]).map((x) => x.id)).toEqual(["c", "a", "d"]);
+  });
+});
 
 describe("formatElapsed", () => {
   it("시:분:초, 분·초는 두 자리", () => {

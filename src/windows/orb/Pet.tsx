@@ -3,8 +3,10 @@ import { todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { pendingNow, useTodos } from "../../modules/todo/store";
 import { useAllEvents } from "../../modules/calendar/googleStore";
+import { useTimers } from "../../modules/timer/store";
 import { eventsOn } from "../../modules/calendar/calendar";
 import Bubble from "./Bubble";
+import TimerPlate from "./TimerPlate";
 import { useBubble } from "./bubbleStore";
 import { useOrbStatus } from "./status";
 import { usePet } from "./petStore";
@@ -24,6 +26,7 @@ const MIN_OPACITY = 0.1; // 투명도 90%까지만 — 아예 안 보이면 잡�
 const AWAY_OPACITY = 0.3;
 
 const DRAG_THRESHOLD = 4; // px. 이보다 덜 움직였으면 클릭으로 본다
+const HOVER_BUBBLE_MS = 500; // 이만큼 머물러야 타이머 말풍선이 뜬다
 
 // 오브 = 펫 한 마리. 클릭하면 옆에 패널을 열고, 끌면 잡아서 옮긴다(놓으면 떨어지거나 날아간다).
 // 끌기는 petLoop가 커서를 폴링해 창을 옮기므로(OS 드래그 아님) 4px 넘게 움직인 순간 넘긴다.
@@ -35,6 +38,7 @@ export default function Pet({ opacity, onActivate }: Props) {
   const todayEvents = eventsOn(events, todayStr()).length;
   const alert = useTodos((s) => s.fired.length > 0);
   const bubble = useBubble((s) => s.current);
+  const timerBubble = useBubble((s) => s.timers);
   const side = useBubble((s) => s.side);
   const away = useOrbStatus((s) => s.away);
   const meeting = useOrbStatus((s) => s.meeting);
@@ -44,6 +48,21 @@ export default function Pet({ opacity, onActivate }: Props) {
   const hover = usePet((s) => s.hover);
   const wrecked = useWreck((s) => s.stage !== null);
   const down = useRef<{ x: number; y: number } | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
+
+  // 타이머 말풍선: 창(펫) 위에 잠깐 머물면 돌고 있는 타이머 목록을 옆에 띄우고, 창을 벗어나거나 누르면 닫는다.
+  // .pet이 아니라 창 전체(.orb-root)의 enter/leave로 본다 — 창이 넓어지며 펫이 한쪽으로 붙는 순간
+  // .pet에는 mouseleave가 잘못 올 수 있다. 바로 띄우지 않는 건 패널을 열러 올 때마다 번쩍이지 않게.
+  const closeTimerBubble = () => {
+    window.clearTimeout(hoverTimer.current);
+    useBubble.getState().hideTimers();
+  };
+  const armTimerBubble = () => {
+    window.clearTimeout(hoverTimer.current);
+    hoverTimer.current = window.setTimeout(() => {
+      if (useTimers.getState().timers.some((t) => !!t.startedAt)) useBubble.getState().showTimers();
+    }, HOVER_BUBBLE_MS);
+  };
 
   // 표정: 잠깐 하는 동작 > 잡힘/낙하/비행(놀람) > 걷기 > 자리 비움(잠) > 회의(생각) > 평소
   const action: PetAction =
@@ -80,11 +99,15 @@ export default function Pet({ opacity, onActivate }: Props) {
   }
 
   return (
-    <div className={"orb-root" + (bubble ? ` side-${side}` : "")}>
+    <div
+      className={"orb-root" + (bubble || timerBubble ? ` side-${side}` : "")}
+      onMouseEnter={armTimerBubble}
+      onMouseLeave={closeTimerBubble}
+    >
       {/* role="button"·aria-label·title을 주지 않는다: 접근성 컨트롤이 되면 마우스를 올릴 때 Windows가
           펫 뒤에 반투명 흰 강조 상자를 그린다 (투명 창이라 그대로 보인다) */}
       <div
-        className="pet"
+        className={`pet pet-${petSize}`}
         data-tip={tip}
         style={{
           width: box.width,
@@ -109,6 +132,7 @@ export default function Pet({ opacity, onActivate }: Props) {
           down.current = { x: e.clientX, y: e.clientY };
           // 말풍선은 끌기 전에 접는다 (접을 때 창 x가 바뀌므로 OS 드래그 중엔 못 접는다)
           if (useBubble.getState().current) useBubble.getState().dismiss();
+          closeTimerBubble();
         }}
         onMouseMove={(e) => {
           const d = down.current;
@@ -125,6 +149,7 @@ export default function Pet({ opacity, onActivate }: Props) {
         }}
       >
         <PetSprite kind={kind} action={action} direction={direction} size={SPRITE_H[petSize] ?? SPRITE_H.medium} />
+        <TimerPlate />
       </div>
       <Bubble />
     </div>

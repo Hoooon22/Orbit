@@ -3364,6 +3364,45 @@ body.orb-window {
   user-select: none;
 }
 
+/* 발밑 이름표: 돌고 있는 타이머의 작업 이름·시간. 발 아래 빈 자리(바닥 그림자 위)에 얹어
+   펫 창 밖으로 나가지 않는다. 클릭·끌기는 펫과 같이 받는다 */
+.pet-plate {
+  display: flex;
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  left: 2px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 15px;
+  padding: 0 4px;
+  border: 1px solid var(--accent);
+  background: var(--bg-panel);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.pet-plate-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pet-plate-more {
+  color: var(--fg-dim);
+}
+
+.pet-plate-time {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.pet-small .pet-plate-time {
+  display: none;
+}
+
 /* ── 펫 패널 창 ─────────────────────────── */
 /* 펫을 클릭하면 옆에 뜨는 380×540 창. Orbit 창(.dash)과 같은 1px 선 카드, 탭 한 줄 */
 
@@ -3522,6 +3561,35 @@ body.panel-window {
 .orb-bubble-body {
   font-size: 11px;
   color: var(--fg-dim);
+}
+
+/* 타이머 말풍선: 펫에 마우스를 올리면 뜨는 돌고 있는 타이머 목록. 이름은 자르지 않고 줄을 바꾸며,
+   펫 창 높이를 넘는 만큼만 아래가 잘린다 */
+.orb-bubble.orb-bubble-timers {
+  justify-content: flex-start;
+  gap: 4px;
+  height: auto;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.orb-bubble-timer {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.orb-bubble-timer-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.orb-bubble-timer-time {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 

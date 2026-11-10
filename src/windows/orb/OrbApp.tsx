@@ -5,6 +5,7 @@ import { reportError } from "../../shared/stores/error";
 import { useTodos } from "../../modules/todo/store";
 import { useEvents } from "../../modules/calendar/store";
 import { useGoogle } from "../../modules/calendar/googleStore";
+import { useTimers } from "../../modules/timer/store";
 import { useBubble } from "./bubbleStore";
 import { useOrbStatus } from "./status";
 import { startPetLoops } from "./petLoop";
@@ -20,6 +21,7 @@ export default function OrbApp() {
     useTodos.getState().init(); // 배지의 남은 할 일 개수
     useEvents.getState().init(); // 오브의 오늘 일정 개수
     useGoogle.getState().init();
+    useTimers.getState().init(); // 펫 발밑 이름표의 돌고 있는 타이머
     useBubble.getState().init(); // 알림 말풍선
     useOrbStatus.getState().init(); // 자리 비움·회의 표시
   }, []);

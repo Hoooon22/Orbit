@@ -8,6 +8,10 @@ import { reportError } from "../../shared/stores/error";
 export const elapsedOf = (t: WorkTimer, now: number) =>
   t.elapsed + (t.startedAt ? Math.max(0, now - t.startedAt) : 0);
 
+// 돌고 있는 타이머만, 가장 최근에 시작한 것부터 (펫 이름표·말풍선)
+export const runningTimers = (timers: WorkTimer[]) =>
+  timers.filter((t) => !!t.startedAt).sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0));
+
 // "1:02:03" — 시:분:초. 시간은 자릿수 제한 없음
 export function formatElapsed(ms: number): string {
   const s = Math.floor(ms / 1000);

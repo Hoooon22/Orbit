@@ -21,11 +21,16 @@ type BubbleStore = {
   side: BubbleSide;
   /// 창이 넓어진 동안(펼치기 시작 ~ 접기 끝) true. OrbApp이 이때의 위치는 저장하지 않는다
   expanded: boolean;
+  /// 타이머 말풍선(펫에 마우스를 올리면 뜨는, 돌고 있는 타이머 목록)이 떠 있음. current와 같은 자리를 쓴다
+  timers: boolean;
   init: () => void;
   push: (b: Bubble) => void;
   dismiss: () => void;
   // 미뤄 둔 말풍선이 있으면 띄운다 (펫을 잡았다 놓은 뒤)
   flush: () => void;
+  // 타이머 말풍선을 띄운다/닫는다. 알림 말풍선이 떠 있거나 펫이 잡혀 있으면 띄우지 않는다
+  showTimers: () => void;
+  hideTimers: () => void;
 };
 
 // 펫이 잡혀 있거나 날아가는 동안은 창을 넓히지 않는다 (OS 드래그·물리 루프와 창 x가 어긋난다)
@@ -46,6 +51,7 @@ const timeLabel = (ms: number) => {
 let inited = false;
 const queue: Bubble[] = [];
 let timer: number | undefined;
+let timersWanted = false; // 창을 넓히는 사이 마우스가 떠났는지 (떠났으면 펴자마자 접는다)
 
 export const useBubble = create<BubbleStore>((set, get) => {
   const next = () => {
@@ -53,12 +59,27 @@ export const useBubble = create<BubbleStore>((set, get) => {
     if (b) void show(b);
   };
 
+  // 이미 넓어진 창에 알림 말풍선을 올린다
+  const present = (b: Bubble) => {
+    set({ current: b, timers: false });
+    timer = window.setTimeout(() => get().dismiss(), dwell(b));
+  };
+
+  const collapse = () => {
+    collapseOrb(get().side)
+      .catch(reportError)
+      .finally(() => {
+        set({ expanded: false });
+        if (!petBusy()) next();
+      });
+  };
+
   const show = async (b: Bubble) => {
     set({ expanded: true });
     try {
       const side = await expandOrb();
-      set({ current: b, side });
-      timer = window.setTimeout(() => get().dismiss(), dwell(b));
+      set({ side });
+      present(b);
     } catch (e) {
       reportError(e);
       set({ expanded: false });
@@ -70,6 +91,7 @@ export const useBubble = create<BubbleStore>((set, get) => {
     current: null,
     side: "left",
     expanded: false,
+    timers: false,
 
     init: () => {
       if (inited) return;
@@ -110,8 +132,14 @@ export const useBubble = create<BubbleStore>((set, get) => {
         .catch(() => false)
         .then((visible) => {
           if (!visible) return;
-          const { current, expanded } = get();
+          const { current, expanded, timers } = get();
           if (current?.key === b.key) return;
+          // 알림이 타이머 말풍선보다 먼저다: 넓어진 창 그대로 내용만 바꾼다
+          if (timers) {
+            timersWanted = false;
+            present(b);
+            return;
+          }
           if (expanded || petBusy()) {
             const i = queue.findIndex((q) => q.key === b.key);
             if (i >= 0) queue[i] = b;
@@ -123,17 +151,37 @@ export const useBubble = create<BubbleStore>((set, get) => {
     },
 
     dismiss: () => {
-      const { current, side } = get();
-      if (!current) return;
+      if (!get().current) return;
       window.clearTimeout(timer);
       // DOM에서 말풍선을 먼저 지우고 창을 줄인다 (줄어든 창에 말풍선이 한 프레임 겹치지 않게)
       set({ current: null });
-      collapseOrb(side)
-        .catch(reportError)
-        .finally(() => {
+      collapse();
+    },
+
+    showTimers: () => {
+      timersWanted = true;
+      if (get().expanded || petBusy()) return;
+      set({ expanded: true });
+      expandOrb()
+        .then((side) => {
+          set({ side });
+          // 넓히는 사이 알림이 왔으면 그쪽을 먼저 보여 준다
+          const b = queue.shift();
+          if (b) return present(b);
+          set({ timers: true });
+          if (!timersWanted) get().hideTimers();
+        })
+        .catch((e) => {
+          reportError(e);
           set({ expanded: false });
-          if (!petBusy()) next();
         });
+    },
+
+    hideTimers: () => {
+      timersWanted = false;
+      if (!get().timers) return;
+      set({ timers: false });
+      collapse();
     },
 
     flush: () => {
