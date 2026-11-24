@@ -1,17 +1,19 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Editor as TiptapEditor } from "@tiptap/react";
-import type { SlashId, SlashItem } from "./slashItems";
 import type { SlashRange } from "./slash";
 
-// "/" 메뉴 화면. 커서("/" 자리) 바로 아래에 뜨고 ↑↓로 고르고 Enter(키 처리는 Editor.tsx), 마우스로도 고른다.
+// "/" 메뉴와 "[[" 메모 링크 메뉴의 화면. 커서("/"·"[[" 자리) 바로 아래에 뜨고 ↑↓로 고르고
+// Enter(키 처리는 Editor.tsx), 마우스로도 고른다.
+
+export type MenuItem = { id: string; label: string; hint: string; icon: string };
 
 type Props = {
   editor: TiptapEditor;
   range: SlashRange;
-  items: SlashItem[];
+  items: MenuItem[];
   index: number;
   onHover: (i: number) => void;
-  onPick: (id: SlashId) => void;
+  onPick: (id: string) => void;
 };
 
 const MENU_W = 260;

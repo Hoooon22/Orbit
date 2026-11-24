@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { QUICK_MEMO } from "../../shared/api";
+import Icon from "../../shared/Icon";
 import { describeParsed, parseTodoInput } from "../../shared/todoParse";
 import Editor from "../../modules/memo/Editor";
 import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
@@ -98,13 +99,13 @@ export default function Home({ onOpenTodos, onOpenTimer, onOpenMemo }: Props) {
         <h2 className="home-title">즐겨찾기</h2>
         <div className="home-card home-fav">
           {visibleFavorites.length === 0 ? (
-            <div className="clip-empty">메모 화면에서 ⭐를 누르면 여기에 모입니다</div>
+            <div className="clip-empty">메모 화면에서 ☆를 누르면 여기에 모입니다</div>
           ) : (
             <ul className="fav-list">
               {visibleFavorites.map((path) => (
                 <li key={path} className="fav-item">
                   <button className="fav-row" onClick={() => onOpenMemo(path)} title={path}>
-                    <span className="pinned-icon">⭐</span>
+                    <span className="pinned-icon"><Icon name="star" /></span>
                     <span className="fav-label">{noteName(path)}</span>
                   </button>
                 </li>

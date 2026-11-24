@@ -1,4 +1,5 @@
 import { useState } from "react";
+import Icon from "../../shared/Icon";
 
 type DropAt = { path: string; pos: "before" | "after" };
 
@@ -72,7 +73,7 @@ export default function Favorites({
                 onClick={() => onSelect(path)}
                 title={path}
               >
-                <span className="pinned-icon">⭐</span>
+                <span className="pinned-icon"><Icon name="star" /></span>
                 <span className="fav-label">{noteName(path)}</span>
               </button>
               <button

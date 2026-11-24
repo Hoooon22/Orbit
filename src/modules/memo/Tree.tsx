@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { fullTime, shortDate } from "../../shared/dates";
 import type { TreeNode } from "../../shared/api";
+import Icon from "../../shared/Icon";
 
 type TreeProps = {
   nodes: TreeNode[];
@@ -237,7 +238,7 @@ function TreeItem({
           {editing ? (
             <div className="tree-row folder">
               <span className="chevron">{open ? "▾" : "▸"}</span>
-              <span className="type-icon">{open ? "📂" : "📁"}</span>
+              <span className="type-icon"><Icon name={open ? "folderOpen" : "folder"} /></span>
               <RenameInput initial={display} onCommit={commitRename} onCancel={onEndRename} />
             </div>
           ) : (
@@ -250,7 +251,7 @@ function TreeItem({
               {...dragProps}
             >
               <span className="chevron">{open ? "▾" : "▸"}</span>
-              <span className="type-icon">{open ? "📂" : "📁"}</span>
+              <span className="type-icon"><Icon name={open ? "folderOpen" : "folder"} /></span>
               <span className="label">{node.name}</span>
             </button>
           )}
@@ -296,7 +297,7 @@ function TreeItem({
         {editing ? (
           <div className="tree-row note">
             <span className="chevron" />
-            <span className="type-icon">📄</span>
+            <span className="type-icon"><Icon name="file" /></span>
             <RenameInput initial={display} onCommit={commitRename} onCancel={onEndRename} />
           </div>
         ) : (
@@ -306,7 +307,7 @@ function TreeItem({
             {...dragProps}
           >
             <span className="chevron" />
-            <span className="type-icon">📄</span>
+            <span className="type-icon"><Icon name="file" /></span>
             <span className="label">{display}</span>
             {node.modified !== undefined && (
               <span className="row-date" title={`수정 ${fullTime(node.modified)}`}>

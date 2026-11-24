@@ -1625,6 +1625,116 @@ button {
   font-size: 11px;
 }
 
+/* 단색 선 아이콘 (shared/Icon.tsx) */
+.icon {
+  flex-shrink: 0;
+  vertical-align: -2px;
+}
+
+/* 레일: 가끔 쓰는 화면(런처·통계·설정)은 아래로 떼어 둔다 */
+.dash-rail-btn.low {
+  margin-top: auto;
+  border-top: 1px solid var(--border); /* 창이 낮아 빈 자리가 없어도 묶음이 나뉘어 보이게 */
+}
+
+/* 단축키 도움말 (Ctrl+/) */
+.shortcut-help {
+  top: 56px;
+  max-height: calc(100vh - 96px);
+  padding: 6px 10px 12px;
+  overflow-y: auto;
+}
+
+.shortcut-help dl {
+  margin: 0;
+}
+
+.shortcut-row {
+  display: flex;
+  gap: 12px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.shortcut-row dt {
+  flex-shrink: 0;
+  width: 150px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+
+.shortcut-row dd {
+  margin: 0;
+  color: var(--fg-dim);
+}
+
+/* 팝오버 안의 메모 고르기 목록 (이어서 붙이기) */
+.pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.pick-list .palette-item {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+/* 목차 팝오버: 제목 단계만큼 들여쓴 줄 */
+.save-pop.outline-pop {
+  gap: 0;
+  padding: 6px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.outline-row {
+  padding: 6px 8px;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.outline-row:hover {
+  background: var(--bg-hover);
+}
+
+/* 편집기 아래: 이 메모를 [[링크]]로 가리키는 메모들 */
+.backlinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 24px;
+  border-top: 1px solid var(--border);
+  max-height: 68px; /* 링크가 많아도 본문 자리를 먹지 않게 두 줄까지만, 넘치면 스크롤 */
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.backlinks-title {
+  color: var(--fg-mute);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.backlink {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  color: var(--fg-dim);
+  font-size: 12px;
+}
+
+.backlink:hover {
+  color: var(--fg);
+  background: var(--bg-hover);
+}
+
 /* 머리줄의 통합 검색 버튼 (시계 오른쪽) */
 .dash-search-btn {
   margin-left: 0;

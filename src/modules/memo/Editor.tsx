@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { openUrl } from "@tauri-apps/plugin-opener";
@@ -21,7 +21,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import { Markdown } from "tiptap-markdown";
 import type { MarkdownSerializerState } from "@tiptap/pm/markdown";
 import type { Node as PMNode } from "@tiptap/pm/model";
-import { Plugin } from "@tiptap/pm/state";
+import { NodeSelection, Plugin, TextSelection } from "@tiptap/pm/state";
 import {
   appendQuickMemo,
   captureSaveImage,
@@ -34,18 +34,22 @@ import {
   readNote,
   saveImage,
   saveQuickMemo,
+  searchNotes,
   writeNote,
 } from "../../shared/api";
-import type { CaptureDone, NoteTimes, TreeNode } from "../../shared/api";
+import type { CaptureDone, NoteTimes, SearchHit, TreeNode } from "../../shared/api";
 import { fullTime, relativeTime, todayStr } from "../../shared/dates";
 import { useSettings } from "../../shared/stores/settings";
 import { nestFirstListItem } from "./listIndent";
 import { openEditors } from "./openEditors";
-import { SlashKeys, slashQuery } from "./slash";
+import { linkQuery, SlashKeys, slashQuery } from "./slash";
 import type { SlashKey, SlashRange } from "./slash";
 import { filterSlashItems } from "./slashItems";
 import type { SlashId } from "./slashItems";
 import SlashMenu from "./SlashMenu";
+import type { MenuItem } from "./SlashMenu";
+import { noteName } from "./flatten";
+import { matchNotes, recentNotes } from "../palette/match";
 import SelectionMenu from "./SelectionMenu";
 import { useMemoStore } from "./store";
 import { Subpage } from "./subpage";
@@ -256,6 +260,26 @@ function flattenTree(nodes: TreeNode[], depth = 0, out: TreeOpt[] = []): TreeOpt
   return out;
 }
 
+const folderOf = (path: string) => (path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "");
+
+// 메모를 고르는 목록(“[[” 링크, 이어서 붙이기)에 쓸 후보. 질의가 비면 최근에 고친 메모, 있으면 제목으로 찾는다.
+// id는 링크에 쓰는 확장자 없는 경로.
+function noteChoices(tree: TreeNode[], query: string, except: string): MenuItem[] {
+  const found = query.trim() ? matchNotes(tree, query, 9) : recentNotes(tree, 9);
+  return found
+    // 이름에 대괄호가 든 메모는 [[경로]] 문법으로 적을 수 없어 후보에서 뺀다
+    .filter((n) => n.path !== except && !/[[\]]/.test(n.path))
+    .slice(0, 8)
+    .map((n) => ({
+      id: n.path.replace(/\.md$/i, ""),
+      label: noteName(n.path),
+      hint: folderOf(n.path),
+      icon: "↗",
+    }));
+}
+
+type Heading = { level: number; text: string; pos: number };
+
 export default function Editor({
   path,
   onRename,
@@ -275,8 +299,11 @@ export default function Editor({
   const [saveName, setSaveName] = useState("");
   const [saveErr, setSaveErr] = useState<string | null>(null);
   const [appendPop, setAppendPop] = useState(false);
-  const [appendEntries, setAppendEntries] = useState<TreeOpt[]>([]);
-  const [appendPath, setAppendPath] = useState("");
+  const [appendTree, setAppendTree] = useState<TreeNode[]>([]);
+  const [appendQuery, setAppendQuery] = useState("");
+  const [appendIndex, setAppendIndex] = useState(0);
+  const [outline, setOutline] = useState<Heading[] | null>(null); // 목차 팝오버 (null이면 닫힘)
+  const [backlinks, setBacklinks] = useState<SearchHit[]>([]); // 이 메모를 [[링크]]로 가리키는 메모
   // 버튼을 누른 순간 본문에서 끌어 놓은 범위. null이면 빠른 메모 전체를 옮긴다.
   const [moveSel, setMoveSel] = useState<{ from: number; to: number } | null>(null);
   const fontSize = useSettings((s) => s.settings.fontSize);
@@ -290,31 +317,59 @@ export default function Editor({
   onOpenNoteRef.current = onOpenNote;
 
   // "/" 메뉴. 편집기 확장(키 처리)은 한 번만 만들어지므로 최신 상태는 ref로 본다
+  // 같은 메뉴를 "[[" 메모 링크 고르기에도 쓴다 (menuKind). 링크는 다른 메모를 열 수 있는 화면에서만.
   const [slash, setSlash] = useState<SlashRange | null>(null);
+  const [menuKind, setMenuKind] = useState<"slash" | "link">("slash");
   const [slashIndex, setSlashIndex] = useState(0);
-  const slashItems = slash ? filterSlashItems(slash.query) : [];
-  const slashRef = useRef({ range: slash, items: slashItems, index: slashIndex });
-  slashRef.current = { range: slash, items: slashItems, index: slashIndex };
+  const tree = useMemoStore((s) => s.tree);
+  const menuItems = (kind: "slash" | "link", query: string): MenuItem[] =>
+    kind === "slash" ? filterSlashItems(query) : noteChoices(useMemoStore.getState().tree, query, pathRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- tree가 바뀌면 링크 후보도 다시 계산
+  const slashItems = useMemo(() => (slash ? menuItems(menuKind, slash.query) : []), [slash, menuKind, tree]);
+  const slashRef = useRef({ range: slash, kind: menuKind, items: slashItems, index: slashIndex });
+  slashRef.current = { range: slash, kind: menuKind, items: slashItems, index: slashIndex };
   const slashDismissed = useRef<number | null>(null); // Esc로 닫은 "/" 자리. 거기서 다시 열지 않는다
   const editorRef = useRef<TiptapEditor | null>(null);
 
   const syncSlash = (state: TiptapEditor["state"]) => {
-    const r = slashQuery(state);
-    if (!r || slashDismissed.current === r.from || (r.query && filterSlashItems(r.query).length === 0)) {
+    let kind: "slash" | "link" = "slash";
+    let r = slashQuery(state);
+    if (!r && onOpenNoteRef.current) {
+      r = linkQuery(state);
+      kind = "link";
+    }
+    if (!r || slashDismissed.current === r.from || menuItems(kind, r.query).length === 0) {
       if (!r) slashDismissed.current = null;
       if (slashRef.current.range) setSlash(null);
       return;
     }
     if (slashRef.current.range?.from !== r.from) setSlashIndex(0);
+    setMenuKind(kind);
     setSlash(r);
   };
 
-  const runSlash = (id: SlashId) => {
+  const runSlash = (picked: string) => {
     const ed = editorRef.current;
-    const r = slashRef.current.range;
+    const { range: r, kind } = slashRef.current;
     if (!ed || !r) return;
     setSlash(null);
     const chain = ed.chain().focus().deleteRange({ from: r.from, to: r.to });
+    if (kind === "link") {
+      // 고른 메모로 가는 링크 블록. 하위 페이지와 같은 [[경로]] 한 줄로 저장되고, 이름이 바뀌면 Rust가 따라 고친다
+      chain
+        .insertContent({ type: "subpage", attrs: { path: picked } })
+        // 넣은 블록이 선택된 채로 남으면 다음 글자가 링크를 지워 버린다. 커서를 그 아래 줄로 옮긴다(없으면 만든다)
+        .command(({ tr }) => {
+          const sel = tr.selection;
+          if (!(sel instanceof NodeSelection)) return true;
+          if (!tr.doc.nodeAt(sel.to)?.isTextblock) tr.insert(sel.to, tr.doc.type.schema.nodes.paragraph.create());
+          tr.setSelection(TextSelection.create(tr.doc, sel.to + 1));
+          return true;
+        })
+        .run();
+      return;
+    }
+    const id = picked as SlashId;
     if (id === "text") chain.setParagraph().run();
     else if (id === "h1") chain.setHeading({ level: 1 }).run();
     else if (id === "h2") chain.setHeading({ level: 2 }).run();
@@ -350,7 +405,7 @@ export default function Editor({
       setSlash(null);
     } else if (key === "up") setSlashIndex((i) => (i - 1 + items.length) % items.length);
     else if (key === "down") setSlashIndex((i) => (i + 1) % items.length);
-    else if (items[index]) runSlash(items[index].id);
+    else runSlash(items[Math.min(index, items.length - 1)].id); // 화면에 강조된 줄과 같은 항목
     return true;
   };
   const onSlashKeyRef = useRef(onSlashKey);
@@ -449,7 +504,10 @@ export default function Editor({
     },
     onSelectionUpdate: ({ editor }) => {
       // 커서가 "/질의" 밖으로 나가면 메뉴를 닫는다 (열기는 입력할 때만)
-      if (slashRef.current.range && !slashQuery(editor.state)) setSlash(null);
+      const open = slashRef.current;
+      if (!open.range) return;
+      const r = open.kind === "slash" ? slashQuery(editor.state) : linkQuery(editor.state);
+      if (!r || r.from !== open.range.from) setSlash(null);
     },
     onUpdate: ({ editor }) => {
       syncSlash(editor.state);
@@ -683,12 +741,13 @@ export default function Editor({
   // "이어서 붙이기" 팝오버 열기 (붙일 대상은 메모라서 폴더까지 함께 보여 준다)
   const openAppendPop = async () => {
     captureSelection();
-    setAppendPath("");
+    setAppendQuery("");
+    setAppendIndex(0);
     setSaveErr(null);
     setSavePop(false);
     setAppendPop(true);
     try {
-      setAppendEntries(flattenTree(await listTree()));
+      setAppendTree(await listTree());
     } catch (e) {
       setSaveErr(String(e));
     }
@@ -753,7 +812,7 @@ export default function Editor({
     }
   };
 
-  const confirmAppend = async () => {
+  const confirmAppend = async (appendPath: string | undefined) => {
     if (!appendPath) return;
     const { sel, body, rest } = sliceForMove();
     if (!body) {
@@ -769,6 +828,58 @@ export default function Editor({
       setSaveErr(String(e));
     }
   };
+
+  // "이어서 붙이기"의 후보 (Enter는 강조된 줄에 붙인다)
+  const appendChoices = appendPop ? noteChoices(appendTree, appendQuery, path) : [];
+  const appendPick = appendChoices[Math.min(appendIndex, appendChoices.length - 1)] as MenuItem | undefined;
+
+  // 백링크: 본문에 [[이 메모]]를 둔 다른 메모. 메모를 열 때 한 번 찾는다 (다른 메모를 열 수 있는 화면에서만)
+  const canLink = !compact && !!onOpenNote && !isQuickMemo;
+  useEffect(() => {
+    setBacklinks([]);
+    if (!canLink) return;
+    let stale = false;
+    searchNotes(`[[${path.replace(/\.md$/i, "")}]]`)
+      .then((hits) => {
+        if (!stale) setBacklinks(hits.filter((h) => h.path !== path && h.path !== QUICK_MEMO));
+      })
+      .catch(() => {});
+    return () => {
+      stale = true;
+    };
+  }, [path, canLink]);
+  // 상위 페이지는 헤더 경로에 이미 있으므로 뺀다
+  const shownBacklinks = backlinks.filter((h) => !ancestors?.some((a) => a.path === h.path));
+
+  // 목차: 본문의 제목들을 모아 보여 주고, 고르면 그 자리로 간다
+  const openOutline = () => {
+    if (!editor) return;
+    const heads: Heading[] = [];
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "heading" && node.textContent.trim()) {
+        heads.push({ level: node.attrs.level as number, text: node.textContent, pos });
+      }
+    });
+    setOutline(heads);
+  };
+  const jumpToHeading = (pos: number) => {
+    setOutline(null);
+    if (!editor) return;
+    editor.chain().focus().setTextSelection(pos + 1).run();
+    (editor.view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView({ block: "start" });
+  };
+  // 목차가 떠 있을 때 Esc는 목차만 닫는다 (캡처 단계에서 먼저 받아 창 숨김을 막는다)
+  useEffect(() => {
+    if (!outline) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation(); // Esc 한 번에 한 겹만 닫는다
+      setOutline(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [outline]);
 
   const commitTitle = async () => {
     if (cancelTitle.current) {
@@ -846,6 +957,9 @@ export default function Editor({
               수정 {relativeTime(times.modified)}
             </span>
           )}
+          <button className="save-to-folder-btn" title="본문의 제목 목록 — 고르면 그 자리로" onClick={openOutline}>
+            목차
+          </button>
           <button
             className="save-to-folder-btn"
             title="화면 일부를 끌어서 캡처해 여기에 넣기 (클립보드에도 복사)"
@@ -939,37 +1053,90 @@ export default function Editor({
           <div className="save-pop">
             {moveSel && <div className="save-pop-hint">끌어 놓은 부분만 옮깁니다</div>}
             <label>
-              이어 붙일 메모
-              <select
-                value={appendPath}
+              이어 붙일 메모 (최근에 고친 순, 이름으로 찾기)
+              <input
+                value={appendQuery}
                 autoFocus
-                onChange={(e) => setAppendPath(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void confirmAppend();
-                  else if (e.key === "Escape") setAppendPop(false);
+                spellCheck={false}
+                placeholder="메모 이름…"
+                onChange={(e) => {
+                  setAppendQuery(e.target.value);
+                  setAppendIndex(0);
                 }}
-              >
-                <option value="">메모 선택</option>
-                {appendEntries.map((n) => (
-                  <option key={n.path} value={n.isDir ? "" : n.path} disabled={n.isDir}>
-                    {"  ".repeat(n.depth) + (n.isDir ? `${n.name}/` : n.name.replace(/\.md$/i, ""))}
-                  </option>
-                ))}
-              </select>
+                onKeyDown={(e) => {
+                  if (e.nativeEvent.isComposing) return;
+                  const n = appendChoices.length;
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    if (n) setAppendIndex((i) => (Math.min(i, n - 1) + 1) % n);
+                  } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    if (n) setAppendIndex((i) => (Math.min(i, n - 1) - 1 + n) % n);
+                  } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    void confirmAppend(appendPick && `${appendPick.id}.md`);
+                  } else if (e.key === "Escape") {
+                    e.preventDefault(); // 팝오버만 닫고 창은 숨기지 않는다
+                    setAppendPop(false);
+                  }
+                }}
+              />
             </label>
+            <ul className="pick-list">
+              {appendChoices.length === 0 && <li className="palette-none">찾는 메모가 없습니다</li>}
+              {appendChoices.map((c, i) => (
+                <li
+                  key={c.id}
+                  className={"palette-item" + (c === appendPick ? " active" : "")}
+                  onMouseMove={() => setAppendIndex(i)}
+                  onClick={() => void confirmAppend(`${c.id}.md`)}
+                >
+                  <span className="palette-label">{c.label}</span>
+                  {c.hint && <span className="palette-hint">{c.hint}</span>}
+                </li>
+              ))}
+            </ul>
             {saveErr && <div className="save-pop-error">{saveErr}</div>}
             <div className="save-pop-actions">
               <button onClick={() => setAppendPop(false)}>취소</button>
-              <button className="primary" disabled={!appendPath} onClick={() => void confirmAppend()}>
-                붙이기
-              </button>
             </div>
+          </div>
+        </>
+      )}
+      {outline && (
+        <>
+          <div className="ctx-backdrop" onClick={() => setOutline(null)} />
+          <div className="save-pop outline-pop">
+            {outline.length === 0 ? (
+              <div className="palette-none">제목이 없습니다. 줄 처음에 "# "을 치거나 "/제목"으로 만들면 여기 모입니다</div>
+            ) : (
+              outline.map((h) => (
+                <button
+                  key={h.pos}
+                  className="outline-row"
+                  style={{ paddingLeft: 8 + (h.level - 1) * 12 }}
+                  onClick={() => jumpToHeading(h.pos)}
+                >
+                  {h.text}
+                </button>
+              ))
+            )}
           </div>
         </>
       )}
       <div className="editor-body" ref={bodyRef} style={{ fontSize: `${fontSize}px` }}>
         <EditorContent className="editor-content" editor={editor} />
       </div>
+      {shownBacklinks.length > 0 && (
+        <nav className="backlinks" aria-label="이 메모를 가리키는 메모">
+          <span className="backlinks-title">여기로 오는 링크</span>
+          {shownBacklinks.map((h) => (
+            <button key={h.path} className="backlink" title={`${h.path} 열기`} onClick={() => onOpenNote?.(h.path)}>
+              {noteName(h.path)}
+            </button>
+          ))}
+        </nav>
+      )}
       {editor && <SelectionMenu editor={editor} />}
       {editor && slash && slashItems.length > 0 && (
         <SlashMenu

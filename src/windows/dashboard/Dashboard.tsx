@@ -26,6 +26,7 @@ import MemoView from "./MemoView";
 import Home from "./Home";
 import type { CommandId } from "../../modules/launcher/commands";
 import Palette from "../../modules/palette/Palette";
+import ShortcutHelp from "./ShortcutHelp";
 
 export type View =
   | "home"
@@ -121,9 +122,13 @@ const ICON: Record<View, JSX.Element> = {
 const isView = (s: string): s is View => NAV.some(([v]) => v === s);
 
 // 통합 검색에서 화면 이동 명령 옆에 보여 줄 단축키 (레일 순서 = Ctrl+1~9)
-const NAV_SHORTCUTS: Partial<Record<CommandId, string>> = Object.fromEntries(
-  NAV.slice(0, 9).map(([v], i) => [v, `Ctrl+${i + 1}`]),
-);
+const NAV_SHORTCUTS: Partial<Record<CommandId, string>> = {
+  ...Object.fromEntries(NAV.slice(0, 9).map(([v], i) => [v, `Ctrl+${i + 1}`])),
+  shortcuts: "Ctrl+/",
+};
+
+// 레일에서 아래쪽으로 떼어 두는 화면 (가끔 쓰는 것). 순서는 그대로라 Ctrl+숫자는 변하지 않는다
+const RAIL_LOW_FROM: View = "launcher";
 
 // Orbit 창. 왼쪽 레일로 화면을 고른다. 이 창 하나가 앱의 전부이고, 닫으면 오브와 트레이만 남는다.
 export default function Dashboard() {
@@ -135,6 +140,7 @@ export default function Dashboard() {
   const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 화면의 실행 입력창에 포커스
   const [maximized, setMaximized] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false); // 통합 검색 (Ctrl+K)
+  const [helpOpen, setHelpOpen] = useState(false); // 단축키 도움말 (Ctrl+/)
   const error = useError((s) => s.error);
   const clearError = useError((s) => s.clear);
 
@@ -162,7 +168,8 @@ export default function Dashboard() {
       const v = at === -1 ? e.payload : e.payload.slice(0, at);
       const arg = at === -1 ? "" : e.payload.slice(at + 1);
       if (!isView(v)) return;
-      setPaletteOpen(false); // 단축키로 화면이 바뀌는데 검색창이 위에 남지 않게
+      setPaletteOpen(false); // 단축키로 화면이 바뀌는데 검색창·도움말이 위에 남지 않게
+      setHelpOpen(false);
       if (v === "memo" && arg) {
         openMemo(arg);
         return;
@@ -184,6 +191,12 @@ export default function Dashboard() {
       if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setPaletteOpen((v) => !v);
+        return;
+      }
+      // Ctrl+/: 단축키 도움말
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key === "/") {
+        e.preventDefault();
+        setHelpOpen((v) => !v);
         return;
       }
       // Ctrl+1~9: 왼쪽 레일에 보이는 순서대로 화면 전환
@@ -228,6 +241,7 @@ export default function Dashboard() {
     if (id === "sync") return void useGoogle.getState().sync();
     if (id === "capture") return void captureStart("region").catch(reportError);
     if (id === "color") return void captureStart("color").catch(reportError);
+    if (id === "shortcuts") return setHelpOpen(true);
     setView(id);
   };
 
@@ -295,7 +309,7 @@ export default function Dashboard() {
           {NAV.map(([v, label], i) => (
             <button
               key={v}
-              className={"dash-rail-btn" + (view === v ? " on" : "")}
+              className={"dash-rail-btn" + (view === v ? " on" : "") + (v === RAIL_LOW_FROM ? " low" : "")}
               onClick={() => setView(v)}
               title={i < 9 ? `${label} (Ctrl+${i + 1})` : label}
             >
@@ -347,6 +361,7 @@ export default function Dashboard() {
           {view === "settings" && <SettingsView onOpenLauncher={() => setView("launcher")} />}
         </main>
       </div>
+      {helpOpen && <ShortcutHelp onClose={() => setHelpOpen(false)} />}
       {paletteOpen && (
         <Palette
           onClose={() => setPaletteOpen(false)}

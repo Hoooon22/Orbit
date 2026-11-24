@@ -143,7 +143,7 @@ export default function SearchModal({
       {row.kind === "note" && (
         <span className="hit-name">
           {row.hit.path === QUICK_MEMO
-            ? "⚡ 빠른 메모"
+            ? "빠른 메모"
             : highlight(row.hit.name.replace(/\.md$/i, ""), query)}
         </span>
       )}

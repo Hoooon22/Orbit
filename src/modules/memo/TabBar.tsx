@@ -55,7 +55,7 @@ export default function TabBar({ tabs, active, onActivate, onClose, onReorder, o
       }}
     >
       {tabs.map((path) => {
-        const label = path === QUICK_MEMO ? "⚡ 빠른 메모" : noteName(path);
+        const label = path === QUICK_MEMO ? "빠른 메모" : noteName(path);
         const marker = dropAt?.path === path && dragged !== path ? ` drop-${dropAt.pos}` : "";
         return (
           <div

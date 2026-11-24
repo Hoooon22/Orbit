@@ -18,6 +18,23 @@ export function slashQuery(state: EditorState): SlashRange | null {
   return { from: $from.pos - query.length - 1, to: $from.pos, query };
 }
 
+// 커서 앞 텍스트가 "[[질의"로 끝나면 그 범위 (다른 메모로 가는 링크 고르기). 질의에는 공백이 들어가도 된다.
+export function linkQuery(state: EditorState): SlashRange | null {
+  const { $from, empty } = state.selection;
+  if (!empty || !$from.parent.isTextblock || $from.parent.type.name === "codeBlock") return null;
+  // 링크는 한 줄을 통째로 차지하는 블록이라 넣을 수 없는 자리가 있다. 표 칸에 넣으면 마크다운 표로 저장되지 않고,
+  // 할 일 항목에 넣으면 "- [ ] [[경로]]"가 되어 다시 읽을 때 링크로 돌아오지 않는다.
+  for (let d = $from.depth; d > 0; d--) {
+    if (["tableCell", "tableHeader", "taskItem"].includes($from.node(d).type.name)) return null;
+  }
+  const text = $from.parent.textBetween(0, $from.parentOffset, undefined, "￼");
+  const i = text.lastIndexOf("[[");
+  if (i === -1) return null;
+  const query = text.slice(i + 2);
+  if (/[[\]￼]/.test(query)) return null;
+  return { from: $from.pos - query.length - 2, to: $from.pos, query };
+}
+
 export type SlashKey = "up" | "down" | "enter" | "escape";
 
 // 메뉴가 열려 있는 동안 ↑↓·Enter·Esc를 가로챈다. 열려 있지 않으면(handler가 false) 편집기 기본 동작으로.

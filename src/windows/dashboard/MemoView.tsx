@@ -9,6 +9,7 @@ import {
   reorderEntry,
 } from "../../shared/api";
 import type { TreeNode } from "../../shared/api";
+import Icon from "../../shared/Icon";
 import { reportError } from "../../shared/stores/error";
 import { useSettings } from "../../shared/stores/settings";
 import { collectNotePaths, useMemoStore } from "../../modules/memo/store";
@@ -83,6 +84,7 @@ export default function MemoView({ requested }: Props) {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       e.preventDefault();
+      e.stopImmediatePropagation(); // Esc 한 번에 한 겹만 닫는다
       setCtx(null);
     };
     window.addEventListener("keydown", onKey, true);
@@ -279,7 +281,7 @@ export default function MemoView({ requested }: Props) {
             onClick={() => setSearchOpen(true)}
             title="제목과 본문에서 찾기 (Ctrl+F)"
           >
-            🔍 검색
+            <Icon name="search" size={12} /> 검색
           </button>
         </div>
         <div className="pinned">
@@ -287,7 +289,7 @@ export default function MemoView({ requested }: Props) {
             className={"quick-memo" + (selected === QUICK_MEMO ? " selected" : "")}
             onClick={() => selectNote(QUICK_MEMO)}
           >
-            <span className="pinned-icon">⚡</span>빠른 메모
+            <span className="pinned-icon"><Icon name="bolt" /></span>빠른 메모
           </button>
         </div>
         {visibleFavorites.length > 0 && (
