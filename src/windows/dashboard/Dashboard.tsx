@@ -25,6 +25,7 @@ import SettingsView from "./SettingsView";
 import MemoView from "./MemoView";
 import Home from "./Home";
 import type { CommandId } from "../../modules/launcher/commands";
+import Palette from "../../modules/palette/Palette";
 
 export type View =
   | "home"
@@ -119,6 +120,11 @@ const ICON: Record<View, JSX.Element> = {
 
 const isView = (s: string): s is View => NAV.some(([v]) => v === s);
 
+// 통합 검색에서 화면 이동 명령 옆에 보여 줄 단축키 (레일 순서 = Ctrl+1~9)
+const NAV_SHORTCUTS: Partial<Record<CommandId, string>> = Object.fromEntries(
+  NAV.slice(0, 9).map(([v], i) => [v, `Ctrl+${i + 1}`]),
+);
+
 // Orbit 창. 왼쪽 레일로 화면을 고른다. 이 창 하나가 앱의 전부이고, 닫으면 오브와 트레이만 남는다.
 export default function Dashboard() {
   const loaded = useSettings((s) => s.loaded);
@@ -128,6 +134,7 @@ export default function Dashboard() {
   const [memoPath, setMemoPath] = useState<{ path: string; seq: number } | null>(null);
   const [launcherFocus, setLauncherFocus] = useState(0); // Alt+Space로 들어오면 런처 화면의 실행 입력창에 포커스
   const [maximized, setMaximized] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false); // 통합 검색 (Ctrl+K)
   const error = useError((s) => s.error);
   const clearError = useError((s) => s.clear);
 
@@ -155,6 +162,7 @@ export default function Dashboard() {
       const v = at === -1 ? e.payload : e.payload.slice(0, at);
       const arg = at === -1 ? "" : e.payload.slice(at + 1);
       if (!isView(v)) return;
+      setPaletteOpen(false); // 단축키로 화면이 바뀌는데 검색창이 위에 남지 않게
       if (v === "memo" && arg) {
         openMemo(arg);
         return;
@@ -170,6 +178,12 @@ export default function Dashboard() {
       // 편집기가 이미 처리한 키(예: "/" 메뉴를 닫는 Esc)는 창을 숨기지 않는다
       if (e.key === "Escape" && !e.defaultPrevented) {
         void getCurrentWindow().hide();
+        return;
+      }
+      // Ctrl+K: 어느 화면에서든 통합 검색
+      if (e.ctrlKey && !e.shiftKey && !e.altKey && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
         return;
       }
       // Ctrl+1~9: 왼쪽 레일에 보이는 순서대로 화면 전환
@@ -235,6 +249,26 @@ export default function Dashboard() {
           Orbit
         </span>
         <Clock />
+        <button
+          className="dash-head-btn dash-search-btn"
+          onClick={() => setPaletteOpen(true)}
+          title="메모·할 일·명령·앱 찾기 (Ctrl+K)"
+          aria-label="통합 검색"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="square"
+            aria-hidden="true"
+          >
+            <circle cx="7" cy="7" r="4.5" />
+            <path d="m10.5 10.5 3.5 3.5" />
+          </svg>
+        </button>
         <TimerHeadButton onOpenTimer={() => setView("timer")} />
         <button
           className="dash-head-btn"
@@ -313,6 +347,16 @@ export default function Dashboard() {
           {view === "settings" && <SettingsView onOpenLauncher={() => setView("launcher")} />}
         </main>
       </div>
+      {paletteOpen && (
+        <Palette
+          onClose={() => setPaletteOpen(false)}
+          onOpenMemo={openMemo}
+          onOpenTodos={() => setView("todo")}
+          onCommand={runCommand}
+          onLaunched={hide}
+          shortcuts={NAV_SHORTCUTS}
+        />
+      )}
     </div>
   );
 }

@@ -46,6 +46,7 @@ import type { SlashKey, SlashRange } from "./slash";
 import { filterSlashItems } from "./slashItems";
 import type { SlashId } from "./slashItems";
 import SlashMenu from "./SlashMenu";
+import SelectionMenu from "./SelectionMenu";
 import { useMemoStore } from "./store";
 import { Subpage } from "./subpage";
 import { loadView, saveView } from "./viewState";
@@ -969,6 +970,7 @@ export default function Editor({
       <div className="editor-body" ref={bodyRef} style={{ fontSize: `${fontSize}px` }}>
         <EditorContent className="editor-content" editor={editor} />
       </div>
+      {editor && <SelectionMenu editor={editor} />}
       {editor && slash && slashItems.length > 0 && (
         <SlashMenu
           editor={editor}

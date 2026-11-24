@@ -21,6 +21,7 @@ type TreeProps = {
   onDelete: (path: string) => void;
   onNewNoteIn: (dir: string) => void;
   onContextMenu: (node: TreeNode, x: number, y: number) => void;
+  onAskDelete: (node: TreeNode, x: number, y: number) => void; // Delete 키: 바로 지우지 않고 한 번 묻는다
   onDragStart: (path: string) => void;
   onDragEnd: () => void;
 };
@@ -68,7 +69,10 @@ function RenameInput({
       onChange={(e) => setValue(e.target.value)}
       onKeyDown={(e) => {
         if (e.key === "Enter") commit();
-        else if (e.key === "Escape") cancel();
+        else if (e.key === "Escape") {
+          e.preventDefault(); // 이름 바꾸기만 취소하고 창은 숨기지 않는다
+          cancel();
+        }
       }}
       onBlur={commit}
     />
@@ -101,6 +105,7 @@ function TreeItem({
   onDelete,
   onNewNoteIn,
   onContextMenu,
+  onAskDelete,
   onDragStart,
   onDragEnd,
 }: ItemProps) {
@@ -201,6 +206,19 @@ function TreeItem({
       onDragStart(node.path);
     },
     onDragEnd,
+    // 행에 포커스가 있을 때 F2 = 이름 바꾸기, Delete = 삭제 확인(행 아래에 뜸).
+    // 폴더를 펼치려고 누른 뒤에도 포커스가 행에 남으므로 Delete 한 번에 바로 지우지 않는다.
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.repeat) return;
+      if (e.key === "F2") {
+        e.preventDefault();
+        onStartRename(node.path);
+      } else if (e.key === "Delete") {
+        e.preventDefault();
+        const r = e.currentTarget.getBoundingClientRect();
+        onAskDelete(node, r.left + 16, r.bottom);
+      }
+    },
     onContextMenu: (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -259,6 +277,7 @@ function TreeItem({
               onDelete={onDelete}
               onNewNoteIn={onNewNoteIn}
               onContextMenu={onContextMenu}
+              onAskDelete={onAskDelete}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
             />

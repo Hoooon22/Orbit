@@ -74,6 +74,20 @@ export default function MemoView({ requested }: Props) {
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
   const [collapsedOnce, setCollapsedOnce] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  // 트리 우클릭 메뉴. confirm이면 Delete 키로 연 삭제 확인(삭제·취소만)
+  const [ctx, setCtx] = useState<{ node: TreeNode; x: number; y: number; confirm?: boolean } | null>(null);
+
+  // 메뉴가 떠 있을 때 Esc는 메뉴만 닫는다 (캡처 단계에서 먼저 받아 창 숨김을 막는다)
+  useEffect(() => {
+    if (!ctx) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      setCtx(null);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [ctx]);
   // 목록 너비: 경계선을 끌어 조절하고 설정에 저장 (긴 제목이 잘리지 않게 넓힐 수 있다)
   const sideWidth = useSettings((s) => s.settings.memoSideWidth);
   const updateSettings = useSettings((s) => s.update);
@@ -322,7 +336,8 @@ export default function MemoView({ requested }: Props) {
             onReorder={reorder}
             onDelete={remove}
             onNewNoteIn={(dir) => void newNote(dir)}
-            onContextMenu={() => {}}
+            onContextMenu={(node, x, y) => setCtx({ node, x, y })}
+            onAskDelete={(node, x, y) => setCtx({ node, x, y, confirm: true })}
             onDragStart={setDragging}
             onDragEnd={() => setDragging(null)}
           />
@@ -352,6 +367,53 @@ export default function MemoView({ requested }: Props) {
           ancestors={ancestors}
         />
       </div>
+      {ctx && (
+        <>
+          <div
+            className="ctx-backdrop"
+            onClick={() => setCtx(null)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              setCtx(null);
+            }}
+          />
+          <div
+            className="ctx-menu"
+            // 창 아래·오른쪽 끝에서 잘리지 않게 안쪽으로 당긴다
+            style={{
+              left: Math.min(ctx.x, window.innerWidth - 170),
+              top: Math.min(ctx.y, window.innerHeight - 150),
+            }}
+            onClick={() => setCtx(null)}
+          >
+            {ctx.confirm ? (
+              <>
+                <button className="danger" autoFocus onClick={() => remove(ctx.node.path)}>
+                  "{noteName(ctx.node.path)}" {ctx.node.isDir ? "폴더째 " : ""}삭제 (휴지통으로)
+                </button>
+                <button>취소</button>
+              </>
+            ) : (
+              <>
+                {ctx.node.isDir ? (
+                  <button onClick={() => void newNote(ctx.node.path)}>이 폴더에 새 메모</button>
+                ) : (
+                  <>
+                    <button onClick={() => selectNote(ctx.node.path)}>열기</button>
+                    <button onClick={() => toggleFavorite(ctx.node.path)}>
+                      {favorites.includes(ctx.node.path) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                    </button>
+                  </>
+                )}
+                <button onClick={() => setRenamingPath(ctx.node.path)}>이름 바꾸기 (F2)</button>
+                <button className="danger" onClick={() => remove(ctx.node.path)}>
+                  삭제 (휴지통으로)
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
       {searchOpen && (
         <SearchModal
           currentPath={selected}
